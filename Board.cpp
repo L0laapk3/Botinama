@@ -13,20 +13,19 @@ constexpr std::array<uint32_t, 2> CARDS_PLAYERMASK{ 0xffULL, 0xff00ULL };
 constexpr uint32_t CARDS_SWAPMASK = 0xff0000ULL;
 
 
-Board::Board(std::string str) {
+Board Board::fromString(std::string str) {
+	Board board;
 	for (int i = 0; i < 25; i++) {
 		if (str[i] == '1' || str[i] == '2')
-			pieces[0] |= 1 << i;
+			board.pieces[0] |= 1 << i;
 		if (str[i] == '3' || str[i] == '4')
-			pieces[1] |= 1 << i;
+			board.pieces[1] |= 1 << i;
 		if (str[i] == '2' || str[i] == '4')
-			kings |= 1 << i;
+			board.kings |= 1 << i;
 	}
+	return board;
 }
 
-
-Board::Board(std::array<uint32_t, 2> pieces, uint32_t kings, bool player, uint32_t cards) : pieces{ pieces }, kings{ kings }, player{ player }, cards{ cards } { }
-Board::Board(const Board& board) : pieces{ board.pieces }, kings{ board.kings }, player{ board.player }, cards{ board.cards } { };
 
 
 bool Board::finished() const {
@@ -75,7 +74,7 @@ void Board::print(GameCards& gameCards, std::vector<Board> boards) {
 				std::string end = board.finished() ? "END " : "    ";
 				end += board.player ? '+' : 'o';
 				const auto swapCardName = cardsShortName(gameCards, board.cards >> 16, 5);
-				std::cout << end[4 - r] << '|';
+				std::cout << end[4ULL - r] << '|';
 				for (int c = 0; c < 5; c++) {
 					const int mask = 1 << (5 * r + c);
 					if (board.pieces[0] & board.pieces[1] & mask)
@@ -109,7 +108,7 @@ void printCards(std::vector<uint32_t> cardsVec) {
 }
 
 
-void Board::iterateMoves(const CardBoard& card, uint32_t newCards, bool movingPlayer, MoveFunc& cb) const {
+void Board::iterateMoves(Moves& moves, const CardBoard& card, uint32_t newCards, bool movingPlayer) const {
 	//card.print();
 	uint32_t playerPieces = pieces[movingPlayer];
 	unsigned long from;
@@ -126,12 +125,13 @@ void Board::iterateMoves(const CardBoard& card, uint32_t newCards, bool movingPl
 			std::array<uint32_t, 2> newBoards{ boardsWithoutPiece };
 			newBoards[movingPlayer] |= (1 << to);
 			newBoards[!movingPlayer] &= ~(1 << to);
-			cb(Board(newBoards, kingsWithoutPiece | ((1 << to) & newKingMask), !player, newCards));
+			moves.outputs[moves.size++] = { newBoards, kingsWithoutPiece | ((1 << to) & newKingMask), !player, newCards };
 		}
 	}
 }
 
-void Board::forwardMoves(GameCards& gameCards, MoveFunc cb) const {
+Moves Board::forwardMoves(GameCards& gameCards) const {
+	Moves out;
 	uint32_t cardScan = cards & CARDS_PLAYERMASK[player];
 	for (int i = 0; i < 2; i++) {
 		unsigned long cardI;
@@ -139,11 +139,13 @@ void Board::forwardMoves(GameCards& gameCards, MoveFunc cb) const {
 		cardScan &= ~(1ULL << cardI);
 		uint32_t newCards = (cards & ~CARDS_SWAPMASK & ~(1 << cardI)) | ((cards & CARDS_SWAPMASK) >> (player ? 8 : 16)) | (1 << (cardI + (player ? 8 : 16)));
 		const auto& card = gameCards[cardI & 7];
-		iterateMoves(card, newCards, player, cb);
+		iterateMoves(out, card, newCards, player);
 	}
+	return out;
 }
 
-void Board::reverseMoves(GameCards& gameCards, MoveFunc cb) const {
+Moves Board::reverseMoves(GameCards& gameCards) const {
+	Moves out;
 	unsigned long swapCardI;
 	_BitScanForward(&swapCardI, cards & CARDS_SWAPMASK);
 	uint32_t cardScan = cards & CARDS_PLAYERMASK[!player];
@@ -153,6 +155,7 @@ void Board::reverseMoves(GameCards& gameCards, MoveFunc cb) const {
 	uint32_t firstCard = 1ULL << playerCardI;
 	uint32_t secondCard = cards & CARDS_PLAYERMASK[!player] & ~firstCard;
 	uint32_t newCards = (cards & 0xffffULL) | swapCardPlayerMask;
-	iterateMoves(gameCards[swapCardI & 7], (newCards & ~firstCard) | (firstCard << (!player ? 8 : 16)), !player, cb);
-	iterateMoves(gameCards[swapCardI & 7], (newCards & ~secondCard) | (secondCard << (!player ? 8 : 16)), !player, cb);
+	iterateMoves(out, gameCards[swapCardI & 7], (newCards & ~firstCard) | (firstCard << (!player ? 8 : 16)), !player);
+	iterateMoves(out, gameCards[swapCardI & 7], (newCards & ~secondCard) | (secondCard << (!player ? 8 : 16)), !player);
+	return out;
 }
