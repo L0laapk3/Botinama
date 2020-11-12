@@ -14,7 +14,7 @@ int main() {
 	//Board b = Board("0000001000001000000000000");
 	b.print(cardStack);
 	std::vector<Board> boards;
-	b.forwardMoves(cardStack, [&](Board board) {
+	b.reverseMoves(cardStack, [&](Board board) {
 		boards.push_back(board);
 	});
 	Board::print(cardStack, boards);

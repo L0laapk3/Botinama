@@ -95,7 +95,7 @@ void printCards(std::vector<uint32_t> cardsVec) {
 }
 
 
-void Board::iterateMoves(const CardBoard& card, uint32_t newCards, bool movingPlayer, MoveFunc& cb) const {
+void Board::iterateMoves(const CardBoard& card, std::initializer_list<uint32_t> allNewCards, bool movingPlayer, MoveFunc& cb) const {
 	card.print();
 	uint32_t playerPieces = pieces[movingPlayer];
 	unsigned long from;
@@ -111,7 +111,8 @@ void Board::iterateMoves(const CardBoard& card, uint32_t newCards, bool movingPl
 			scan &= ~(1 << to);
 			std::array<uint32_t, 2> newBoards{ boardsWithoutPiece };
 			newBoards[movingPlayer] |= (1 << to);
-			cb(Board(newBoards, kingsWithoutPiece | ((1 << to) & newKingMask), !player, newCards));
+			for (const auto& newCards : allNewCards)
+				cb(Board(newBoards, kingsWithoutPiece | ((1 << to) & newKingMask), !player, newCards));
 		}
 	}
 }
@@ -124,7 +125,7 @@ void Board::forwardMoves(std::array<const CardBoard, 5>& gameCards, MoveFunc cb)
 		cardScan &= ~(1ULL << cardI);
 		uint32_t newCards = (cards & ~CARDS_SWAPMASK & ~(1 << cardI)) | ((cards & CARDS_SWAPMASK) >> (player ? 8 : 16)) | (1 << (cardI + (player ? 8 : 16)));
 		const auto& card = gameCards[cardI & 7];
-		iterateMoves(card, newCards, player, cb);
+		iterateMoves(card, { newCards }, player, cb);
 	}
 }
 
@@ -138,6 +139,8 @@ void Board::reverseMoves(std::array<const CardBoard, 5>& gameCards, MoveFunc cb)
 	uint32_t firstCard = 1ULL << playerCardI;
 	uint32_t secondCard = cards & CARDS_PLAYERMASK[!player] & ~firstCard;
 	uint32_t newCards = (cards & 0xffffULL) | swapCardPlayerMask;
-	iterateMoves(gameCards[swapCardI & 7], (newCards & ~firstCard) | (firstCard << (!player ? 8 : 16)), !player, cb);
-	iterateMoves(gameCards[swapCardI & 7], (newCards & ~secondCard) | (secondCard << (!player ? 8 : 16)), !player, cb);
+	iterateMoves(gameCards[swapCardI & 7], {
+		(newCards & ~firstCard) | (firstCard << (!player ? 8 : 16)),
+		(newCards & ~secondCard) | (secondCard << (!player ? 8 : 16))
+	}, !player, cb);
 }

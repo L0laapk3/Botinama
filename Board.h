@@ -28,5 +28,5 @@ public:
 	void forwardMoves(std::array<const CardBoard, 5>& gameCards, MoveFunc cb) const;
 	void reverseMoves(std::array<const CardBoard, 5>& gameCards, MoveFunc cb) const;
 private:
-	void iterateMoves(const CardBoard& card, uint32_t newCards, bool movingPlayer, MoveFunc& cb) const;
+	void iterateMoves(const CardBoard& card, std::initializer_list<uint32_t> allNewCards, bool movingPlayer, MoveFunc& cb) const;
 };
