@@ -10,6 +10,7 @@ class Card {
 public:
 	const std::string name;
 	const bb moves;
+
 	Card(std::string name, bb moves);
 	void print() const;
 	static void print(std::vector<bb> cards);

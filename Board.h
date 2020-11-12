@@ -30,6 +30,7 @@ private:
 	void iterateMoves(Moves& out, const CardBoard& card, uint32_t newCards, bool movingPlayer) const;
 };
 
+
 struct Moves {
 	unsigned long size = 0;
 	std::array<Board, 8 * 5> outputs;

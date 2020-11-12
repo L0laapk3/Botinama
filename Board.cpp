@@ -9,7 +9,7 @@
 #pragma intrinsic(_BitScanForward)
 
 
-constexpr std::array<uint32_t, 2> CARDS_PLAYERMASK{ 0xffULL, 0xff00ULL };
+constexpr uint32_t CARDS_PLAYERMASK{ 0xffULL, 0xff00ULL };
 constexpr uint32_t CARDS_SWAPMASK = 0xff0000ULL;
 
 
@@ -106,7 +106,6 @@ void printCards(std::vector<uint32_t> cardsVec) {
 		std::cout << std::bitset<8>(cards >> 16) << ' ' << std::bitset<8>(cards >> 8) << ' ' << std::bitset<8>(cards) << "  ";
 	std::cout << std::endl;
 }
-
 
 void Board::iterateMoves(Moves& moves, const CardBoard& card, uint32_t newCards, bool movingPlayer) const {
 	//card.print();
