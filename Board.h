@@ -11,10 +11,9 @@ struct Moves;
 
 class Board {
 public:
-	std::array<uint32_t, 2> pieces{ 0 };
-	uint32_t kings = 0;
+	std::array<uint32_t, 2> pieces;
+	uint32_t kings;
 	bool player = false;
-	uint32_t cards = 0b10000'000'01100'000'00011;
 
 	static Board fromString(std::string str);
 
