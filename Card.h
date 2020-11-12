@@ -13,6 +13,7 @@ public:
 	Card(std::string name, bb moves);
 	void print() const;
 	static void print(std::vector<bb> cards);
+	static void print(std::vector<Card> cards);
 
 	static const Card* findCard(const std::string& name);
 };

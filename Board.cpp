@@ -72,7 +72,8 @@ void Board::print(GameCards& gameCards, std::vector<Board> boards) {
 		for (int r = 5; r-- > 0;) {
 			for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
 				const Board& board = boards[i];
-				std::string end = board.finished() ? " END " : "     ";
+				std::string end = board.finished() ? "END " : "    ";
+				end += board.player ? '+' : 'o';
 				const auto swapCardName = cardsShortName(gameCards, board.cards >> 16, 5);
 				std::cout << end[4 - r] << '|';
 				for (int c = 0; c < 5; c++) {
@@ -80,9 +81,9 @@ void Board::print(GameCards& gameCards, std::vector<Board> boards) {
 					if (board.pieces[0] & board.pieces[1] & mask)
 						std::cout << ((board.kings & mask) ? 'e' : '?');
 					else if (board.pieces[0] & mask)
-						std::cout << ((board.kings & mask) ? '0' : 'o');
+						std::cout << ((board.kings & mask) ? '0' : 'o'); // bloo
 					else if (board.pieces[1] & mask)
-						std::cout << ((board.kings & mask) ? 'X' : '+');
+						std::cout << ((board.kings & mask) ? 'X' : '+'); // +ed
 					else
 						std::cout << ((board.kings & mask) ? '!' : ' ');
 				}

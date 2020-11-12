@@ -7,16 +7,20 @@
 #include "Card.h"
 #include "CardBoard.h"
 #include <string>
+#include <bitset>
 
 
 
+std::vector<Board> boards3;
+std::vector<Board> boards4;
 void recurse(GameCards& gameCards, Board& board, int depth, unsigned long long& count) {
-	std::vector<Board> boards;
 	board.valid(gameCards);
-	board.forwardMoves(gameCards, [&](Board newBoard) {
-		boards.push_back(newBoard);
+	std::vector<Board> boards;
+	bool first = true;
+	board.forwardMoves(gameCards, [&](Board board) {
+		boards.push_back(board);
 		if (depth > 1 && !board.finished())
-			recurse(gameCards, newBoard, depth - 1, count);
+			recurse(gameCards, board, depth - 1, count);
 		else
 			count++;
 	});
@@ -28,10 +32,12 @@ int main() {
 	Board board = Board("1121100000000000000033433");
 	//Board b = Board("0000001000001000000000000");
 	board.print(gameCards);
-	
-	for (int depth = 1; depth < 7; depth++) {
+
+	for (int depth = 1; depth < 9; depth++) {
 		unsigned long long count = 0;
 		recurse(gameCards, board, depth, count);
 		std::cout << depth << " " << count << std::endl;
 	}
+	Board::print(gameCards, boards3);
+	Board::print(gameCards, boards4);
 }

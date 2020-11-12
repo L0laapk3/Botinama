@@ -6,18 +6,31 @@
 Card::Card(std::string name, bb moves) : name(name), moves(moves) { }
 
 void Card::print() const {
-	Card::print({ moves });
+	Card::print({ *this });
+}
+void Card::print(std::vector<Card> cards) {
+	for (int r = 5; r-- > 0;) {
+		for (const auto& card : cards) {
+			for (int c = 0; c < 5; c++) {
+				const int mask = 1 << (5 * r + c);
+				if (r == 2 && c == 2)
+					std::cout << 'x';
+				else
+					std::cout << ((card.moves & mask) ? 'o' : ' ');
+			}
+			std::cout << ' ';
+		}
+		std::cout << std::endl;
+	}
 }
 void Card::print(std::vector<bb> moves) {
 	for (int r = 5; r-- > 0;) {
 		for (const auto& move : moves) {
 			for (int c = 0; c < 5; c++) {
 				const int mask = 1 << (5 * r + c);
-				if (r == 2 && c == 2)
-					std::cout << 'x';
-				else
-					std::cout << ((move & mask) ? 'o' : ' ');
+				std::cout << ((move & mask) ? 'o' : '-');
 			}
+			std::cout << ' ';
 		}
 		std::cout << std::endl;
 	}
