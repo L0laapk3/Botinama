@@ -2,13 +2,16 @@
 
 #include <string>
 #include <array>
+#include <vector>
 
 typedef unsigned long long bb;
 class Card {
 public:
-	std::string name;
-	bb moves;
+	const std::string name;
+	const bb moves;
 	Card(std::string name, bb moves);
+	void print() const;
+	static void print(std::vector<bb> cards);
 };
 
-extern std::array<Card, 16> Cards;
+extern std::array<const Card, 16> CARDS;
