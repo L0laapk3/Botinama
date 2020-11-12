@@ -19,14 +19,17 @@ public:
 	Board(std::array<uint32_t, 2> pieces, uint32_t kings, bool player, uint32_t cards);
 	std::array<uint32_t, 2> pieces{ 0 };
 	uint32_t kings = 0;
-	bool player = true;
+	bool player = false;
 	uint32_t cards = 0b10000'000'01100'000'00011;
 
-	void print(std::array<const CardBoard, 5>& gameCards) const;
-	static void print(std::array<const CardBoard, 5>& gameCards, std::vector<Board> board);
+	void print(GameCards& gameCards) const;
+	static void print(GameCards& gameCards, std::vector<Board> board);
 
-	void forwardMoves(std::array<const CardBoard, 5>& gameCards, MoveFunc cb) const;
-	void reverseMoves(std::array<const CardBoard, 5>& gameCards, MoveFunc cb) const;
+	void valid(GameCards& gameCards) const;
+	bool finished() const;
+	bool winner() const;
+	void forwardMoves(GameCards& gameCards, MoveFunc cb) const;
+	void reverseMoves(GameCards& gameCards, MoveFunc cb) const;
 private:
 	void iterateMoves(const CardBoard& card, uint32_t newCards, bool movingPlayer, MoveFunc& cb) const;
 };

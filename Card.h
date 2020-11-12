@@ -5,6 +5,7 @@
 #include <vector>
 
 typedef unsigned long long bb;
+class Card;
 class Card {
 public:
 	const std::string name;
@@ -12,6 +13,8 @@ public:
 	Card(std::string name, bb moves);
 	void print() const;
 	static void print(std::vector<bb> cards);
+
+	static const Card* findCard(const std::string& name);
 };
 
 extern std::array<const Card, 16> CARDS;

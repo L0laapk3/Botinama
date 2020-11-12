@@ -22,15 +22,27 @@ Board::Board(std::string str) {
 		if (str[i] == '2' || str[i] == '4')
 			kings |= 1 << i;
 	}
-
-	unsigned long i = 4;
-	std::cout << (int)_BitScanForward(&i, kings) << " ";
-	std::cout << i << "\n";
 }
 
 
 Board::Board(std::array<uint32_t, 2> pieces, uint32_t kings, bool player, uint32_t cards) : pieces{ pieces }, kings{ kings }, player{ player }, cards{ cards } { }
 Board::Board(const Board& board) : pieces{ board.pieces }, kings{ board.kings }, player{ board.player }, cards{ board.cards } { };
+
+
+bool Board::finished() const {
+	return !((kings & pieces[0] & 0b11011'11111'11111'11111'11111ULL) && (kings & pieces[1] & 0b11111'11111'11111'11111'11011ULL));
+}
+bool Board::winner() const {
+	return !player;
+}
+void Board::valid(GameCards& gameCards) const {
+	auto doublePiece = pieces[0] & pieces[1];
+	auto kingWithoutPiece = kings & ~(pieces[0] | pieces[1]);
+	if (doublePiece || kingWithoutPiece) {
+		print(gameCards);
+		throw "invalid board";
+	}
+}
 
 
 std::string cardsShortName(std::array<const CardBoard, 5>& gameCards, uint32_t bits, unsigned long long length) {
@@ -46,10 +58,10 @@ std::string cardsShortName(std::array<const CardBoard, 5>& gameCards, uint32_t b
 	}
 	return res;
 }
-void Board::print(std::array<const CardBoard, 5>& gameCards) const {
+void Board::print(GameCards& gameCards) const {
 	Board::print(gameCards, { *this });
 }
-void Board::print(std::array<const CardBoard, 5>& gameCards, std::vector<Board> boards) {
+void Board::print(GameCards& gameCards, std::vector<Board> boards) {
 	constexpr size_t MAXPERLINE = 10;
 	for (size_t batch = 0; batch < boards.size(); batch += MAXPERLINE) {
 		for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
@@ -60,8 +72,9 @@ void Board::print(std::array<const CardBoard, 5>& gameCards, std::vector<Board> 
 		for (int r = 5; r-- > 0;) {
 			for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
 				const Board& board = boards[i];
+				std::string end = board.finished() ? " END " : "     ";
 				const auto swapCardName = cardsShortName(gameCards, board.cards >> 16, 5);
-				std::cout << " |";
+				std::cout << end[4 - r] << '|';
 				for (int c = 0; c < 5; c++) {
 					const int mask = 1 << (5 * r + c);
 					if (board.pieces[0] & board.pieces[1] & mask)
@@ -96,7 +109,7 @@ void printCards(std::vector<uint32_t> cardsVec) {
 
 
 void Board::iterateMoves(const CardBoard& card, uint32_t newCards, bool movingPlayer, MoveFunc& cb) const {
-	card.print();
+	//card.print();
 	uint32_t playerPieces = pieces[movingPlayer];
 	unsigned long from;
 	while (_BitScanForward(&from, playerPieces)) {
@@ -111,12 +124,13 @@ void Board::iterateMoves(const CardBoard& card, uint32_t newCards, bool movingPl
 			scan &= ~(1 << to);
 			std::array<uint32_t, 2> newBoards{ boardsWithoutPiece };
 			newBoards[movingPlayer] |= (1 << to);
+			newBoards[!movingPlayer] &= ~(1 << to);
 			cb(Board(newBoards, kingsWithoutPiece | ((1 << to) & newKingMask), !player, newCards));
 		}
 	}
 }
 
-void Board::forwardMoves(std::array<const CardBoard, 5>& gameCards, MoveFunc cb) const {
+void Board::forwardMoves(GameCards& gameCards, MoveFunc cb) const {
 	uint32_t cardScan = cards & CARDS_PLAYERMASK[player];
 	for (int i = 0; i < 2; i++) {
 		unsigned long cardI;
@@ -128,7 +142,7 @@ void Board::forwardMoves(std::array<const CardBoard, 5>& gameCards, MoveFunc cb)
 	}
 }
 
-void Board::reverseMoves(std::array<const CardBoard, 5>& gameCards, MoveFunc cb) const {
+void Board::reverseMoves(GameCards& gameCards, MoveFunc cb) const {
 	unsigned long swapCardI;
 	_BitScanForward(&swapCardI, cards & CARDS_SWAPMASK);
 	uint32_t cardScan = cards & CARDS_PLAYERMASK[!player];

@@ -23,6 +23,10 @@ void Card::print(std::vector<bb> moves) {
 	}
 }
 
+const Card* Card::findCard(const std::string& name) {
+	return &CARDS[0] + (std::find_if(CARDS.begin(), CARDS.end(), [&](const Card& card) { return card.name == name; }) - CARDS.begin());
+}
+
 std::array<const Card, 16> CARDS = {
 	Card("rabbit", 0b0000001000100000001000000ULL),
 	Card("monkey", 0b0000001010000000101000000ULL),

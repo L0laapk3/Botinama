@@ -8,16 +8,30 @@
 #include "CardBoard.h"
 #include <string>
 
-int main() {
-	std::array<const CardBoard, 5> cardStack{ CARDS[0], CARDS[1], CARDS[2], CARDS[15], CARDS[4] };
-	Board b = Board("1121100000000000000033433");
-	//Board b = Board("0000001000001000000000000");
-	b.print(cardStack);
-	std::vector<Board> boards;
-	b.forwardMoves(cardStack, [&](Board board) {
-		boards.push_back(board);
-	});
-	Board::print(cardStack, boards);
 
-	CardBoard cb(CARDS[1]);
+
+void recurse(GameCards& gameCards, Board& board, int depth, unsigned long long& count) {
+	std::vector<Board> boards;
+	board.valid(gameCards);
+	board.forwardMoves(gameCards, [&](Board newBoard) {
+		boards.push_back(newBoard);
+		if (depth > 1 && !board.finished())
+			recurse(gameCards, newBoard, depth - 1, count);
+		else
+			count++;
+	});
+	//Board::print(gameCards, boards);
+}
+
+int main() {
+	GameCards gameCards = CardBoard::fetchGameCards({ "ox", "boar", "horse", "elephant", "crab" });
+	Board board = Board("1121100000000000000033433");
+	//Board b = Board("0000001000001000000000000");
+	board.print(gameCards);
+	
+	for (int depth = 1; depth < 7; depth++) {
+		unsigned long long count = 0;
+		recurse(gameCards, board, depth, count);
+		std::cout << depth << " " << count << std::endl;
+	}
 }
