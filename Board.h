@@ -5,9 +5,19 @@
 #include <list>
 #include "CardBoard.h"
 #include <span>
+#include <functional>
 
+constexpr uint32_t MASK_TURN = 1 << 25;
+constexpr uint32_t MASK_FINISH = 1 << 26;
+constexpr uint32_t MASK_CARDS = 0x1f << 27;
 
-struct Moves;
+constexpr std::array<uint32_t, 2> END_POSITIONS = {
+	0b00100 << 20,
+	0b00100
+};
+
+class Board;
+typedef void (*MoveFunc)(GameCards& gameCards, const Board& board, const bool finished, unsigned long long depth);
 
 class Board {
 public:
@@ -22,10 +32,50 @@ public:
 	void valid(GameCards& gameCards) const;
 	bool finished() const;
 	bool winner() const;
-	Moves forwardMoves(GameCards& gameCards) const;
-	Moves reverseMoves(GameCards& gameCards) const;
+
 private:
-	void iterateMoves(Moves& out, const CardBoard& card, uint32_t newCards, bool player, bool movingPlayer) const;
+	template<MoveFunc cb>
+	void iterateMoves(GameCards& gameCards, const CardBoard& card, uint32_t playerPieces, bool player, bool movingPlayer, unsigned long long depth) const {
+		//card.print();
+		unsigned long from;
+		uint32_t bitScan = pieces[movingPlayer] & 0x1ffffff;
+		while (_BitScanForward(&from, bitScan)) {
+			bitScan &= ~(1 << from);
+			std::array<uint32_t, 2> boardsWithoutPiece{ pieces };
+			boardsWithoutPiece[movingPlayer] = playerPieces & ~(1 << from);
+			boardsWithoutPiece[0] = (boardsWithoutPiece[0] & ~MASK_TURN) | ((!player) << 25);
+			uint32_t kingsWithoutPiece = kings & ~(1 << from);
+			uint32_t isMovingKing = kingsWithoutPiece == kings ? 0 : ~0;
+			uint32_t scan = card.moveBoard[player][from] & ~pieces[movingPlayer] & 0x1fffffff;
+			uint32_t endMask = (END_POSITIONS[movingPlayer] & isMovingKing) | kings; // to be &'d with nextBit. kind lands on temple | piece takes king
+			while (scan) {
+				uint32_t nextBit = scan & -scan;
+				scan &= ~nextBit;
+				Board board{};
+				board.pieces[movingPlayer] = boardsWithoutPiece[movingPlayer] | nextBit;
+				board.pieces[!movingPlayer] = boardsWithoutPiece[!movingPlayer] & ~nextBit;
+				board.kings = kingsWithoutPiece | (nextBit & isMovingKing);
+				const bool finished = nextBit & endMask;
+				cb(gameCards, board, finished, depth);
+			}
+		}
+	}
+public:
+	template<MoveFunc cb>
+	void forwardMoves(GameCards& gameCards, unsigned long long depth) const {
+		bool player = pieces[0] & MASK_TURN;
+		uint32_t cardScan = pieces[player] & MASK_CARDS;
+		uint32_t playerPiecesWithNew = pieces[player] | (MASK_CARDS & ~pieces[!player]);
+		for (int i = 0; i < 2; i++) {
+			unsigned long cardI;
+			_BitScanForward(&cardI, cardScan);
+			cardScan &= ~(1ULL << cardI);
+			uint32_t playerPieces = playerPiecesWithNew & ~(1ULL << cardI);
+			const auto& card = gameCards[cardI - 27];
+			iterateMoves<cb>(gameCards, card, playerPieces, player, player, depth);
+		}
+	}
+	//void reverseMoves(GameCards& gameCards, MoveFunc cb, int depth) const;
 };
 
 

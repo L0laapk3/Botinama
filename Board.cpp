@@ -9,14 +9,6 @@
 #pragma intrinsic(_BitScanForward)
 
 
-constexpr uint32_t MASK_TURN = 1 << 25;
-constexpr uint32_t MASK_FINISH = 1 << 26;
-constexpr uint32_t MASK_CARDS = 0x1f << 27;
-
-constexpr std::array<uint32_t, 2> END_POSITIONS = {
-	0b00100 << 20,
-	0b00100
-};
 
 
 Board Board::fromString(std::string str) {
@@ -146,50 +138,9 @@ void printCards(std::vector<uint32_t> cardsVec) {
 	std::cout << std::endl;
 }
 
-void Board::iterateMoves(Moves& moves, const CardBoard& card, uint32_t playerPieces, bool player, bool movingPlayer) const {
-	//card.print();
-	unsigned long from;
-	uint32_t bitScan = pieces[movingPlayer] & 0x1ffffff;
-	while (_BitScanForward(&from, bitScan)) {
-		bitScan &= ~(1 << from);
-		std::array<uint32_t, 2> boardsWithoutPiece{ pieces };
-		boardsWithoutPiece[movingPlayer] = playerPieces & ~(1 << from);
-		boardsWithoutPiece[0] = (boardsWithoutPiece[0] & ~MASK_TURN) | ((!player) << 25);
-		uint32_t kingsWithoutPiece = kings & ~(1 << from);
-		uint32_t isMovingKing = kingsWithoutPiece == kings ? 0 : ~0;
-		uint32_t scan = card.moveBoard[player][from] & ~pieces[movingPlayer] & 0x1fffffff;
-		uint32_t endMask = (END_POSITIONS[movingPlayer] & isMovingKing) | kings; // to be &'d with nextBit. kind lands on temple | piece takes king
-		while (scan) {
-			uint32_t nextBit = scan & -scan;
-			scan &= ~nextBit;
-			moves.outputs[moves.size].pieces[movingPlayer] = boardsWithoutPiece[movingPlayer] | nextBit;
-			moves.outputs[moves.size].pieces[!movingPlayer] = boardsWithoutPiece[!movingPlayer] & ~nextBit;
-			//const bool finished = nextBit & endMask;
-			moves.outputs[moves.size].kings = kingsWithoutPiece | (nextBit & isMovingKing);
-			moves.size++;
-		}
-	}
-}
 
-Moves Board::forwardMoves(GameCards& gameCards) const {
-	Moves out;
-	bool player = pieces[0] & MASK_TURN;
-	uint32_t cardScan = pieces[player] & MASK_CARDS;
-	uint32_t playerPiecesWithNew = pieces[player] | (MASK_CARDS & ~pieces[!player]);
-	for (int i = 0; i < 2; i++) {
-		unsigned long cardI;
-		_BitScanForward(&cardI, cardScan);
-		cardScan &= ~(1ULL << cardI);
-		uint32_t playerPieces = playerPiecesWithNew & ~(1ULL << cardI);
-		const auto& card = gameCards[cardI - 27];
-		iterateMoves(out, card, playerPieces, player, player);
-	}
-	return out;
-}
-
-Moves Board::reverseMoves(GameCards& gameCards) const {
-	Moves out;
-	/*
+/*
+void Board::reverseMoves(GameCards& gameCards, MoveFunc cb) const {
 	bool player = pieces[0] & MASK_TURN;
 	unsigned long swapCardI;
 	_BitScanForward(&swapCardI, cards & CARDS_SWAPMASK);
@@ -200,7 +151,7 @@ Moves Board::reverseMoves(GameCards& gameCards) const {
 	uint32_t firstCard = 1ULL << playerCardI;
 	uint32_t secondCard = cards & CARDS_PLAYERMASK[!player] & ~firstCard;
 	uint32_t newCards = (cards & 0xffffULL) | swapCardPlayerMask;
-	iterateMoves(out, gameCards[swapCardI & 7], (newCards & ~firstCard) | (firstCard << (!player ? 8 : 16)), player, !player);
-	iterateMoves(out, gameCards[swapCardI & 7], (newCards & ~secondCard) | (secondCard << (!player ? 8 : 16)), player, !player);*/
-	return out;
+	iterateMoves(gameCards[swapCardI & 7], (newCards & ~firstCard) | (firstCard << (!player ? 8 : 16)), player, !player, cb);
+	iterateMoves(gameCards[swapCardI & 7], (newCards & ~secondCard) | (secondCard << (!player ? 8 : 16)), player, !player, cb);
 }
+*/

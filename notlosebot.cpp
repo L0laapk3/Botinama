@@ -13,16 +13,14 @@
 
 
 unsigned long long count = 0;
-void recursive(GameCards& gameCards, const Board& board, int depth) {
-	if (board.finished())
-		return;
-	const Moves moves = board.forwardMoves(gameCards);
-	if (depth > 1)
-		for (int i = 0; i < moves.size; i++) {
-			recursive(gameCards, moves.outputs[i], depth - 1);
-		}
+void recursive(GameCards& gameCards, const Board& board, const bool finished, unsigned long long depth) {
+	if (depth > 0) {
+		if (!finished)
+			board.forwardMoves<*recursive>(gameCards, depth - 1);
+	}
 	else
-		count += moves.size;
+		count++;
+	
 }
 
 int main() {
@@ -33,7 +31,7 @@ int main() {
 	for (int depth = 1; depth <= 10; depth++) {
 		auto start = std::chrono::steady_clock::now();
 		count = 0;
-		recursive(gameCards, board, depth);
+		recursive(gameCards, board, false, depth);
 		auto end = std::chrono::steady_clock::now();
 		float nps = std::roundf(count / (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() * .001f));
 		std::cout << depth << '\t' << nps << "M/s\t" << count << std::endl;
