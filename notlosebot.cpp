@@ -12,19 +12,14 @@
 #include <algorithm>
 
 
-unsigned long long count = 0;
-void recursive(GameCards& gameCards, const Board& board, int depth) {
-	if (board.finished()) {
-		count++;
-		return;
-	}
+unsigned long long perft(GameCards& gameCards, const Board& board, int depth) {
+	if (!depth || board.finished())
+		return 1;
 	const Moves moves = board.forwardMoves(gameCards);
-	if (depth > 1)
-		for (auto i = moves.outputs.begin(); i < moves.end; i++) {
-			recursive(gameCards, *i, depth - 1);
-		}
-	else
-		count += moves.end - moves.outputs.begin();
+	auto total = 0ULL;
+	for (auto i = moves.outputs.begin(); i < moves.end; i++)
+		total += perft(gameCards, *i, depth - 1);
+	return total;
 }
 
 int main() {
@@ -34,8 +29,7 @@ int main() {
 
 	for (int depth = 1; depth <= 10; depth++) {
 		auto start = std::chrono::steady_clock::now();
-		count = 0;
-		recursive(gameCards, board, depth);
+		const auto count = perft(gameCards, board, depth);
 		auto end = std::chrono::steady_clock::now();
 		float nps = std::roundf(count / (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() * .001f));
 		std::cout << depth << '\t' << nps << "M/s\t" << count << std::endl;
