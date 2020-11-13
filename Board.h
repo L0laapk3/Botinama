@@ -13,7 +13,6 @@ class Board {
 public:
 	std::array<uint32_t, 2> pieces;
 	uint32_t kings;
-	bool player = false;
 
 	static Board fromString(std::string str);
 
@@ -26,7 +25,7 @@ public:
 	Moves forwardMoves(GameCards& gameCards) const;
 	Moves reverseMoves(GameCards& gameCards) const;
 private:
-	void iterateMoves(Moves& out, const CardBoard& card, uint32_t newCards, bool movingPlayer) const;
+	void iterateMoves(Moves& out, const CardBoard& card, uint32_t newCards, bool player, bool movingPlayer) const;
 };
 
 

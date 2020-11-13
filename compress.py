@@ -23,9 +23,10 @@ def boardToBits(s):
 	res *= ncr(23, 4) + ncr(23, 3) + ncr(23, 2) + ncr(23, 1) + ncr(23, 0)
 	ix = [i for i, x in enumerate(s) if x == '1']
 	for i in range(4, 0, -1):
-		if (len(ix) < i)
+		if (len(ix) < i):
 			res += ncr(23, i)
 		else:
+			pass
 			
 	
 
