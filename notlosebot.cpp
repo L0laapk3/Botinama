@@ -14,10 +14,8 @@
 
 unsigned long long count = 0;
 void recursive(GameCards& gameCards, const Board& board, const bool finished, unsigned long long depth) {
-	if (depth > 0) {
-		if (!finished)
-			board.forwardMoves<*recursive>(gameCards, depth - 1);
-	}
+	if (depth && !finished)
+		board.forwardMoves<*recursive>(gameCards, depth - 1);
 	else
 		count++;
 	
