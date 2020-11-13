@@ -51,7 +51,7 @@ private:
 			while (scan) {
 				uint32_t nextBit = scan & -scan;
 				scan &= ~nextBit;
-				Board board{};
+				Board board;
 				board.pieces[movingPlayer] = boardsWithoutPiece[movingPlayer] | nextBit;
 				board.pieces[!movingPlayer] = boardsWithoutPiece[!movingPlayer] & ~nextBit;
 				board.kings = kingsWithoutPiece | (nextBit & isMovingKing);
