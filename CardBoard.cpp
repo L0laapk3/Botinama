@@ -4,7 +4,7 @@
 #include <iostream>
 #include <bitset>
 
-CardBoard::CardBoard(CardBoard& card) : Card(card), moveBoard(card.moveBoard) { };
+CardBoard::CardBoard(const CardBoard& card) : Card(card), moveBoard(card.moveBoard) { };
 CardBoard::CardBoard(const Card* card) : Card(card->name, card->moves) {
     constexpr std::array<uint32_t, 5> shiftMasks{
         0b11100'11100'11100'11100'11100,
