@@ -16,26 +16,47 @@ constexpr std::array<uint32_t, 2> END_POSITIONS = {
 	0b00100
 };
 
+template<bool player>
 class Board;
-typedef void (*MoveFunc)(GameCards& gameCards, const Board& board, const bool finished, unsigned long long depth);
 
+template<bool player>
+using MoveFunc = void (*)(GameCards& gameCards, const Board<player>& board, const bool finished, unsigned long long depth);
+
+
+template<bool player>
 class Board {
 public:
 	std::array<uint32_t, 2> pieces;
 	uint32_t kings;
 
-	static Board fromString(std::string str);
+	static Board fromString(std::string str) {
+		Board board{ { 0b00011 << 27, 0b01100 << 27 }, 0 };
 
-	void print(GameCards& gameCards) const;
-	static void print(GameCards& gameCards, std::vector<Board> board);
+		for (int i = 0; i < 25; i++) {
+			if (str[i] == '1' || str[i] == '2')
+				board.pieces[0] |= 1 << i;
+			if (str[i] == '3' || str[i] == '4')
+				board.pieces[1] |= 1 << i;
+			if (str[i] == '2' || str[i] == '4')
+				board.kings |= 1 << i;
+		}
+		if (false) // red starts
+			board.pieces[0] |= MASK_TURN;
+		return board;
+	}
+
+	void print(GameCards& gameCards, std::vector<Board> board);
+	void print(GameCards& gameCards) const {
+		//Board<player>::print(gameCards, { *this });
+	};
 
 	void valid(GameCards& gameCards) const;
 	bool finished() const;
 	bool winner() const;
 
 private:
-	template<MoveFunc cb>
-	void iterateMoves(GameCards& gameCards, const CardBoard& card, uint32_t playerPieces, bool player, bool movingPlayer, unsigned long long depth) const {
+	template<MoveFunc<!player> cb>
+	void iterateMoves(GameCards& gameCards, const CardBoard& card, uint32_t playerPieces, bool movingPlayer, unsigned long long depth) const {
 		//card.print();
 		unsigned long from;
 		uint32_t bitScan = pieces[movingPlayer] & 0x1ffffff;
@@ -51,7 +72,7 @@ private:
 			while (scan) {
 				uint32_t nextBit = scan & -scan;
 				scan &= ~nextBit;
-				Board board;
+				Board<!player> board;
 				board.pieces[movingPlayer] = boardsWithoutPiece[movingPlayer] | nextBit;
 				board.pieces[!movingPlayer] = boardsWithoutPiece[!movingPlayer] & ~nextBit;
 				board.kings = kingsWithoutPiece | (nextBit & isMovingKing);
@@ -61,9 +82,8 @@ private:
 		}
 	}
 public:
-	template<MoveFunc cb>
+	template<MoveFunc<!player> cb>
 	void forwardMoves(GameCards& gameCards, unsigned long long depth) const {
-		bool player = pieces[0] & MASK_TURN;
 		uint32_t cardScan = pieces[player] & MASK_CARDS;
 		uint32_t playerPiecesWithNew = pieces[player] | (MASK_CARDS & ~pieces[!player]);
 		for (int i = 0; i < 2; i++) {
@@ -71,15 +91,9 @@ public:
 			_BitScanForward(&cardI, cardScan);
 			cardScan &= ~(1ULL << cardI);
 			uint32_t playerPieces = playerPiecesWithNew & ~(1ULL << cardI);
-			const auto& card = gameCards[cardI - 27];
-			iterateMoves<cb>(gameCards, card, playerPieces, player, player, depth);
+			const auto& card = gameCards[cardI - 27ULL];
+			iterateMoves<cb>(gameCards, card, playerPieces, player, depth);
 		}
 	}
 	//void reverseMoves(GameCards& gameCards, MoveFunc cb, int depth) const;
-};
-
-
-struct Moves {
-	unsigned long size = 0;
-	std::array<Board, 8 * 5> outputs;
 };

@@ -10,34 +10,16 @@
 
 
 
-
-Board Board::fromString(std::string str) {
-	Board board;
-	board.pieces[0] = 0b00011 << 27;
-	board.pieces[1] = 0b01100 << 27;
-	board.kings = 0;
-	for (int i = 0; i < 25; i++) {
-		if (str[i] == '1' || str[i] == '2')
-			board.pieces[0] |= 1 << i;
-		if (str[i] == '3' || str[i] == '4')
-			board.pieces[1] |= 1 << i;
-		if (str[i] == '2' || str[i] == '4')
-			board.kings |= 1 << i;
-	}
-	if (false) // red starts
-		board.pieces[0] |= MASK_TURN;
-	return board;
-}
-
-
-
-bool Board::finished() const {
+template<bool player>
+bool Board<player>::finished() const {
 	return pieces[0] & MASK_FINISH;
 }
-bool Board::winner() const {
+template<bool player>
+bool Board<player>::winner() const {
 	return !(pieces[0] & MASK_TURN);
 }
-void Board::valid(GameCards& gameCards) const {
+template<bool player>
+void Board<player>::valid(GameCards& gameCards) const {
 	auto doublePiece = pieces[0] & pieces[1] & 0x1fffffff;
 	auto kingWithoutPiece = kings & 0x1fffffff & ~(pieces[0] | pieces[1]);
 	if (doublePiece || kingWithoutPiece) {
@@ -84,10 +66,8 @@ std::string cardsShortName(std::array<const CardBoard, 5>& gameCards, uint32_t b
 	}
 	return res;
 }
-void Board::print(GameCards& gameCards) const {
-	Board::print(gameCards, { *this });
-}
-void Board::print(GameCards& gameCards, std::vector<Board> boards) {
+template<bool player>
+void Board<player>::print(GameCards& gameCards, std::vector<Board> boards) {
 	constexpr size_t MAXPERLINE = 10;
 	for (size_t batch = 0; batch < boards.size(); batch += MAXPERLINE) {
 		for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
@@ -139,6 +119,7 @@ void printCards(std::vector<uint32_t> cardsVec) {
 }
 
 
+
 /*
 void Board::reverseMoves(GameCards& gameCards, MoveFunc cb) const {
 	bool player = pieces[0] & MASK_TURN;
@@ -155,3 +136,7 @@ void Board::reverseMoves(GameCards& gameCards, MoveFunc cb) const {
 	iterateMoves(gameCards[swapCardI & 7], (newCards & ~secondCard) | (secondCard << (!player ? 8 : 16)), player, !player, cb);
 }
 */
+
+
+template Board<false>;
+template Board<true>;
