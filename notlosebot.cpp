@@ -20,11 +20,11 @@ void recursive(GameCards& gameCards, const Board& board, int depth) {
 	}
 	const Moves moves = board.forwardMoves(gameCards);
 	if (depth > 1)
-		for (int i = 0; i < moves.size; i++) {
-			recursive(gameCards, moves.outputs[i], depth - 1);
+		for (auto i = moves.outputs.begin(); i < moves.end; i++) {
+			recursive(gameCards, *i, depth - 1);
 		}
 	else
-		count += moves.size;
+		count += moves.end - moves.outputs.begin();
 }
 
 int main() {

@@ -30,6 +30,6 @@ private:
 
 
 struct Moves {
-	unsigned long size = 0;
 	std::array<Board, 8 * 5> outputs;
+	std::array<Board, 8 * 5>::iterator end = outputs.begin();
 };

@@ -162,11 +162,11 @@ void Board::iterateMoves(Moves& moves, const CardBoard& card, uint32_t playerPie
 		while (scan) {
 			uint32_t nextBit = scan & -scan;
 			scan &= ~nextBit;
-			moves.outputs[moves.size].pieces[movingPlayer] = boardsWithoutPiece[movingPlayer] | nextBit;
-			moves.outputs[moves.size].pieces[!movingPlayer] = boardsWithoutPiece[!movingPlayer] & ~nextBit;
+			moves.end->pieces[movingPlayer] = boardsWithoutPiece[movingPlayer] | nextBit;
+			moves.end->pieces[!movingPlayer] = boardsWithoutPiece[!movingPlayer] & ~nextBit;
 			//const bool finished = nextBit & endMask;
-			moves.outputs[moves.size].kings = kingsWithoutPiece | (nextBit & isMovingKing);
-			moves.size++;
+			moves.end->kings = kingsWithoutPiece | (nextBit & isMovingKing);
+			moves.end++;
 		}
 	}
 }
