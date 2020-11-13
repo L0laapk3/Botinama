@@ -75,7 +75,23 @@ public:
 			iterateMoves<cb>(gameCards, card, playerPieces, player, player, depth);
 		}
 	}
-	//void reverseMoves(GameCards& gameCards, MoveFunc cb, int depth) const;
+	/*
+	template<MoveFunc cb>
+	void reverseMoves(GameCards& gameCards, unsigned long long depth) const {
+		bool player = pieces[0] & MASK_TURN;
+		unsigned long swapCardI;
+		_BitScanForward(&swapCardI, cards & CARDS_SWAPMASK);
+		uint32_t cardScan = cards & CARDS_PLAYERMASK[!player];
+		unsigned long playerCardI;
+		_BitScanForward(&playerCardI, cardScan);
+		uint32_t swapCardPlayerMask = (cards & CARDS_SWAPMASK) >> (!player ? 8 : 16);
+		uint32_t firstCard = 1ULL << playerCardI;
+		uint32_t secondCard = cards & CARDS_PLAYERMASK[!player] & ~firstCard;
+		uint32_t newCards = (cards & 0xffffULL) | swapCardPlayerMask;
+		iterateMoves(gameCards[swapCardI & 7], (newCards & ~firstCard) | (firstCard << (!player ? 8 : 16)), player, !player, cb);
+		iterateMoves(gameCards[swapCardI & 7], (newCards & ~secondCard) | (secondCard << (!player ? 8 : 16)), player, !player, cb);
+	}*/
+
 };
 
 

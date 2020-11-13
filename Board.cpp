@@ -137,21 +137,3 @@ void printCards(std::vector<uint32_t> cardsVec) {
 		std::cout << std::bitset<5>(cards >> 16) << ' ' << std::bitset<8>(cards >> 8) << ' ' << std::bitset<8>(cards) << "  ";
 	std::cout << std::endl;
 }
-
-
-/*
-void Board::reverseMoves(GameCards& gameCards, MoveFunc cb) const {
-	bool player = pieces[0] & MASK_TURN;
-	unsigned long swapCardI;
-	_BitScanForward(&swapCardI, cards & CARDS_SWAPMASK);
-	uint32_t cardScan = cards & CARDS_PLAYERMASK[!player];
-	unsigned long playerCardI;
-	_BitScanForward(&playerCardI, cardScan);
-	uint32_t swapCardPlayerMask = (cards & CARDS_SWAPMASK) >> (!player ? 8 : 16);
-	uint32_t firstCard = 1ULL << playerCardI;
-	uint32_t secondCard = cards & CARDS_PLAYERMASK[!player] & ~firstCard;
-	uint32_t newCards = (cards & 0xffffULL) | swapCardPlayerMask;
-	iterateMoves(gameCards[swapCardI & 7], (newCards & ~firstCard) | (firstCard << (!player ? 8 : 16)), player, !player, cb);
-	iterateMoves(gameCards[swapCardI & 7], (newCards & ~secondCard) | (secondCard << (!player ? 8 : 16)), player, !player, cb);
-}
-*/
