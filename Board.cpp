@@ -12,61 +12,43 @@
 
 
 Board Board::fromString(std::string str) {
-	Board board;
-	board.pieces[0] = 0b00011 << 27;
-	board.pieces[1] = 0b01100 << 27;
-	board.kings = 0;
+	Board board{
+		(0b00011ULL << 27) | (0b01100ULL << (27 + 32)),
+		0
+	};
 	for (int i = 0; i < 25; i++) {
 		if (str[i] == '1' || str[i] == '2')
-			board.pieces[0] |= 1 << i;
+			board.pieces |= 1ULL << i;
 		if (str[i] == '3' || str[i] == '4')
-			board.pieces[1] |= 1 << i;
+			board.pieces |= 1ULL << (i + 32);
 		if (str[i] == '2' || str[i] == '4')
-			board.kings |= 1 << i;
+			board.kings |= 1ULL << i;
 	}
 	if (false) // red starts
-		board.pieces[0] |= MASK_TURN;
+		board.pieces |= MASK_TURN;
 	return board;
 }
 
 
 
 bool Board::finished() const {
-	return pieces[0] & MASK_FINISH;
+	return pieces & MASK_FINISH;
 }
 bool Board::winner() const {
-	return !(pieces[0] & MASK_TURN);
+	return !(pieces & MASK_TURN);
 }
 void Board::valid(GameCards& gameCards) const {
-	auto doublePiece = pieces[0] & pieces[1] & 0x1fffffff;
-	auto kingWithoutPiece = kings & 0x1fffffff & ~(pieces[0] | pieces[1]);
-	if (doublePiece || kingWithoutPiece) {
-		//print(gameCards);
-		std::cout << "invalid board";
-		throw "invalid board";
-	}
-	uint32_t cards0 = pieces[0] >> 27;
-	uint32_t cards1 = pieces[1] >> 27;
-	if (cards0 & cards1) {
-		std::cout << "card overlap";
-		throw "card overlap";
-	}
+	assert((pieces & (pieces >> 32) & MASK_PIECES) == 0); // overlapping pieces
+
+	assert((kings & MASK_PIECES & ~(pieces | (pieces >> 32))) == 0); //loose king
+
+	assert(_popcnt64(kings) == 2); // wrong amount of kings
+
+	assert((((pieces >> 32) & pieces & MASK_CARDS) >> 27) == 0); // overlapping cards
+
 	for (int i = 0; i < 2; i++) {
-		uint32_t cards = pieces[i] >> 27;
-		if (!cards) {
-			std::cout << "card missing";
-			throw "card missing";
-		}
-		cards &= ~(cards & -cards);
-		if (!cards) {
-			std::cout << "card missing";
-			throw "card missing";
-		}
-		cards &= ~(cards & -cards);
-		if (cards) {
-			std::cout << "too many cards";
-			throw "too many cards";
-		}
+		uint32_t cards = (pieces >> (32 * i)) & MASK_CARDS;
+		assert(_popcnt64(cards) == 2); // not exactly 2 cards
 	}
 }
 
@@ -92,23 +74,23 @@ void Board::print(GameCards& gameCards, std::vector<Board> boards) {
 	for (size_t batch = 0; batch < boards.size(); batch += MAXPERLINE) {
 		for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
 			const Board& board = boards[i];
-			std::cout << cardsShortName(gameCards, board.pieces[0] >> 27, 4) << ' ';
+			std::cout << cardsShortName(gameCards, (board.pieces >> 27) & 0x1f, 4) << ' ';
 		}
 		std::cout << std::endl;
 		for (int r = 5; r-- > 0;) {
 			for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
 				const Board& board = boards[i];
 				std::string end = board.finished() ? "END " : "    ";
-				end += board.pieces[0] & MASK_TURN ? '+' : 'o';
-				const auto swapCardName = cardsShortName(gameCards, ~(board.pieces[0] | board.pieces[1]) >> 27, 5);
+				end += board.pieces & MASK_TURN ? '+' : 'o';
+				const auto swapCardName = cardsShortName(gameCards, ~(((board.pieces | (board.pieces >> 32)) >> 27) & 0x1f), 5);
 				std::cout << end[4ULL - r] << '|';
 				for (int c = 0; c < 5; c++) {
 					const int mask = 1 << (5 * r + c);
-					if (board.pieces[0] & board.pieces[1] & mask)
+					if (board.pieces & (board.pieces >> 32) & mask)
 						std::cout << ((board.kings & mask) ? 'e' : '?');
-					else if (board.pieces[0] & mask)
+					else if (board.pieces & mask)
 						std::cout << ((board.kings & mask) ? '0' : 'o'); // bloo
-					else if (board.pieces[1] & mask)
+					else if ((board.pieces >> 32) & mask)
 						std::cout << ((board.kings & mask) ? 'X' : '+'); // +ed
 					else
 						std::cout << ((board.kings & mask) ? '!' : ' ');
@@ -122,7 +104,7 @@ void Board::print(GameCards& gameCards, std::vector<Board> boards) {
 		}
 		for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
 			const Board& board = boards[i];
-			std::cout << cardsShortName(gameCards, board.pieces[1] >> 27, 4) << ' ';
+			std::cout << cardsShortName(gameCards, board.pieces >> (27 + 32), 4) << ' ';
 		}
 		std::cout << std::endl;
 		for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {

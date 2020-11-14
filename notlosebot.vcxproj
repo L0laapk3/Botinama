@@ -74,9 +74,9 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>Default</LanguageStandard_C>
-      <AdditionalOptions>/D "Ofast" -Wbitwise-op-parentheses /D "march=native" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-Wbitwise-op-parentheses -march=native %(AdditionalOptions)</AdditionalOptions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <Optimization>Full</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>

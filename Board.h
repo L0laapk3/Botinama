@@ -4,24 +4,22 @@
 #include <array>
 #include <list>
 #include "CardBoard.h"
-#include <span>
 #include <functional>
+#include <cassert>
 
-constexpr uint32_t MASK_TURN = 1 << 25;
-constexpr uint32_t MASK_FINISH = 1 << 26;
-constexpr uint32_t MASK_CARDS = 0x1f << 27;
-
-constexpr std::array<uint32_t, 2> END_POSITIONS = {
-	0b00100 << 20,
-	0b00100
-};
+constexpr uint64_t MASK_TURN = 1ULL << 25;
+constexpr uint64_t MASK_FINISH = 1ULL << 26;
+constexpr uint64_t MASK_CARDS = 0x1fULL << 27;
+constexpr uint64_t MASK_PIECES = 0x1ffffffULL;
+constexpr std::array<uint64_t, 2> MASK_PLAYER = { 0xffff'ffffULL, 0xffff'ffff'0000'0000 };
+constexpr std::array<uint64_t, 2> MASK_END_POSITIONS = { 0b00100ULL << 20, 0b00100ULL << 32 };
 
 class Board;
-typedef void (*MoveFunc)(GameCards& gameCards, const Board& board, const bool finished, unsigned long long depth);
+typedef void (*MoveFunc)(GameCards& gameCards, const Board board, const bool finished, unsigned long long depth);
 
 class Board {
 public:
-	std::array<uint32_t, 2> pieces;
+	uint64_t pieces;
 	uint32_t kings;
 
 	static Board fromString(std::string str);
@@ -35,27 +33,29 @@ public:
 
 private:
 	template<MoveFunc cb>
-	void iterateMoves(GameCards& gameCards, const CardBoard& card, uint32_t playerPieces, bool player, bool movingPlayer, unsigned long long depth) const {
+	void iterateMoves(GameCards& gameCards, const CardBoard& card, uint64_t piecesWithNewCards, bool player, bool movingPlayer, unsigned long long depth) const {
 		//card.print();
-		unsigned long from;
-		uint32_t bitScan = pieces[movingPlayer] & 0x1ffffff;
-		while (_BitScanForward(&from, bitScan)) {
-			bitScan &= ~(1 << from);
-			std::array<uint32_t, 2> boardsWithoutPiece{ pieces };
-			boardsWithoutPiece[movingPlayer] = playerPieces & ~(1 << from);
-			boardsWithoutPiece[0] = (boardsWithoutPiece[0] & ~MASK_TURN) | ((!player) << 25);
-			uint32_t kingsWithoutPiece = kings & ~(1 << from);
-			uint32_t isMovingKing = kingsWithoutPiece == kings ? 0 : ~0;
-			uint32_t scan = card.moveBoard[player][from] & ~pieces[movingPlayer] & 0x1fffffff;
-			uint32_t endMask = (END_POSITIONS[movingPlayer] & isMovingKing) | kings; // to be &'d with nextBit. kind lands on temple | piece takes king
+		unsigned long fromI;
+		uint64_t bitScan = piecesWithNewCards & (movingPlayer ? MASK_PIECES << 32 : MASK_PIECES);
+		while (_BitScanForward64(&fromI, bitScan)) {
+			bitScan &= ~(1ULL << fromI);
+			uint64_t newPiecesWithoutLandPiece = piecesWithNewCards & ~(1ULL << fromI);
+			uint32_t kingsWithoutPiece = kings & ~(1ULL << (movingPlayer ? fromI - 32ULL : fromI));
+			bool isKingMove = kingsWithoutPiece != kings;
+			uint64_t scan;
+			if (player == movingPlayer)
+				scan = card.moveBoard[movingPlayer ? fromI - 32ULL : fromI] & MASK_PLAYER[player] & ~pieces;
+			else
+				scan = card.moveBoard[movingPlayer ? fromI - 32ULL : fromI] & MASK_PLAYER[player] & ~(player ? pieces << 32 : pieces >> 32); // ?
+			uint64_t endMask = (isKingMove ? MASK_END_POSITIONS[movingPlayer] : 0) | (movingPlayer ? ((uint64_t)kings) << 32 : kings); // to be &'d with nextBit. kind lands on temple | piece takes king
 			while (scan) {
-				uint32_t nextBit = scan & -scan;
-				scan &= ~nextBit;
+				uint64_t landBit = scan & -scan;
+				scan &= ~landBit;
 				Board board;
-				board.pieces[movingPlayer] = boardsWithoutPiece[movingPlayer] | nextBit;
-				board.pieces[!movingPlayer] = boardsWithoutPiece[!movingPlayer] & ~nextBit;
-				board.kings = kingsWithoutPiece | (nextBit & isMovingKing);
-				const bool finished = nextBit & endMask;
+				board.pieces = newPiecesWithoutLandPiece | landBit;
+				board.pieces &= ~(movingPlayer ? landBit >> 32 : landBit << 32); // add land piece and remove taken piece
+				board.kings = kingsWithoutPiece | (isKingMove ? (uint32_t)(movingPlayer ? landBit >> 32 : landBit) : 0);
+				const bool finished = landBit & endMask;
 				cb(gameCards, board, finished, depth);
 			}
 		}
@@ -63,16 +63,19 @@ private:
 public:
 	template<MoveFunc cb>
 	void forwardMoves(GameCards& gameCards, unsigned long long depth) const {
-		bool player = pieces[0] & MASK_TURN;
-		uint32_t cardScan = pieces[player] & MASK_CARDS;
-		uint32_t playerPiecesWithNew = pieces[player] | (MASK_CARDS & ~pieces[!player]);
+		bool player = pieces & MASK_TURN;
+		uint64_t cardScan = pieces & (player ? MASK_CARDS << 32 : MASK_CARDS);
+		uint64_t playerPiecesWithReceivedCard = pieces | (player ? (MASK_CARDS & ~pieces) << 32 : ((MASK_CARDS << 32) & ~pieces) >> 32);
+		playerPiecesWithReceivedCard ^= MASK_TURN; // invert player bit
 		for (int i = 0; i < 2; i++) {
 			unsigned long cardI;
-			_BitScanForward(&cardI, cardScan);
-			cardScan &= ~(1ULL << cardI);
-			uint32_t playerPieces = playerPiecesWithNew & ~(1ULL << cardI);
-			const auto& card = gameCards[cardI - 27];
-			iterateMoves<cb>(gameCards, card, playerPieces, player, player, depth);
+			bool found = _BitScanForward64(&cardI, cardScan);
+			assert(found);
+			const uint64_t cardBit = ((uint64_t)1) << cardI;
+			cardScan &= ~cardBit;
+			uint64_t piecesWithNewCards = playerPiecesWithReceivedCard & ~cardBit;
+			const auto& card = gameCards[player ? cardI - 27ULL - 32ULL : cardI - 27ULL];
+			iterateMoves<cb>(gameCards, card, piecesWithNewCards, player, player, depth);
 		}
 	}
 	/*
@@ -92,10 +95,4 @@ public:
 		iterateMoves(gameCards[swapCardI & 7], (newCards & ~secondCard) | (secondCard << (!player ? 8 : 16)), player, !player, cb);
 	}*/
 
-};
-
-
-struct Moves {
-	unsigned long size = 0;
-	std::array<Board, 8 * 5> outputs;
 };
