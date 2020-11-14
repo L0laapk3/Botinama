@@ -15,7 +15,7 @@ constexpr std::array<uint64_t, 2> MASK_PLAYER = { 0xffff'ffffULL, 0xffff'ffff'00
 constexpr std::array<uint64_t, 2> MASK_END_POSITIONS = { 0b00100ULL << 20, 0b00100ULL << 32 };
 
 class Board;
-typedef void (*MoveFunc)(GameCards& gameCards, const Board board, const bool finished, unsigned long long depth);
+typedef void (*MoveFunc)(GameCards& gameCards, const Board& board, const bool finished, unsigned long long depth);
 
 class Board {
 public:

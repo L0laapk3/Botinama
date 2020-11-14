@@ -12,7 +12,7 @@
 #include <algorithm>
 
 unsigned long long count = 0;
-void recursive(GameCards& gameCards, const Board board, const bool finished, unsigned long long depth) {
+void recursive(GameCards& gameCards, const Board& board, const bool finished, unsigned long long depth) {
 	if (!finished && false)
 		board.valid(gameCards);
 	if (!depth || finished)
