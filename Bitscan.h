@@ -2,13 +2,13 @@
 
 #ifdef _MSC_VER
 #include <intrin.h>
-#ifdef _WIN64
 #pragma intrinsic(_BitScanForward)
 #pragma intrinsic(_BitScanReverse)
+#ifdef _WIN64
 #pragma intrinsic(_BitScanForward64)
 #pragma intrinsic(_BitScanReverse64)
-#define USING_INTRINSICS
 #endif
+#define USING_INTRINSICS
 #elif defined(__GNUC__)
 static inline unsigned char _BitScanForward(unsigned long* Index, uint32_t Mask)
 {
@@ -34,7 +34,7 @@ static inline unsigned char _BitScanReverse(unsigned long* Index, uint32_t Mask)
     *Index = (unsigned long)Ret;
     return Mask ? 1 : 0;
 }
-#if defined(__LP64__)
+#ifdef _WIN64
 static inline unsigned char _BitScanForward64(unsigned long* Index, uint64_t Mask)
 {
     uint64_t Ret;
