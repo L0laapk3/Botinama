@@ -52,8 +52,7 @@ private:
 				uint64_t landBit = scan & -scan;
 				scan &= ~landBit;
 				Board board;
-				board.pieces = newPiecesWithoutLandPiece | landBit;
-				board.pieces &= ~(movingPlayer ? landBit >> 32 : landBit << 32); // add land piece and remove taken piece
+				board.pieces = (newPiecesWithoutLandPiece | landBit) & ~(movingPlayer ? landBit >> 32 : landBit << 32); // add land piece and remove taken piece
 				board.kings = kingsWithoutPiece | (isKingMove ? (uint32_t)(movingPlayer ? landBit >> 32 : landBit) : 0);
 				const bool finished = landBit & endMask;
 				cb(gameCards, board, finished, depth);
