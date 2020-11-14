@@ -12,9 +12,7 @@
 #include <algorithm>
 
 unsigned long long count = 0;
-void recursive(GameCards& gameCards, const Board& board, const bool finished, unsigned long long depth) {
-	if (!finished && false)
-		board.valid(gameCards);
+void recursive(GameCards& gameCards, const Board& board, const bool finished, char depth) {
 	if (!depth || finished)
 		count++;
 	else
@@ -26,12 +24,12 @@ int main() {
 	Board board = Board::fromString("1121100000000000000033433");
 	board.print(gameCards);
 
-	for (int depth = 1; depth <= 10; depth++) {
+	for (int depth = 1; depth < 10; depth++) {
 		auto start = std::chrono::steady_clock::now();
 		count = 0;
 		recursive(gameCards, board, false, depth);
 		auto end = std::chrono::steady_clock::now();
-		float nps = (count / (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() * .001f));
-		std::cout << depth << '\t' << nps << "M/s\t" << count << std::endl;
+		float nps = std::roundf(count / (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() * .001f));
+		std::cout << depth << "  " << nps << "M/s \t" << count << std::endl;
 	}
 }

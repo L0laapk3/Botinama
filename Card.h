@@ -20,3 +20,49 @@ public:
 };
 
 extern std::array<const Card, 16> CARDS;
+
+struct CardsPos {
+	std::array<uint32_t, 2> players;
+	uint32_t side;
+	static CardsPos construct(uint32_t blue0, uint32_t blue1, uint32_t red0, uint32_t red1, uint32_t side, uint32_t swapBlue0, uint32_t swapBlue1, uint32_t swapRed0, uint32_t swapRed1) {
+		return CardsPos{
+			{
+				(blue0 - 1) | (swapBlue0 << 8) | ((blue1 - 1) << 16) | (swapBlue1 << 24),
+				(red0 - 1) | (swapRed0 << 8) | ((red1 - 1) << 16) | (swapRed1 << 24)
+			},
+			side - 1
+		};
+	};
+};
+const std::array<CardsPos, 30> CARDS_LUT = { {
+	CardsPos::construct(1, 2, 3, 4, 5,	26,	20,	12,	6),
+	CardsPos::construct(1, 3, 2, 4, 5,	28,	14,	18,	7),
+	CardsPos::construct(1, 4, 2, 3, 5,	29,	8,	19,	13),
+	CardsPos::construct(2, 3, 1, 4, 5,	22,	16,	24,	9),
+	CardsPos::construct(2, 4, 1, 3, 5,	23,	10,	25,	15),
+	CardsPos::construct(3, 4, 1, 2, 5,	17,	11,	27,	21),
+	CardsPos::construct(1, 2, 3, 5, 4,	25,	19,	12,	0),
+	CardsPos::construct(1, 3, 2, 5, 4,	27,	13,	18,	1),
+	CardsPos::construct(1, 5, 2, 3, 4,	29,	2,	20,	14),
+	CardsPos::construct(2, 3, 1, 5, 4,	21,	15,	24,	3),
+	CardsPos::construct(2, 5, 1, 3, 4,	23,	4,	26,	16),
+	CardsPos::construct(3, 5, 1, 2, 4,	17,	5,	28,	22),
+	CardsPos::construct(1, 2, 4, 5, 3,	24,	18,	6,	0),
+	CardsPos::construct(1, 4, 2, 5, 3,	27,	7,	19,	2),
+	CardsPos::construct(1, 5, 2, 4, 3,	28,	1,	20,	8),
+	CardsPos::construct(2, 4, 1, 5, 3,	21,	9,	25,	4),
+	CardsPos::construct(2, 5, 1, 4, 3,	22,	3,	26,	10),
+	CardsPos::construct(4, 5, 1, 2, 3,	11,	5,	29,	23),
+	CardsPos::construct(1, 3, 4, 5, 2,	24,	12,	7,	1),
+	CardsPos::construct(1, 4, 3, 5, 2,	25,	6,	13,	2),
+	CardsPos::construct(1, 5, 3, 4, 2,	26,	0,	14,	8),
+	CardsPos::construct(3, 4, 1, 5, 2,	15,	9,	27,	5),
+	CardsPos::construct(3, 5, 1, 4, 2,	16,	3,	28,	11),
+	CardsPos::construct(4, 5, 1, 3, 2,	10,	4,	29,	17),
+	CardsPos::construct(2, 3, 4, 5, 1,	18,	12,	9,	3),
+	CardsPos::construct(2, 4, 3, 5, 1,	19,	6,	15,	4),
+	CardsPos::construct(2, 5, 3, 4, 1,	20,	0,	16,	10),
+	CardsPos::construct(3, 4, 2, 5, 1,	13,	7,	21,	5),
+	CardsPos::construct(3, 5, 2, 4, 1,	14,	1,	22,	11),
+	CardsPos::construct(4, 5, 2, 3, 1,	8,	2,	23,	17),
+} };

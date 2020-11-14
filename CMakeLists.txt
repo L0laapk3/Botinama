@@ -13,7 +13,9 @@ add_executable(Botama ${source_files})
 target_include_directories(Botama PUBLIC inc)
 target_compile_features(Botama PUBLIC cxx_std_20)
 
-set(CMAKE_CXX_FLAGS "-Ofast -march=native -m64 -DNDEBUG")
+set(CMAKE_CXX_FLAGS "-march=native")
+set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -DNDEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrt")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Ofast -g -DNDEBUG -Xclang -gcodeview -D_DLL -D_MT -Xclang --dependent-lib=msvcrt")
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
