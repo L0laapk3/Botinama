@@ -50,7 +50,7 @@ private:
 		piecesWithNewCards &= ~(((uint64_t)7) << INDEX_KINGS[movingPlayer]);
 		uint32_t beforeKingMask = _pdep_u32((1ULL << kingIndex), movingPlayer ? piecesWithNewCards >> 32 : piecesWithNewCards) - 1;
 		const uint32_t opponentKingIndex = (1ULL << ((piecesWithNewCards >> INDEX_KINGS[!movingPlayer]) & 7));
-		const uint32_t opponentKing = _pdep_u32(opponentKingIndex, movingPlayer ? piecesWithNewCards >> 32 : piecesWithNewCards);
+		const uint32_t opponentKing = _pdep_u32(opponentKingIndex, movingPlayer ? piecesWithNewCards : piecesWithNewCards >> 32);
 
 		while (hasBits) {
 			const uint32_t fromBit = (1ULL << fromI);

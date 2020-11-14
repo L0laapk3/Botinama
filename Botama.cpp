@@ -13,6 +13,7 @@
 
 unsigned long long count = 0;
 void recursive(GameCards& gameCards, const Board& board, const bool finished, char depth) {
+	//board.print(gameCards);
 	if (!depth || finished)
 		count++;
 	else
