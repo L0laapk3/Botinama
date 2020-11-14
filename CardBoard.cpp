@@ -6,7 +6,7 @@
 
 CardBoard::CardBoard(const CardBoard& card) : Card(card), moveBoard(card.moveBoard) { };
 CardBoard::CardBoard(const Card* card) : Card(card->name, card->moves), moveBoard{ 0 } {
-    constexpr std::array<unsigned long long, 5> shiftMasks{
+    constexpr std::array<uint32_t, 5> shiftMasks{
         0b11100'11100'11100'11100'11100,
         0b11110'11110'11110'11110'11110,
         0b11111'11111'11111'11111'11111,
@@ -14,14 +14,14 @@ CardBoard::CardBoard(const Card* card) : Card(card->name, card->moves), moveBoar
         0b00111'00111'00111'00111'00111,
     };
     for (uint64_t i = 0; i < 25; i++) {
-        uint64_t maskedMove = card->moves & shiftMasks[i % 5];
-        moveBoard[i] |= i > 12 ? maskedMove << (i - 12) : maskedMove >> (12 - i);
-        moveBoard[24ULL - i] |= (moveBoard[i] & (1 << 12)) << 32;
+        uint32_t maskedMove = card->moves & shiftMasks[i % 5];
+        moveBoard[0][i] = i > 12 ? maskedMove << (i - 12) : maskedMove >> (12 - i);
+        moveBoard[1][24ULL - i] = moveBoard[0][i] & (1 << 12);
         for (int j = 0; j < 12; j++) {
-            if (moveBoard[i] & (1ULL << j))
-                moveBoard[24ULL - i] |= 1ULL << (32 + 24 - j);
-            if (moveBoard[i] & (1ULL << (24 - j)))
-                moveBoard[24ULL - i] |= 1ULL << (32 + j);
+            if (moveBoard[0][i] & (1 << j))
+                moveBoard[1][24ULL - i] |= (1 << (24 - j));
+            if (moveBoard[0][i] & (1 << (24 - j)))
+                moveBoard[1][24ULL - i] |= (1 << j);
         }
     }
 }

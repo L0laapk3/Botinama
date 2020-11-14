@@ -11,7 +11,7 @@ class CardBoard : public Card {
 public:
 	CardBoard(const CardBoard& card);
 	CardBoard(const Card* card);
-	std::array<uint64_t, 25> moveBoard;
+	std::array<std::array<uint32_t, 25>, 2> moveBoard;
 
 	static GameCards fetchGameCards(std::array<std::string, 5> cardNames);
 };
