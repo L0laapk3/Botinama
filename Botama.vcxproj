@@ -94,6 +94,7 @@
     <ClCompile Include="Botama.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Bitscan.h" />
     <ClInclude Include="Board.h" />
     <ClInclude Include="Card.h" />
     <ClInclude Include="CardBoard.h" />

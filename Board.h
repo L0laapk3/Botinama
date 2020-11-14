@@ -6,6 +6,7 @@
 #include "CardBoard.h"
 #include <functional>
 #include <cassert>
+#include "Bitscan.h"
 
 constexpr uint64_t MASK_TURN = 1ULL << 25;
 constexpr uint64_t MASK_FINISH = 1ULL << 26;

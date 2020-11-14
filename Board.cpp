@@ -3,10 +3,7 @@
 
 #include <bitset>
 #include <iostream>
-#include <intrin.h>
 #include <algorithm>
-
-#pragma intrinsic(_BitScanForward)
 
 
 
