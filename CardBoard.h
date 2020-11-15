@@ -3,15 +3,17 @@
 #include <array>
 #include <string>
 #include "Card.h"
+#include "Botama.h"
 
 class CardBoard;
 typedef std::array<const CardBoard, 5> GameCards;
+typedef std::array<uint32_t, 25> MoveBoard;
 
 class CardBoard : public Card {
 public:
 	CardBoard(const CardBoard& card);
 	CardBoard(const Card* card);
-	std::array<std::array<uint32_t, 25>, 2> moveBoard;
+	std::array<MoveBoard, 2> moveBoards;
 
 	static GameCards fetchGameCards(std::array<std::string, 5> cardNames);
 };

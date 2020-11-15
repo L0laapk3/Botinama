@@ -96,6 +96,7 @@
   <ItemGroup>
     <ClInclude Include="Bitscan.h" />
     <ClInclude Include="Board.h" />
+    <ClInclude Include="Botama.h" />
     <ClInclude Include="Card.h" />
     <ClInclude Include="CardBoard.h" />
   </ItemGroup>

@@ -41,5 +41,8 @@
     <ClInclude Include="Bitscan.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Botama.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

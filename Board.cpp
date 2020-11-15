@@ -1,5 +1,6 @@
 ﻿
 #include "Board.h"
+#include "Botama.h"
 
 #include <bitset>
 #include <iostream>
@@ -53,7 +54,7 @@ void Board::valid() const {
 std::string cardsShortName(std::array<const CardBoard, 5>& gameCards, int i, int length) {
 	std::string res = "";
 	const std::string& card = i < 5 ? gameCards[i].name : (std::to_string(i) + "??");
-	for (uint32_t i = 0; i < length; i++)
+	for (U32 i = 0; i < length; i++)
 		res += card.size() > i ? card[i] : ' ';
 	res += ' ';
 	return res;
@@ -114,6 +115,6 @@ void Board::print(GameCards& gameCards, std::vector<Board> boards, std::vector<b
 	}
 }
 
-void printKings(uint64_t pieces) {
+void printKings(U64 pieces) {
 	std::cout << std::bitset<3>(pieces >> INDEX_KINGS[0]) << ' ' << std::bitset<3>(pieces >> INDEX_KINGS[1]) << std::endl;
 }

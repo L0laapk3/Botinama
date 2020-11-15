@@ -3,6 +3,7 @@
 #include <string>
 #include <array>
 #include <vector>
+#include "Botama.h"
 
 typedef unsigned long long bb;
 class Card;
@@ -22,9 +23,9 @@ public:
 extern std::array<const Card, 16> CARDS;
 
 struct CardsPos {
-	std::array<uint32_t, 2> players;
-	uint32_t side;
-	static CardsPos construct(uint32_t blue0, uint32_t blue1, uint32_t red0, uint32_t red1, uint32_t side, uint32_t swapBlue0, uint32_t swapBlue1, uint32_t swapRed0, uint32_t swapRed1) {
+	std::array<U32, 2> players;
+	U32 side;
+	static CardsPos construct(U32 blue0, U32 blue1, U32 red0, U32 red1, U32 side, U32 swapBlue0, U32 swapBlue1, U32 swapRed0, U32 swapRed1) {
 		return CardsPos{
 			{
 				(blue0 - 1) | (swapBlue0 << 8) | ((blue1 - 1) << 16) | (swapBlue1 << 24),

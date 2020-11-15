@@ -1,4 +1,5 @@
 #pragma once
+#include "Botama.h"
 
 #ifdef _MSC_VER
 #include <intrin.h>
@@ -10,9 +11,9 @@
 #endif
 #define USING_INTRINSICS
 #elif defined(__GNUC__)
-static inline unsigned char _BitScanForward(unsigned long* Index, uint32_t Mask)
+static inline unsigned char _BitScanForward(unsigned long* Index, U32 Mask)
 {
-    uint32_t Ret;
+    U32 Ret;
     __asm__
     (
         "bsf %[Mask], %[Ret]"
@@ -22,9 +23,9 @@ static inline unsigned char _BitScanForward(unsigned long* Index, uint32_t Mask)
     *Index = (unsigned long)Ret;
     return Mask ? 1 : 0;
 }
-static inline unsigned char _BitScanReverse(unsigned long* Index, uint32_t Mask)
+static inline unsigned char _BitScanReverse(unsigned long* Index, U32 Mask)
 {
-    uint32_t Ret;
+    U32 Ret;
     __asm__
     (
         "bsr %[Mask], %[Ret]"
@@ -35,9 +36,9 @@ static inline unsigned char _BitScanReverse(unsigned long* Index, uint32_t Mask)
     return Mask ? 1 : 0;
 }
 #ifdef _WIN64
-static inline unsigned char _BitScanForward64(unsigned long* Index, uint64_t Mask)
+static inline unsigned char _BitScanForward64(unsigned long* Index, U64 Mask)
 {
-    uint64_t Ret;
+    U64 Ret;
     __asm__
     (
         "bsfq %[Mask], %[Ret]"
@@ -47,9 +48,9 @@ static inline unsigned char _BitScanForward64(unsigned long* Index, uint64_t Mas
     *Index = (unsigned long)Ret;
     return Mask ? 1 : 0;
 }
-static inline unsigned char _BitScanReverse64(unsigned long* Index, uint64_t Mask)
+static inline unsigned char _BitScanReverse64(unsigned long* Index, U64 Mask)
 {
-    uint64_t Ret;
+    U64 Ret;
     __asm__
     (
         "bsrq %[Mask], %[Ret]"
