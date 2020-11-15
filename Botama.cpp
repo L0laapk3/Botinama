@@ -26,7 +26,7 @@ void recursive(GameCards& gameCards, const Board& board, const bool finished, ch
 
 int main() {
 	GameCards gameCards = CardBoard::fetchGameCards({ "ox", "boar", "horse", "elephant", "crab" });
-	Board board = Board::fromString("1121100000000000000033433");
+	Board board = Board::fromString("1121100000000000000033433", false);
 	//Board board = Board::fromString("1020101010000000303030403", true);
 	//Board board = Board::fromString("0031000100342101000300300", true);
 	board.print(gameCards);

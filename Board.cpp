@@ -14,14 +14,14 @@ Board Board::fromString(std::string str, bool player) {
 	bool redKingFound = false;
 	for (int i = 0; i < 25; i++) {
 		if (str[i] == '1' || str[i] == '2') {
-			board.pieces |= 1ULL << i;
+			board.pieces |= 1ULL << (i + INDEX_PIECES);
 			if (str[i] == '2')
 				blueKingFound = true;
 			if (!blueKingFound)
 				board.pieces += (1ULL << INDEX_KINGS[0]);
 		}
 		if (str[i] == '3' || str[i] == '4') {
-			board.pieces |= 1ULL << (i + 32);
+			board.pieces |= 1ULL << (i + INDEX_PIECES + 32);
 			if (str[i] == '4')
 				redKingFound = true;
 			if (!redKingFound)
@@ -30,6 +30,7 @@ Board Board::fromString(std::string str, bool player) {
 	}
 	if (player) // red starts
 		board.pieces |= MASK_TURN;
+	std::cout << std::bitset<32>(board.pieces >> 32) << ' ' << std::bitset<32>(board.pieces) << std::endl;
 	return board;
 }
 
@@ -71,8 +72,11 @@ void Board::print(GameCards& gameCards, std::vector<Board> boards, std::vector<b
 			const Board& board = boards[i];
 			blueKingPos[i] = _popcnt32(board.pieces & MASK_PIECES) - 1 - ((board.pieces >> INDEX_KINGS[0]) & 7);
 			redKingPos[i] = _popcnt32((board.pieces >> 32) & MASK_PIECES) - 1 - (board.pieces >> INDEX_KINGS[1]) & 7;
-			cards[i] = CARDS_LUT[(board.pieces & MASK_CARDS) >> 27ULL];
-			std::cout << cardsShortName(gameCards, cards[i].players[0] & 0xff, 4) << ' ' << cardsShortName(gameCards, (cards[i].players[0] >> 16) & 0xff, 4) << ' ';
+			cards[i] = CARDS_LUT[(board.pieces & MASK_CARDS) >> INDEX_CARDS];
+			//std::cout << blueKingPos[i] << ' ' << redKingPos[i] << std::endl;
+			//std::cout << std::bitset<64>(board.pieces) << std::endl;
+			//std::cout << std::bitset<25>(board.pieces >> INDEX_PIECES) << ' ' << std::bitset<25>(board.pieces >> (INDEX_PIECES + 32)) << std::endl;
+			//std::cout << cardsShortName(gameCards, cards[i].players[0] & 0xff, 4) << ' ' << cardsShortName(gameCards, (cards[i].players[0] >> 16) & 0xff, 4) << ' ';
 		}
 		std::cout << std::endl;
 		for (int r = 5; r--> 0;) {
@@ -84,7 +88,7 @@ void Board::print(GameCards& gameCards, std::vector<Board> boards, std::vector<b
 				std::cout << end[4ULL - r] << '|';
 				std::string str = "";
 				for (int c = 5; c--> 0;) {
-					const int mask = 1 << (5 * r + c);
+					const uint32_t mask = 1ULL << (5 * r + c + INDEX_PIECES);
 					if (board.pieces & (board.pieces >> 32) & mask)
 						str = '?' + str;
 					else if (board.pieces & mask)
@@ -103,7 +107,7 @@ void Board::print(GameCards& gameCards, std::vector<Board> boards, std::vector<b
 			std::cout << std::endl;
 		}
 		for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
-			const Board& board = boards[i];
+			//const Board& board = boards[i];
 			std::cout << cardsShortName(gameCards, cards[i].players[1] & 0xff, 4) << ' ' << cardsShortName(gameCards, (cards[i].players[1] >> 16) & 0xff, 4) << ' ';
 		}
 		std::cout << std::endl;
