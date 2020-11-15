@@ -8,7 +8,7 @@
 
 
 
-Board Board::fromString(std::string str) {
+Board Board::fromString(std::string str, bool player) {
 	Board board{ 0 };
 	bool blueKingFound = false;
 	bool redKingFound = false;
@@ -28,34 +28,26 @@ Board Board::fromString(std::string str) {
 				board.pieces += (1ULL << INDEX_KINGS[1]);
 		}
 	}
-	if (false) // red starts
+	if (player) // red starts
 		board.pieces |= MASK_TURN;
 	return board;
 }
 
 
 
-bool Board::finished() const {
-	return pieces & MASK_FINISH;
-}
 bool Board::winner() const {
 	return !(pieces & MASK_TURN);
 }
-void Board::valid(GameCards& gameCards) const {
+void Board::valid() const {
 	assert((pieces & (pieces >> 32) & MASK_PIECES) == 0); // overlapping pieces
 
-	//assert((kings & MASK_PIECES & ~(pieces | (pieces >> 32))) == 0); //loose king
-
-	//assert(_popcnt64(kings) == 2); // wrong amount of kings
+	assert((kings >> INDEX_KINGS[0]) > _popcnt32(pieces & MASK_PIECES)); //loose king
+	assert((kings >> INDEX_KINGS[1]) > _popcnt32((pieces >> 32) & MASK_PIECES)); //loose king
 
 	assert((((pieces >> 32) & pieces & MASK_CARDS) >> 27) == 0); // overlapping cards
 
-	for (int i = 0; i < 2; i++) {
-		uint32_t cards = (pieces >> (32 * i)) & MASK_CARDS;
-		assert(_popcnt64(cards) == 2); // not exactly 2 cards
-	}
+	assert(((pieces & MASK_CARDS) >> INDEX_CARDS) < 30);
 }
-
 
 std::string cardsShortName(std::array<const CardBoard, 5>& gameCards, int i, int length) {
 	std::string res = "";
@@ -65,10 +57,10 @@ std::string cardsShortName(std::array<const CardBoard, 5>& gameCards, int i, int
 	res += ' ';
 	return res;
 }
-void Board::print(GameCards& gameCards) const {
-	Board::print(gameCards, { *this });
+void Board::print(GameCards& gameCards, bool finished) const {
+	Board::print(gameCards, { *this }, { finished });
 }
-void Board::print(GameCards& gameCards, std::vector<Board> boards) {
+void Board::print(GameCards& gameCards, std::vector<Board> boards, std::vector<bool> finished) {
 	constexpr size_t MAXPERLINE = 10;
 	for (size_t batch = 0; batch < boards.size(); batch += MAXPERLINE) {
 		std::array<int, MAXPERLINE> blueKingPos;
@@ -78,8 +70,6 @@ void Board::print(GameCards& gameCards, std::vector<Board> boards) {
 			const Board& board = boards[i];
 			blueKingPos[i] = _popcnt32(board.pieces & MASK_PIECES) - 1 - ((board.pieces >> INDEX_KINGS[0]) & 7);
 			redKingPos[i] = _popcnt32((board.pieces >> 32) & MASK_PIECES) - 1 - (board.pieces >> INDEX_KINGS[1]) & 7;
-			std::cout << ((board.pieces >> INDEX_KINGS[0]) & 7) << std::endl;
-			std::cout << ((board.pieces >> INDEX_KINGS[1]) & 7) << std::endl;
 			cards[i] = CARDS_LUT[(board.pieces & MASK_CARDS) >> 27ULL];
 			std::cout << cardsShortName(gameCards, cards[i].players[0] & 0xff, 4) << ' ' << cardsShortName(gameCards, (cards[i].players[0] >> 16) & 0xff, 4) << ' ';
 		}
@@ -87,7 +77,7 @@ void Board::print(GameCards& gameCards, std::vector<Board> boards) {
 		for (int r = 5; r--> 0;) {
 			for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
 				const Board& board = boards[i];
-				std::string end = board.finished() ? "END " : "    ";
+				std::string end = finished[i] ? "END " : "    ";
 				end += board.pieces & MASK_TURN ? '+' : 'o';
 				const auto swapCardName = cardsShortName(gameCards, cards[i].side, 5);
 				std::cout << end[4ULL - r] << '|';
@@ -118,7 +108,7 @@ void Board::print(GameCards& gameCards, std::vector<Board> boards) {
 		std::cout << std::endl;
 		for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
 			const Board& board = boards[i];
-			board.valid(gameCards);
+			board.valid();
 		}
 	}
 }
