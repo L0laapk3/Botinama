@@ -38,15 +38,16 @@ Board Board::fromString(std::string str, bool player) {
 bool Board::winner() const {
 	return !(pieces & MASK_TURN);
 }
+
+#undef NDEBUG
+#include <assert.h>
 void Board::valid() const {
 	assert((pieces & (pieces >> 32) & MASK_PIECES) == 0); // overlapping pieces
 
-	assert((kings >> INDEX_KINGS[0]) > _popcnt32(pieces & MASK_PIECES)); //loose king
-	assert((kings >> INDEX_KINGS[1]) > _popcnt32((pieces >> 32) & MASK_PIECES)); //loose king
+	assert(((pieces >> INDEX_KINGS[0]) & 7) <= _popcnt32(pieces & MASK_PIECES)); //loose blue king
+	assert(((pieces >> INDEX_KINGS[1]) & 7) <= _popcnt32((pieces >> 32) & MASK_PIECES)); //loose red king
 
-	assert((((pieces >> 32) & pieces & MASK_CARDS) >> 27) == 0); // overlapping cards
-
-	assert(((pieces & MASK_CARDS) >> INDEX_CARDS) < 30);
+	assert(((pieces & MASK_CARDS) >> INDEX_CARDS) < 30); //illegal card LUT index
 }
 
 std::string cardsShortName(std::array<const CardBoard, 5>& gameCards, int i, int length) {
