@@ -40,7 +40,7 @@ public:
 
 private:
 	template<MoveFunc cb>
-	void iterateMoves(GameCards& gameCards, const CardBoard& card, uint64_t piecesWithNewCards, bool player, bool movingPlayer, unsigned long long depth) const {
+	void iterateMoves(GameCards& gameCards, const CardBoard& card, uint64_t piecesWithNewCards, bool cardFlip, bool movingPlayer, unsigned long long depth) const {
 		//card.print();
 		uint32_t bitScan = (movingPlayer ? piecesWithNewCards >> 32 : piecesWithNewCards) & MASK_PIECES;
 		unsigned long lastFromI = 0;
@@ -64,7 +64,7 @@ private:
 			hasBits = _BitScanForward(&nextFromI, bitScan);
 			
 			const uint32_t endMask = opponentKing | (isKingMove ? MASK_END_POSITIONS[movingPlayer] : 0);
-			uint32_t scan = card.moveBoard[player][fromI] & ~(movingPlayer ? piecesWithNewCards >> 32 : piecesWithNewCards);
+			uint32_t scan = card.moveBoard[cardFlip][fromI] & ~(movingPlayer ? piecesWithNewCards >> 32 : piecesWithNewCards);
 			const uint32_t kingSamePositionRange = isKingMove ? (1ULL << nextFromI) - (1ULL < lastFromI) : ~((uint32_t)0);
 			while (scan) {
 				const uint32_t landBit = scan & -scan;
@@ -72,7 +72,7 @@ private:
 				const uint64_t landBitHigh = ((uint64_t)landBit) << 32;
 				Board board{ newPiecesWithoutLandPiece };
 				board.pieces |= movingPlayer ? landBitHigh : landBit;	 // add arrival piece
-				board.pieces &= ~((movingPlayer ? landBit : landBitHigh) | (((uint64_t)7) << INDEX_KINGS[movingPlayer])); // possible take piece
+				board.pieces &= ~(movingPlayer ? landBit : landBitHigh); // possible take piece
 				const uint32_t beforeKingPieces = (movingPlayer ? board.pieces >> 32 : board.pieces) & (isKingMove ? landBit - 1 : beforeKingMask);
 				board.pieces |= ((uint64_t)_popcnt32(beforeKingPieces)) << INDEX_KINGS[movingPlayer];
 				board.pieces |= ((uint64_t)_popcnt32(opponentBeforeKingPieces & ~landBit)) << INDEX_KINGS[!movingPlayer];
