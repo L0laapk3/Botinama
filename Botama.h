@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <cstdint>
 
 // project wide definitions
 
@@ -14,4 +15,5 @@ constexpr U64 MASK_CARDS = 0x1fULL << INDEX_CARDS;
 constexpr U64 MASK_PIECES = 0x1ffffffULL;
 constexpr std::array<U64, 2> MASK_PLAYER = { 0xffff'ffffULL, 0xffff'ffff'0000'0000 };
 constexpr std::array<U32, 2> INDEX_KINGS = { 32 + 25, 32 + 25 + 4 };
-constexpr std::array<U32, 2> MASK_END_POSITIONS = { 0b00100ULL << 20, 0b00100ULL };
+constexpr std::array<U32, 2> INDEX_END_POSITIONS = { 22, 2 };
+constexpr std::array<U32, 2> MASK_END_POSITIONS = { 1ULL << INDEX_END_POSITIONS[0], 1ULL << INDEX_END_POSITIONS[1] };

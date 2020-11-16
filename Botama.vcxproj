@@ -82,7 +82,6 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions512</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalOptions>/Ofast -Ofast -march=native -Wbitwise-op-parentheses %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -94,19 +93,25 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BitBoard.cpp" />
     <ClCompile Include="Board.cpp" />
+    <ClCompile Include="BoardEval.cpp" />
     <ClCompile Include="BoardUtil.cpp" />
     <ClCompile Include="Card.cpp" />
     <ClCompile Include="CardBoard.cpp" />
     <ClCompile Include="Botama.cpp" />
+    <ClCompile Include="Search.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BitBoard.h" />
     <ClInclude Include="Bitscan.h" />
     <ClInclude Include="Board.h" />
     <ClInclude Include="Board.hpp" />
     <ClInclude Include="Botama.h" />
     <ClInclude Include="Card.h" />
     <ClInclude Include="CardBoard.h" />
+    <ClInclude Include="Score.h" />
+    <ClInclude Include="Search.h" />
     <ClInclude Include="Solve.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

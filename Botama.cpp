@@ -1,30 +1,38 @@
-// notlosebot.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
 
 #include <iostream>
-
-#include "Board.h"
-#include "Card.h"
-#include "CardBoard.h"
 #include <string>
 #include <bitset>
 #include <chrono>
 #include <algorithm>
 
+#include "Board.h"
+#include "Card.h"
+#include "CardBoard.h"
+#include "BitBoard.h"
+
+
 U64 count = 0;
-void recursive(GameCards& gameCards, const Board& board, const bool finished, U32 depth) {
+void perft(GameCards& gameCards, const Board& board, const bool finished, U32 depth) {
 	if (!depth || finished)
 		count++;
 	else
-		board.forwardMoves<*recursive>(gameCards, depth - 1);
+		board.forwardMoves<*perft>(gameCards, depth - 1);
 }
-void recursiveCheat(GameCards& gameCards, const Board& board, const bool finished, U32 depth) {
+void perftCheat(GameCards& gameCards, const Board& board, const bool finished, U32 depth) {
 	if (finished)
 		count++;
 	else if (depth == 1)
 		count += board.countForwardMoves(gameCards);
 	else
-		board.forwardMoves<*recursiveCheat>(gameCards, depth - 1);
+		board.forwardMoves<*perftCheat>(gameCards, depth - 1);
+}
+void bench(GameCards& gameCards, Board board, int depth) {
+	auto start = std::chrono::steady_clock::now();
+	count = 0;
+	perft(gameCards, board, false, depth);
+	auto end = std::chrono::steady_clock::now();
+	float nps = std::roundf(count / (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() * .001f));
+	std::cout << depth << "  " << nps << "M/s \t" << count << std::endl;
 }
 
 int main() {
@@ -33,13 +41,8 @@ int main() {
 	//Board board = Board::fromString("1020101010000000303030403", true);
 	//Board board = Board::fromString("0031000100342101000300300", true);
 	board.print(gameCards);
+	//BitBoard::generate(gameCards, { 1, 1 });
 
-	for (int depth = 1; depth < 10; depth++) {
-		auto start = std::chrono::steady_clock::now();
-		count = 0;
-		recursive(gameCards, board, false, depth);
-		auto end = std::chrono::steady_clock::now();
-		float nps = std::roundf(count / (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() * .001f));
-		std::cout << depth << "  " << nps << "M/s \t" << count << std::endl;
-	}
+	for (int depth = 1; depth < 10; depth++)
+		bench(gameCards, board, depth);
 }

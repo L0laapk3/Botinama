@@ -9,10 +9,10 @@ void Board::iterateMoves(GameCards& gameCards, const MoveBoard& moveBoards, U64 
 	unsigned long fromI;
 	unsigned long nextFromI;
 	bool hasBits = _BitScanForward(&fromI, bitScan);
-	U32 kingIndex = (piecesWithNewCards >> INDEX_KINGS[player]) & 7;
-	const U32 opponentKingIndex = (1ULL << ((piecesWithNewCards >> INDEX_KINGS[!player]) & 7));
-	U32 beforeKingMask = _pdep_u32((1ULL << kingIndex), piecesWithNewCards >> (player ? 32 : 0)) - 1;
-	const U32 opponentKing = _pdep_u32(opponentKingIndex, piecesWithNewCards >> (player ? 0 : 32));
+	U32 kingPieceNum = (piecesWithNewCards >> INDEX_KINGS[player]) & 7;
+	const U32 opponentKingPieceNum = (piecesWithNewCards >> INDEX_KINGS[!player]) & 7;
+	const U32 beforeKingMask = _pdep_u32(1ULL << kingPieceNum, piecesWithNewCards >> (player ? 32 : 0)) - 1;
+	const U32 opponentKing = _pdep_u32(1ULL << opponentKingPieceNum, piecesWithNewCards >> (player ? 0 : 32));
 	const U32 opponentBeforeKingPieces = (piecesWithNewCards >> (player ? 0 : 32)) & (opponentKing - 1);
 	piecesWithNewCards &= ~(((U64)0b1111111) << INDEX_KINGS[0]);
 
@@ -20,7 +20,7 @@ void Board::iterateMoves(GameCards& gameCards, const MoveBoard& moveBoards, U64 
 		const U32 fromBit = (1ULL << fromI);
 		bitScan -= fromBit;
 		U64 newPiecesWithoutLandPiece = piecesWithNewCards & ~(((U64)fromBit) << (player ? 32 : 0));
-		bool isKingMove = !kingIndex;
+		bool isKingMove = !kingPieceNum;
 		nextFromI = 25;
 		hasBits = _BitScanForward(&nextFromI, bitScan);
 
@@ -40,7 +40,7 @@ void Board::iterateMoves(GameCards& gameCards, const MoveBoard& moveBoards, U64 
 		}
 		lastFromI = fromI;
 		fromI = nextFromI;
-		kingIndex--;
+		kingPieceNum--;
 	}
 }
 

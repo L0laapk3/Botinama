@@ -10,9 +10,9 @@
 #include <iostream>
 #include "Bitscan.h"
 #include "Botama.h"
+#include "Score.h"
 
 
-void printKings(U64 pieces);
 
 class Board;
 typedef void (*MoveFunc)(GameCards& gameCards, const Board& board, const bool finished, U32 depth);
@@ -29,16 +29,20 @@ public:
 	void valid() const;
 	bool winner() const;
 
+	U32 countForwardMoves(GameCards& gameCards) const;
+
+
+	Score eval(GameCards& gameCards, const bool finished) const;
+private:
+	Score findImmediateWins(GameCards& gameCards) const;
+
+
 private:
 	template<MoveFunc cb>
 	void iterateMoves(GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, U32 depth) const;
 public:
-
-	U32 countForwardMoves(GameCards& gameCards) const;
-
 	template<MoveFunc cb>
 	void forwardMoves(GameCards& gameCards, U32 depth) const;
-
 	template<MoveFunc cb>
 	void reverseMoves(GameCards& gameCards, U32 depth) const;
 
