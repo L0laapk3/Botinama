@@ -21,13 +21,12 @@ class Board {
 public:
 	U64 pieces;
 
-	static Board fromString(std::string str, bool player = false);
+	static Board fromString(std::string str, bool player);
 
 	void print(GameCards& gameCards, bool finished = false) const;
 	static void print(GameCards& gameCards, std::vector<Board> board, std::vector<bool> finished = { false });
 
 	void valid() const;
-	bool finished() const;
 	bool winner() const;
 
 private:
@@ -49,52 +48,80 @@ private:
 
 		while (hasBits) {
 			const U32 fromBit = (1ULL << fromI);
-			bitScan &= ~fromBit;
+			bitScan -= fromBit;
 			U64 newPiecesWithoutLandPiece = piecesWithNewCards & ~(player ? ((U64)fromBit) << 32 : fromBit);
 			bool isKingMove = !kingIndex;
 			nextFromI = 25;
 			hasBits = _BitScanForward(&nextFromI, bitScan);
-			
+
 			const U32 endMask = opponentKing | (isKingMove ? MASK_END_POSITIONS[player] : 0);
 			U32 scan = moveBoards[fromI] & ~(player ? piecesWithNewCards >> 32 : piecesWithNewCards);
 			const U32 kingSamePositionRange = isKingMove ? (1ULL << nextFromI) - (1ULL < lastFromI) : ~((U32)0);
 			while (scan) {
 				const U32 landBit = scan & -scan;
-				scan &= ~landBit;
+				scan -= landBit;
 				const U64 landBitHigh = ((U64)landBit) << 32;
-				Board board{ newPiecesWithoutLandPiece };
-				board.pieces |= player ? landBitHigh : landBit;	 // add arrival piece
-				board.pieces &= ~(player ? landBit : landBitHigh); // possible take piece
-				const U32 beforeKingPieces = (player ? board.pieces >> 32 : board.pieces) & (isKingMove ? landBit - 1 : beforeKingMask);
-				board.pieces |= ((U64)_popcnt32(beforeKingPieces)) << INDEX_KINGS[player];
-				board.pieces |= ((U64)_popcnt32(opponentBeforeKingPieces & ~landBit)) << INDEX_KINGS[!player];
+				U64 newPieces = newPiecesWithoutLandPiece;
+				newPieces |= player ? landBitHigh : landBit;	 // add arrival piece
+				newPieces &= ~(player ? landBit : landBitHigh); // possible take piece
+				const U32 beforeKingPieces = (player ? newPieces >> 32 : newPieces) & (isKingMove ? landBit - 1 : beforeKingMask);
+				newPieces |= ((U64)_popcnt32(beforeKingPieces)) << INDEX_KINGS[player];
+				newPieces |= ((U64)_popcnt32(opponentBeforeKingPieces & ~landBit)) << INDEX_KINGS[!player];
 				//printKings(board.pieces);
 				//std::cout << std::bitset<32>(endMask) << std::endl << std::bitset<32>(landBit) << 'h' << std::endl;
 				const bool finished = landBit & endMask;
-				cb(gameCards, board, finished, depth);
+				cb(gameCards, Board{ newPieces }, finished, depth);
 			}
 			lastFromI = fromI;
 			fromI = nextFromI;
 			kingIndex--;
 		}
 	}
+	U32 countMoves(const MoveBoard& moveBoards, bool player) const {
+		U32 bitScan = (player ? pieces >> 32 : pieces) & MASK_PIECES;
+		U32 total = 0;
+		for (int i = 0; i < 5; i++) {
+			U32 fromBit = _pdep_u32(1 << i, bitScan);
+			unsigned long fromI = 25;
+			_BitScanForward(&fromI, fromBit);
+			U32 scan = moveBoards[fromI] & ~bitScan;
+			total += _popcnt32(scan);
+		}
+		return total;
+	}
 public:
 	template<MoveFunc cb>
 	void forwardMoves(GameCards& gameCards, U32 depth) const {
 		bool player = pieces & MASK_TURN;
-		const CardsPos& cardsPos = CARDS_LUT[(pieces &  MASK_CARDS) >> INDEX_CARDS];
-		U64 playerPiecesWithoutCards = pieces & ~MASK_CARDS;
-		playerPiecesWithoutCards ^= MASK_TURN; // invert player bit
+		const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
+		U64 piecesWithoutCards = pieces & ~MASK_CARDS;
+		piecesWithoutCards ^= MASK_TURN; // invert player bit
 		U32 cardStuff = cardsPos.players[player];
 		for (int i = 0; i < 2; i++) {
 			unsigned long cardI = cardStuff & 0xff;
-			U64 piecesWithNewCards = playerPiecesWithoutCards | (((U64)cardStuff & 0xff00) << (INDEX_CARDS - 8ULL));
+			U64 piecesWithNewCards = piecesWithoutCards | (((U64)cardStuff & 0xff00) << (INDEX_CARDS - 8ULL));
 			cardStuff >>= 16;
 			const auto& card = gameCards[cardI];
 			iterateMoves<cb>(gameCards, card.moveBoards[player], piecesWithNewCards, player, depth);
 		}
 	}
-	
+	U32 countForwardMoves(GameCards& gameCards) const {
+		bool player = pieces & MASK_TURN;
+		const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
+		U32 cardStuff = cardsPos.players[player];
+		U32 total = 0;
+		U64 playerPieces = (player ? pieces >> 32 : pieces) & MASK_PIECES;
+		const auto& card0 = gameCards[cardStuff & 0xff].moveBoards[player];
+		const auto& card1 = gameCards[(cardStuff >> 16) & 0xff].moveBoards[player];
+		for (int i = 0; i < 5; i++) {
+			U32 fromBit = _pdep_u32(1 << i, playerPieces);
+			unsigned long fromI = 25;
+			_BitScanForward(&fromI, fromBit);
+			total += _popcnt64((card0[fromI] & ~playerPieces) | (((U64)card1[fromI] & ~playerPieces) << 32));
+		}
+		return total;
+	}
+
 	template<MoveFunc cb>
 	void reverseMoves(GameCards& gameCards, U32 depth) const {
 		bool player = !(pieces & MASK_TURN);
@@ -102,7 +129,7 @@ public:
 		U64 playerPiecesWithoutCards = pieces & ~MASK_CARDS;
 		playerPiecesWithoutCards ^= MASK_TURN; // invert player bit
 		const auto& card = gameCards[cardsPos.side];
-		U32 cardStuff = cardsPos.players[player];
+		U32 cardStuff = cardsPos.players[!player];
 		for (int i = 0; i < 2; i++) {
 			unsigned long cardI = cardStuff & 0xff;
 			U64 piecesWithNewCards = playerPiecesWithoutCards | (((U64)cardStuff & 0xff00) << (INDEX_CARDS - 8ULL));
