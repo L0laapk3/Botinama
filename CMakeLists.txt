@@ -5,6 +5,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 set(source_files
 ${PROJECT_SOURCE_DIR}/Card.cpp
 ${PROJECT_SOURCE_DIR}/CardBoard.cpp
+${PROJECT_SOURCE_DIR}/BoardUtil.cpp
 ${PROJECT_SOURCE_DIR}/Board.cpp
 ${PROJECT_SOURCE_DIR}/Botama.cpp
 )
