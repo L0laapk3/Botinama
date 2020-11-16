@@ -44,7 +44,6 @@ private:
 		const U32 opponentKing = _pdep_u32(opponentKingIndex, piecesWithNewCards >> (player ? 0 :32));
 		const U32 opponentBeforeKingPieces = (piecesWithNewCards >> (player ? 0 :32)) & (opponentKing - 1);
 		piecesWithNewCards &= ~(((U64)0b1111111) << INDEX_KINGS[0]);
-		//std::cout << std::bitset<25>(opponentKingIndex) << std::endl;
 
 		while (hasBits) {
 			const U32 fromBit = (1ULL << fromI);
@@ -56,19 +55,15 @@ private:
 
 			const U32 endMask = opponentKing | (isKingMove ? MASK_END_POSITIONS[player] : 0);
 			U32 scan = moveBoards[fromI] & ~(piecesWithNewCards >> (player ? 32 : 0));
-			const U32 kingSamePositionRange = isKingMove ? (1ULL << nextFromI) - (1ULL << lastFromI) : ~((U32)0);
 			while (scan) {
 				const U32 landBit = scan & -scan;
 				scan -= landBit;
-				const U64 landBitHigh = ((U64)landBit) << 32;
 				U64 newPieces = newPiecesWithoutLandPiece;
 				newPieces |= ((U64)landBit) << (player ? 32 : 0);	 // add arrival piece
 				newPieces &= ~(((U64)landBit) << (player ? 0 : 32)); // possible take piece
 				const U32 beforeKingPieces = (newPieces >> (player ? 32 : 0)) & (isKingMove ? landBit - 1 : beforeKingMask);
 				newPieces |= ((U64)_popcnt32(beforeKingPieces)) << INDEX_KINGS[player];
 				newPieces |= ((U64)_popcnt32(opponentBeforeKingPieces & ~landBit)) << INDEX_KINGS[!player];
-				//printKings(board.pieces);
-				//std::cout << std::bitset<32>(endMask) << std::endl << std::bitset<32>(landBit) << 'h' << std::endl;
 				const bool finished = landBit & endMask;
 				cb(gameCards, Board{ newPieces }, finished, depth);
 			}
