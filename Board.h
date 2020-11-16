@@ -33,38 +33,38 @@ private:
 	template<MoveFunc cb>
 	void iterateMoves(GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, U64 depth) const {
 		//card.print();
-		U32 bitScan = (player ? piecesWithNewCards >> 32 : piecesWithNewCards) & MASK_PIECES;
+		U32 bitScan = (piecesWithNewCards >> (player ? 32 : 0)) & MASK_PIECES;
 		unsigned long lastFromI = 0;
 		unsigned long fromI;
 		unsigned long nextFromI;
 		bool hasBits = _BitScanForward(&fromI, bitScan);
 		U32 kingIndex = (piecesWithNewCards >> INDEX_KINGS[player]) & 7;
 		const U32 opponentKingIndex = (1ULL << ((piecesWithNewCards >> INDEX_KINGS[!player]) & 7));
-		U32 beforeKingMask = _pdep_u32((1ULL << kingIndex), player ? piecesWithNewCards >> 32 : piecesWithNewCards) - 1;
-		const U32 opponentKing = _pdep_u32(opponentKingIndex, player ? piecesWithNewCards : piecesWithNewCards >> 32);
-		const U32 opponentBeforeKingPieces = (player ? piecesWithNewCards : piecesWithNewCards >> 32) & (opponentKing - 1);
+		U32 beforeKingMask = _pdep_u32((1ULL << kingIndex), piecesWithNewCards >> (player ? 32 : 0)) - 1;
+		const U32 opponentKing = _pdep_u32(opponentKingIndex, piecesWithNewCards >> (player ? 0 :32));
+		const U32 opponentBeforeKingPieces = (piecesWithNewCards >> (player ? 0 :32)) & (opponentKing - 1);
 		piecesWithNewCards &= ~(((U64)0b1111111) << INDEX_KINGS[0]);
 		//std::cout << std::bitset<25>(opponentKingIndex) << std::endl;
 
 		while (hasBits) {
 			const U32 fromBit = (1ULL << fromI);
 			bitScan -= fromBit;
-			U64 newPiecesWithoutLandPiece = piecesWithNewCards & ~(player ? ((U64)fromBit) << 32 : fromBit);
+			U64 newPiecesWithoutLandPiece = piecesWithNewCards & ~(((U64)fromBit) << (player ? 32 : 0));
 			bool isKingMove = !kingIndex;
 			nextFromI = 25;
 			hasBits = _BitScanForward(&nextFromI, bitScan);
 
 			const U32 endMask = opponentKing | (isKingMove ? MASK_END_POSITIONS[player] : 0);
-			U32 scan = moveBoards[fromI] & ~(player ? piecesWithNewCards >> 32 : piecesWithNewCards);
-			const U32 kingSamePositionRange = isKingMove ? (1ULL << nextFromI) - (1ULL < lastFromI) : ~((U32)0);
+			U32 scan = moveBoards[fromI] & ~(piecesWithNewCards >> (player ? 32 : 0));
+			const U32 kingSamePositionRange = isKingMove ? (1ULL << nextFromI) - (1ULL << lastFromI) : ~((U32)0);
 			while (scan) {
 				const U32 landBit = scan & -scan;
 				scan -= landBit;
 				const U64 landBitHigh = ((U64)landBit) << 32;
 				U64 newPieces = newPiecesWithoutLandPiece;
-				newPieces |= player ? landBitHigh : landBit;	 // add arrival piece
-				newPieces &= ~(player ? landBit : landBitHigh); // possible take piece
-				const U32 beforeKingPieces = (player ? newPieces >> 32 : newPieces) & (isKingMove ? landBit - 1 : beforeKingMask);
+				newPieces |= ((U64)landBit) << (player ? 32 : 0);	 // add arrival piece
+				newPieces &= ~(((U64)landBit) << (player ? 0 : 32)); // possible take piece
+				const U32 beforeKingPieces = (newPieces >> (player ? 32 : 0)) & (isKingMove ? landBit - 1 : beforeKingMask);
 				newPieces |= ((U64)_popcnt32(beforeKingPieces)) << INDEX_KINGS[player];
 				newPieces |= ((U64)_popcnt32(opponentBeforeKingPieces & ~landBit)) << INDEX_KINGS[!player];
 				//printKings(board.pieces);
@@ -76,18 +76,6 @@ private:
 			fromI = nextFromI;
 			kingIndex--;
 		}
-	}
-	U32 countMoves(const MoveBoard& moveBoards, bool player) const {
-		U32 bitScan = (player ? pieces >> 32 : pieces) & MASK_PIECES;
-		U32 total = 0;
-		for (int i = 0; i < 5; i++) {
-			U32 fromBit = _pdep_u32(1 << i, bitScan);
-			unsigned long fromI = 25;
-			_BitScanForward(&fromI, fromBit);
-			U32 scan = moveBoards[fromI] & ~bitScan;
-			total += _popcnt32(scan);
-		}
-		return total;
 	}
 public:
 	template<MoveFunc cb>
@@ -110,7 +98,7 @@ public:
 		const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
 		U32 cardStuff = cardsPos.players[player];
 		U32 total = 0;
-		U64 playerPieces = (player ? pieces >> 32 : pieces) & MASK_PIECES;
+		U32 playerPieces = (pieces >> (player ? 32 : 0)) & MASK_PIECES;
 		const auto& card0 = gameCards[cardStuff & 0xff].moveBoards[player];
 		const auto& card1 = gameCards[(cardStuff >> 16) & 0xff].moveBoards[player];
 		for (int i = 0; i < 5; i++) {

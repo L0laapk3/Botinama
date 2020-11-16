@@ -37,7 +37,7 @@ int main() {
 	for (int depth = 1; depth < 10; depth++) {
 		auto start = std::chrono::steady_clock::now();
 		count = 0;
-		recursiveCheat(gameCards, board, false, depth);
+		recursive(gameCards, board, false, depth);
 		auto end = std::chrono::steady_clock::now();
 		float nps = std::roundf(count / (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() * .001f));
 		std::cout << depth << "  " << nps << "M/s \t" << count << std::endl;
