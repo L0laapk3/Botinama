@@ -1,8 +1,9 @@
+
 #pragma once
 
 
-template<MoveFunc cb>
-void Board::iterateMoves(GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, U32 depth) const {
+template <typename MoveFunc>
+void Board::iterateMoves(GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, MoveFunc cb) const {
 	//card.print();
 	U32 bitScan = (piecesWithNewCards >> (player ? 32 : 0)) & MASK_PIECES;
 	unsigned long lastFromI = 0;
@@ -36,7 +37,7 @@ void Board::iterateMoves(GameCards& gameCards, const MoveBoard& moveBoards, U64 
 			newPieces |= ((U64)_popcnt32(beforeKingPieces)) << INDEX_KINGS[player];
 			newPieces |= ((U64)_popcnt32(opponentBeforeKingPieces & ~landBit)) << INDEX_KINGS[!player];
 			const bool finished = landBit & endMask;
-			cb(gameCards, Board{ newPieces }, finished, depth);
+			cb(Board{ newPieces }, finished);
 		}
 		lastFromI = fromI;
 		fromI = nextFromI;
@@ -44,8 +45,8 @@ void Board::iterateMoves(GameCards& gameCards, const MoveBoard& moveBoards, U64 
 	}
 }
 
-template<MoveFunc cb>
-void Board::forwardMoves(GameCards& gameCards, U32 depth) const {
+template <typename MoveFunc>
+void Board::forwardMoves(GameCards& gameCards, MoveFunc cb) const {
 	bool player = pieces & MASK_TURN;
 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
 	U64 piecesWithoutCards = pieces & ~MASK_CARDS;
@@ -56,12 +57,12 @@ void Board::forwardMoves(GameCards& gameCards, U32 depth) const {
 		U64 piecesWithNewCards = piecesWithoutCards | (((U64)cardStuff & 0xff00) << (INDEX_CARDS - 8ULL));
 		cardStuff >>= 16;
 		const auto& card = gameCards[cardI];
-		iterateMoves<cb>(gameCards, card.moveBoards[player], piecesWithNewCards, player, depth);
+		iterateMoves(gameCards, card.moveBoards[player], piecesWithNewCards, player, cb);
 	}
 }
 
-template<MoveFunc cb>
-void Board::reverseMoves(GameCards& gameCards, U32 depth) const {
+template <typename MoveFunc>
+void Board::reverseMoves(GameCards& gameCards, MoveFunc cb) const {
 	bool player = !(pieces & MASK_TURN);
 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
 	U64 playerPiecesWithoutCards = pieces & ~MASK_CARDS;
@@ -72,6 +73,6 @@ void Board::reverseMoves(GameCards& gameCards, U32 depth) const {
 		unsigned long cardI = cardStuff & 0xff;
 		U64 piecesWithNewCards = playerPiecesWithoutCards | (((U64)cardStuff & 0xff00) << (INDEX_CARDS - 8ULL));
 		cardStuff >>= 16;
-		iterateMoves<cb>(gameCards, card.moveBoards[!player], piecesWithNewCards, player, depth);
+		iterateMoves(gameCards, card.moveBoards[!player], piecesWithNewCards, player, cb);
 	}
 }

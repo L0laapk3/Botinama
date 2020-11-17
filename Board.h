@@ -14,9 +14,6 @@
 
 
 
-class Board;
-typedef void (*MoveFunc)(GameCards& gameCards, const Board& board, const bool finished, U32 depth);
-
 class Board {
 public:
 	U64 pieces;
@@ -39,13 +36,13 @@ private:
 
 	//BoardIter
 private:
-	template<MoveFunc cb>
-	void iterateMoves(GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, U32 depth) const;
+	template <typename MoveFunc>
+	void iterateMoves(GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, MoveFunc cb) const;
 public:
-	template<MoveFunc cb>
-	void forwardMoves(GameCards& gameCards, U32 depth) const;
-	template<MoveFunc cb>
-	void reverseMoves(GameCards& gameCards, U32 depth) const;
+	template <typename MoveFunc>
+	void forwardMoves(GameCards& gameCards, MoveFunc cb) const;
+	template <typename MoveFunc>
+	void reverseMoves(GameCards& gameCards, MoveFunc cb) const;
 
 
 	//BoardSearch
@@ -54,5 +51,4 @@ public:
 };
 
 
-
-#include "Board.hpp"
+#include "BoardIter.hpp"

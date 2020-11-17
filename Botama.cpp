@@ -15,16 +15,19 @@ U64 count = 0;
 void perft(GameCards& gameCards, const Board& board, const bool finished, U32 depth) {
 	if (!depth || finished)
 		count++;
-	else
-		board.forwardMoves<*perft>(gameCards, depth - 1);
+	else {
+		board.forwardMoves(gameCards, [&](const Board& newBoard, const bool finished) {
+			perft(gameCards, newBoard, finished, depth - 1);
+		});
+	}
 }
 void perftCheat(GameCards& gameCards, const Board& board, const bool finished, U32 depth) {
 	if (finished)
 		count++;
 	else if (depth == 1)
 		count += board.countForwardMoves(gameCards);
-	else
-		board.forwardMoves<*perftCheat>(gameCards, depth - 1);
+	//else
+		//board.forwardMoves<*perftCheat>(gameCards, depth - 1);
 }
 void bench(GameCards& gameCards, Board board, U32 depth) {
 	auto start = std::chrono::steady_clock::now();
@@ -36,7 +39,7 @@ void bench(GameCards& gameCards, Board board, U32 depth) {
 }
 void time(GameCards& gameCards, Board board, U32 depth) {
 	auto start = std::chrono::steady_clock::now();
-	//perftCheat(gameCards, board, false, depth);
+	perftCheat(gameCards, board, false, depth);
 	float score = board.search(gameCards, depth);
 	auto end = std::chrono::steady_clock::now();
 	std::cout << depth << "  " << score << std::endl;
