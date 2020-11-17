@@ -100,7 +100,7 @@
     <ClCompile Include="Card.cpp" />
     <ClCompile Include="CardBoard.cpp" />
     <ClCompile Include="Botama.cpp" />
-    <ClCompile Include="Search.cpp" />
+    <ClCompile Include="BoardSearch.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BitBoard.h" />
@@ -111,7 +111,6 @@
     <ClInclude Include="Card.h" />
     <ClInclude Include="CardBoard.h" />
     <ClInclude Include="Score.h" />
-    <ClInclude Include="Search.h" />
     <ClInclude Include="Solve.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

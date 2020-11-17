@@ -33,10 +33,10 @@
     <ClCompile Include="BitBoard.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Search.cpp">
+    <ClCompile Include="BoardEval.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BoardEval.cpp">
+    <ClCompile Include="BoardSearch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -66,9 +66,6 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Score.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Search.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

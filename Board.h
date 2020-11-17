@@ -37,6 +37,7 @@ private:
 	Score findImmediateWins(GameCards& gameCards) const;
 
 
+	//BoardIter
 private:
 	template<MoveFunc cb>
 	void iterateMoves(GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, U32 depth) const;
@@ -45,6 +46,10 @@ public:
 	void forwardMoves(GameCards& gameCards, U32 depth) const;
 	template<MoveFunc cb>
 	void reverseMoves(GameCards& gameCards, U32 depth) const;
+
+
+	//BoardSearch
+	Score search(GameCards& gameCards, U32 depth, const bool finished = false, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX) const;
 
 };
 
