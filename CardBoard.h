@@ -15,5 +15,5 @@ public:
 	CardBoard(const Card* card);
 	std::array<MoveBoard, 2> moveBoards;
 
-	static GameCards fetchGameCards(std::array<std::string, 5> cardNames);
+	static GameCards fetchGameCards(std::array<std::string, 5> cardNames, bool flipped = false);
 };

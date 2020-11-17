@@ -27,12 +27,12 @@ CardBoard::CardBoard(const Card* card) : Card(card->name, card->moves), moveBoar
     }
 }
 
-GameCards CardBoard::fetchGameCards(std::array<std::string, 5> cardNames) {
+GameCards CardBoard::fetchGameCards(std::array<std::string, 5> cardNames, bool flipped) {
     return GameCards{
-        CardBoard(Card::findCard(cardNames[0])),
-        CardBoard(Card::findCard(cardNames[1])),
-        CardBoard(Card::findCard(cardNames[2])),
-        CardBoard(Card::findCard(cardNames[3])),
+        CardBoard(Card::findCard(cardNames[flipped ? 2 : 0])),
+        CardBoard(Card::findCard(cardNames[flipped ? 3 : 1])),
+        CardBoard(Card::findCard(cardNames[flipped ? 0 : 2])),
+        CardBoard(Card::findCard(cardNames[flipped ? 1 : 3])),
         CardBoard(Card::findCard(cardNames[4]))
     };
 }

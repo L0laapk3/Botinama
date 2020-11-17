@@ -17,11 +17,13 @@
 class Board;
 typedef void (*MoveFunc)(GameCards& gameCards, const Board& board, const bool finished, U32 depth);
 
+struct SearchResult;
+
 class Board {
 public:
 	U64 pieces;
 
-	static Board fromString(std::string str, bool player);
+	static Board fromString(std::string str, bool player, bool flip = false);
 
 	void print(GameCards& gameCards, bool finished = false) const;
 	static void print(GameCards& gameCards, std::vector<Board> board, std::vector<bool> finished = { false });
@@ -49,10 +51,14 @@ public:
 
 
 	//BoardSearch
-	Score search(GameCards& gameCards, U32 depth, const bool finished = false, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX) const;
+	SearchResult search(GameCards& gameCards, U32 depth, const bool finished = false, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX) const;
 
 };
 
+struct SearchResult {
+	Score score;
+	Board board;
+};
 
 
 #include "BoardIter.hpp"

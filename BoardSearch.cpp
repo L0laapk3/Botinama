@@ -2,12 +2,13 @@
 #include "Board.h"
 
 
-Score Board::search(GameCards& gameCards, U32 depth, const bool finished, Score alpha, const Score beta) const {
+SearchResult Board::search(GameCards& gameCards, U32 depth, const bool finished, Score alpha, const Score beta) const {
 	// negamax with alpha beta pruning
 	bool player = pieces & MASK_TURN;
 	if (finished || !depth)
-		return (player ? -1 : 1) * eval(gameCards, finished);
+		return { (player ? -1 : 1) * eval(gameCards, finished) };
 
+	Board bestBoard;
 	Score bestScore = SCORE_MIN;
 	
 	// Ive spent too many hours trying to get generator functions to compile since i want lazy move generation
@@ -50,9 +51,10 @@ Score Board::search(GameCards& gameCards, U32 depth, const bool finished, Score 
 				const bool finished = landBit & endMask;
 				// end of movegen
 				// beginning of negamax
-				Score childScore = -board.search(gameCards, depth - 1, finished, -beta, -alpha);
+				Score childScore = -board.search(gameCards, depth - 1, finished, -beta, -alpha).score;
 				if (childScore > bestScore) {
 					bestScore = childScore;
+					bestBoard = board;
 					if (childScore > alpha) {
 						alpha = bestScore;
 						if (alpha >= beta)
@@ -67,5 +69,5 @@ Score Board::search(GameCards& gameCards, U32 depth, const bool finished, Score 
 	}
 	pruneLoop:
 
-	return bestScore;
+	return { bestScore, bestBoard };
 }

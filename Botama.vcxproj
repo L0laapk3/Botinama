@@ -101,6 +101,8 @@
     <ClCompile Include="CardBoard.cpp" />
     <ClCompile Include="Botama.cpp" />
     <ClCompile Include="BoardSearch.cpp" />
+    <ClCompile Include="easywsclient.cpp" />
+    <ClCompile Include="Connection.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BitBoard.h" />
@@ -110,6 +112,8 @@
     <ClInclude Include="Botama.h" />
     <ClInclude Include="Card.h" />
     <ClInclude Include="CardBoard.h" />
+    <ClInclude Include="Connection.h" />
+    <ClInclude Include="easywsclient.hpp" />
     <ClInclude Include="Score.h" />
     <ClInclude Include="Solve.h" />
   </ItemGroup>

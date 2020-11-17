@@ -9,6 +9,7 @@
 #include "Card.h"
 #include "CardBoard.h"
 #include "BitBoard.h"
+#include "Connection.h"
 
 
 U64 count = 0;
@@ -37,19 +38,22 @@ void bench(GameCards& gameCards, Board board, U32 depth) {
 void time(GameCards& gameCards, Board board, U32 depth) {
 	auto start = std::chrono::steady_clock::now();
 	//perftCheat(gameCards, board, false, depth);
-	float score = board.search(gameCards, depth);
+	auto result = board.search(gameCards, depth);
 	auto end = std::chrono::steady_clock::now();
-	std::cout << depth << "  " << score << std::endl;
+	std::cout << depth << "\t" << "in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms  \t" << result.score << "\t" << std::bitset<64>(result.board.pieces) << std::endl;
+	result.board.print(gameCards);
 }
 
 int main() {
-	GameCards gameCards = CardBoard::fetchGameCards({ "ox", "boar", "horse", "elephant", "crab" });
-	Board board = Board::fromString("1121100000000000000033433", false);
+	auto conn = Connection();
+	GameCards gameCards = CardBoard::fetchGameCards(conn.cards, conn.player);
+	Board board = Board::fromString(conn.board, false, conn.player);
+	board.print(gameCards);
 	//Board board = Board::fromString("1020101010000000303030403", true);
 	//Board board = Board::fromString("0031000100342101000300300", true);
 	//board.print(gameCards);
 	//BitBoard::generate(gameCards, { 1, 1 });
 
-	for (int depth = 1; depth < 20; depth++)
-		bench(gameCards, board, depth);
+	//for (int depth = 1; depth < 20; depth++)
+	//	time(gameCards, board, depth);
 }

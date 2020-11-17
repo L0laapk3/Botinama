@@ -9,24 +9,25 @@
 
 
 
-Board Board::fromString(std::string str, bool player) {
+Board Board::fromString(std::string str, bool player, bool flip) {
 	Board board{ 0 };
 	bool blueKingFound = false;
 	bool redKingFound = false;
 	for (int i = 0; i < 25; i++) {
-		if (str[i] == '1' || str[i] == '2') {
-			board.pieces |= 1ULL << i;
-			if (str[i] == '2')
+		const auto c = str[flip ? 24ULL - i : i];
+		if (c == '1' || c == '2') {
+			board.pieces |= 1ULL << (i + 32 * flip);
+			if (c == '2')
 				blueKingFound = true;
 			if (!blueKingFound)
-				board.pieces += (1ULL << INDEX_KINGS[0]);
+				board.pieces += (1ULL << INDEX_KINGS[flip]);
 		}
-		if (str[i] == '3' || str[i] == '4') {
-			board.pieces |= 1ULL << (i + 32);
-			if (str[i] == '4')
+		if (c == '3' || c == '4') {
+			board.pieces |= 1ULL << (i + 32 - 32 * flip);
+			if (c == '4')
 				redKingFound = true;
 			if (!redKingFound)
-				board.pieces += (1ULL << INDEX_KINGS[1]);
+				board.pieces += (1ULL << INDEX_KINGS[!flip]);
 		}
 	}
 	if (player) // red starts
@@ -73,7 +74,7 @@ void Board::print(GameCards& gameCards, std::vector<Board> boards, std::vector<b
 			blueKingPos[i] = _popcnt32(board.pieces & MASK_PIECES) - 1 - ((board.pieces >> INDEX_KINGS[0]) & 7);
 			redKingPos[i] = _popcnt32((board.pieces >> 32) & MASK_PIECES) - 1 - (board.pieces >> INDEX_KINGS[1]) & 7;
 			cards[i] = CARDS_LUT[(board.pieces & MASK_CARDS) >> 27ULL];
-			std::cout << cardsShortName(gameCards, cards[i].players[0] & 0xff, 4) << ' ' << cardsShortName(gameCards, (cards[i].players[0] >> 16) & 0xff, 4) << ' ';
+			std::cout << cardsShortName(gameCards, cards[i].players[1] & 0xff, 4) << ' ' << cardsShortName(gameCards, (cards[i].players[1] >> 16) & 0xff, 4) << ' ';
 		}
 		std::cout << std::endl;
 		for (int r = 5; r-- > 0;) {
@@ -105,7 +106,7 @@ void Board::print(GameCards& gameCards, std::vector<Board> boards, std::vector<b
 		}
 		for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
 			//const Board& board = boards[i];
-			std::cout << cardsShortName(gameCards, cards[i].players[1] & 0xff, 4) << ' ' << cardsShortName(gameCards, (cards[i].players[1] >> 16) & 0xff, 4) << ' ';
+			std::cout << cardsShortName(gameCards, cards[i].players[0] & 0xff, 4) << ' ' << cardsShortName(gameCards, (cards[i].players[0] >> 16) & 0xff, 4) << ' ';
 		}
 		std::cout << std::endl;
 		for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
