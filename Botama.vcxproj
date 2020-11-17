@@ -106,7 +106,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BitBoard.h" />
-    <ClInclude Include="Bitscan.h" />
+    <ClInclude Include="BitScan.h" />
     <ClInclude Include="Board.h" />
     <ClInclude Include="BoardIter.hpp" />
     <ClInclude Include="Botama.h" />

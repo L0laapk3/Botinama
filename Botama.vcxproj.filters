@@ -56,9 +56,6 @@
     <ClInclude Include="Board.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Bitscan.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Solve.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -78,6 +75,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Connection.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BitScan.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

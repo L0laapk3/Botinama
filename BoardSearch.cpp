@@ -1,12 +1,13 @@
 
 #include "Board.h"
+#include <algorithm>
 
 
-SearchResult Board::search(GameCards& gameCards, U32 depth, const bool finished, Score alpha, const Score beta) const {
+SearchResult Board::search(const GameCards& gameCards, U32 depth, Score alpha, const Score beta) const {
 	// negamax with alpha beta pruning
 	bool player = pieces & MASK_TURN;
-	if (finished || !depth)
-		return { (player ? -1 : 1) * eval(gameCards, finished) };
+	if (!depth)
+		return { (player ? -1 : 1) * eval(gameCards) };
 
 	Board bestBoard;
 	Score bestScore = SCORE_MIN;
@@ -51,7 +52,13 @@ SearchResult Board::search(GameCards& gameCards, U32 depth, const bool finished,
 				const bool finished = landBit & endMask;
 				// end of movegen
 				// beginning of negamax
-				Score childScore = -board.search(gameCards, depth - 1, finished, -beta, -alpha).score;
+				Score childScore;
+				if (finished) {
+					//const int32_t depthMod = (1 << 6) - depthMod;
+					childScore = SCORE_MAX;
+				} else
+					childScore = -board.search(gameCards, depth - 1, -beta, -alpha).score;
+
 				if (childScore > bestScore) {
 					bestScore = childScore;
 					bestBoard = board;

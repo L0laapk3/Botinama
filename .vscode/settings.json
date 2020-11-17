@@ -50,6 +50,23 @@
 		"xstddef": "cpp",
 		"xstring": "cpp",
 		"xtr1common": "cpp",
-		"xutility": "cpp"
+		"xutility": "cpp",
+		"regex": "cpp",
+		"codecvt": "cpp",
+		"condition_variable": "cpp",
+		"coroutine": "cpp",
+		"ctime": "cpp",
+		"deque": "cpp",
+		"filesystem": "cpp",
+		"iomanip": "cpp",
+		"locale": "cpp",
+		"mutex": "cpp",
+		"optional": "cpp",
+		"stack": "cpp",
+		"thread": "cpp",
+		"xlocbuf": "cpp",
+		"xlocmes": "cpp",
+		"xlocmon": "cpp",
+		"xloctime": "cpp"
 	}
 }

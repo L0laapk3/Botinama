@@ -13,13 +13,13 @@
 
 
 U64 count = 0;
-void perft(GameCards& gameCards, const Board& board, const bool finished, U32 depth) {
+void perft(const GameCards& gameCards, const Board& board, const bool finished, U32 depth) {
 	if (!depth || finished)
 		count++;
 	else
 		board.forwardMoves<*perft>(gameCards, depth - 1);
 }
-void perftCheat(GameCards& gameCards, const Board& board, const bool finished, U32 depth) {
+void perftCheat(const GameCards& gameCards, const Board& board, const bool finished, U32 depth) {
 	if (finished)
 		count++;
 	else if (depth == 1)
@@ -27,7 +27,7 @@ void perftCheat(GameCards& gameCards, const Board& board, const bool finished, U
 	else
 		board.forwardMoves<*perftCheat>(gameCards, depth - 1);
 }
-void bench(GameCards& gameCards, Board board, U32 depth) {
+void bench(const GameCards& gameCards, Board board, U32 depth) {
 	auto start = std::chrono::steady_clock::now();
 	count = 0;
 	perft(gameCards, board, false, depth);
@@ -35,7 +35,7 @@ void bench(GameCards& gameCards, Board board, U32 depth) {
 	float nps = std::roundf(count / (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() * .001f));
 	std::cout << depth << "  " << nps << "M/s \t" << count << std::endl;
 }
-void time(GameCards& gameCards, Board board, U32 depth) {
+void time(const GameCards& gameCards, Board board, U32 depth) {
 	auto start = std::chrono::steady_clock::now();
 	//perftCheat(gameCards, board, false, depth);
 	auto result = board.search(gameCards, depth);
@@ -44,11 +44,48 @@ void time(GameCards& gameCards, Board board, U32 depth) {
 	result.board.print(gameCards);
 }
 
+
+SearchResult searchTime(const Game& game, const U64 timeBudget) {
+	auto lastTime = 1ULL;
+	auto predictedTime = 1ULL;
+	U32 depth = 0;
+	SearchResult result;
+	const auto beginTime = std::chrono::steady_clock::now();
+	while ((depth < 2 || predictedTime < timeBudget * 1000) && depth < 63) {
+		result = game.board.search(game.cards, ++depth);
+		++depth;
+		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
+		predictedTime = time * time / lastTime;
+		lastTime = time;
+		bool end = std::abs(result.score) > (1 << 29);
+		
+			std::cout << "depth " << depth << " \t" << "in " << time / 1000 << "ms  \t";
+			if (!end)
+				std::cout << "score: " << result.score << std::endl;
+			else if (result.score > 0)
+				std::cout << "win" << std::endl;
+			else
+				std::cout << "lose" << std::endl;
+		
+	}
+	return result;
+}
+
 int main() {
 	auto conn = Connection();
-	GameCards gameCards = CardBoard::fetchGameCards(conn.cards, conn.player);
-	Board board = Board::fromString(conn.board, false, conn.player);
-	board.print(gameCards);
+	Game game = conn.waitGame();
+
+	while (true) {
+		//game.board.print(game.cards);
+		if (!game.board.currentPlayer()) {
+			auto bestMove = searchTime(game, 1000);
+			conn.submitMove(game, bestMove.board);
+			std::cout << std::endl;
+		}
+
+		conn.waitTurn(game);
+	}
+
 	//Board board = Board::fromString("1020101010000000303030403", true);
 	//Board board = Board::fromString("0031000100342101000300300", true);
 	//board.print(gameCards);

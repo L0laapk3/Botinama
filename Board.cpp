@@ -10,7 +10,7 @@
 
 
 
-U32 Board::countForwardMoves(GameCards& gameCards) const {
+U32 Board::countForwardMoves(const GameCards& gameCards) const {
 	bool player = pieces & MASK_TURN;
 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
 	U32 cardStuff = cardsPos.players[player];
@@ -28,7 +28,7 @@ U32 Board::countForwardMoves(GameCards& gameCards) const {
 }
 
 
-Score Board::findImmediateWins(GameCards& gameCards) const {
+Score Board::findImmediateWins(const GameCards& gameCards) const {
 	bool player = pieces & MASK_TURN;
 	// check win in 1 ply
 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];

@@ -16,4 +16,5 @@ public:
 	std::array<MoveBoard, 2> moveBoards;
 
 	static GameCards fetchGameCards(std::array<std::string, 5> cardNames, bool flipped = false);
+	static U32 getCardIndex(const GameCards& gameCards, std::array<std::string, 5> cardNames, bool flipped = false);
 };

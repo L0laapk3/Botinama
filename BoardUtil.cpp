@@ -41,6 +41,10 @@ bool Board::winner() const {
 	return !(pieces & MASK_TURN);
 }
 
+bool Board::currentPlayer() const {
+	return pieces & MASK_TURN;
+}
+
 #undef NDEBUG
 #include <assert.h>
 void Board::valid() const {
@@ -52,7 +56,7 @@ void Board::valid() const {
 	assert(((pieces & MASK_CARDS) >> INDEX_CARDS) < 30); //illegal card LUT index
 }
 
-std::string cardsShortName(std::array<const CardBoard, 5>& gameCards, int i, int length) {
+std::string cardsShortName(const GameCards& gameCards, int i, int length) {
 	std::string res = "";
 	const std::string& card = i < 5 ? gameCards[i].name : (std::to_string(i) + "??");
 	for (U32 i = 0; i < length; i++)
@@ -60,10 +64,10 @@ std::string cardsShortName(std::array<const CardBoard, 5>& gameCards, int i, int
 	res += ' ';
 	return res;
 }
-void Board::print(GameCards& gameCards, bool finished) const {
+void Board::print(const GameCards& gameCards, bool finished) const {
 	Board::print(gameCards, { *this }, { finished });
 }
-void Board::print(GameCards& gameCards, std::vector<Board> boards, std::vector<bool> finished) {
+void Board::print(const GameCards& gameCards, std::vector<Board> boards, std::vector<bool> finished) {
 	constexpr size_t MAXPERLINE = 10;
 	for (size_t batch = 0; batch < boards.size(); batch += MAXPERLINE) {
 		std::array<int, MAXPERLINE> blueKingPos;

@@ -4,22 +4,31 @@
 #include <memory>
 #include <array>
 
+#include "Board.h"
+#include "CardBoard.h"
+
+struct Game {
+	const GameCards cards;
+	Board board;
+};
+
 class Connection {
 public:
 	Connection();
 	~Connection();
 
-	void getBoard();
+	Game waitGame();
+	void waitTurn(Game& game);
+	void submitMove(Game& game, const Board& board);
 
 	std::string matchId;
 	std::string token;
 	std::string opponent;
-	std::array<std::string, 5> cards;
-	std::string board;
 
 	int index;
 	bool player;
+	bool currentTurn;
 
 private:
-	easywsclient::WebSocket::pointer ws;
+	std::unique_ptr<easywsclient::WebSocket> ws = nullptr;
 };

@@ -1,5 +1,6 @@
 
 #include "CardBoard.h"
+#include "Card.h"
 
 #include <iostream>
 #include <bitset>
@@ -35,4 +36,27 @@ GameCards CardBoard::fetchGameCards(std::array<std::string, 5> cardNames, bool f
         CardBoard(Card::findCard(cardNames[flipped ? 1 : 3])),
         CardBoard(Card::findCard(cardNames[4]))
     };
+}
+
+U32 CardBoard::getCardIndex(const GameCards& gameCards, std::array<std::string, 5> cardNames, bool flipped) {
+    for (U32 i = 0; i < 30; i++) {
+        const auto& cPos = CARDS_LUT[i];
+        std::array<U32, 5> cardOrder = {
+            cPos.players[flipped] & 0xff,
+            (cPos.players[flipped] >> 16) & 0xff,
+            cPos.players[!flipped] & 0xff,
+            (cPos.players[!flipped] >> 16) & 0xff,
+            cPos.side
+        };
+        if (gameCards[cardOrder[4]].name != cardNames[4]) // side card
+            continue;
+        for (U32 j = 0; j < 5; j++) {
+            if (j == 4)
+                return i;
+            if ((gameCards[cardOrder[j]].name != cardNames[j]) && (gameCards[cardOrder[j]].name != cardNames[j ^ 1]))
+                break;
+        }
+    }
+    assert(0);
+    return -1;
 }
