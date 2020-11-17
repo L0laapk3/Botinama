@@ -59,13 +59,13 @@
     <ClInclude Include="Botama.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Board.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="BitBoard.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Score.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BoardIter.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

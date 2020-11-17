@@ -5,6 +5,10 @@ template<MoveFunc cb>
 void Board::iterateMoves(GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, U32 depth) const {
 	//card.print();
 	U32 bitScan = (piecesWithNewCards >> (player ? 32 : 0)) & MASK_PIECES;
+	unsigned long lastFromI = 0;
+	unsigned long fromI;
+	unsigned long nextFromI;
+	bool hasBits = _BitScanForward(&fromI, bitScan);
 	U32 kingPieceNum = (piecesWithNewCards >> INDEX_KINGS[player]) & 7;
 	const U32 opponentKingPieceNum = (piecesWithNewCards >> INDEX_KINGS[!player]) & 7;
 	const U32 beforeKingMask = _pdep_u32(1ULL << kingPieceNum, piecesWithNewCards >> (player ? 32 : 0)) - 1;
@@ -12,12 +16,13 @@ void Board::iterateMoves(GameCards& gameCards, const MoveBoard& moveBoards, U64 
 	const U32 opponentBeforeKingPieces = (piecesWithNewCards >> (player ? 0 : 32)) & (opponentKing - 1);
 	piecesWithNewCards &= ~(((U64)0b1111111) << INDEX_KINGS[0]);
 
-	unsigned long fromI;
-	while (_BitScanForward(&fromI, bitScan)) {
+	while (hasBits) {
 		const U32 fromBit = (1ULL << fromI);
 		bitScan -= fromBit;
 		U64 newPiecesWithoutLandPiece = piecesWithNewCards & ~(((U64)fromBit) << (player ? 32 : 0));
 		bool isKingMove = !kingPieceNum;
+		nextFromI = 25;
+		hasBits = _BitScanForward(&nextFromI, bitScan);
 
 		const U32 endMask = opponentKing | (isKingMove ? MASK_END_POSITIONS[player] : 0);
 		U32 scan = moveBoards[fromI] & ~(piecesWithNewCards >> (player ? 32 : 0));
@@ -33,6 +38,8 @@ void Board::iterateMoves(GameCards& gameCards, const MoveBoard& moveBoards, U64 
 			const bool finished = landBit & endMask;
 			cb(gameCards, Board{ newPieces }, finished, depth);
 		}
+		lastFromI = fromI;
+		fromI = nextFromI;
 		kingPieceNum--;
 	}
 }

@@ -106,7 +106,7 @@
     <ClInclude Include="BitBoard.h" />
     <ClInclude Include="Bitscan.h" />
     <ClInclude Include="Board.h" />
-    <ClInclude Include="Board.hpp" />
+    <ClInclude Include="BoardIter.hpp" />
     <ClInclude Include="Botama.h" />
     <ClInclude Include="Card.h" />
     <ClInclude Include="CardBoard.h" />
