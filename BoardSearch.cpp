@@ -23,7 +23,8 @@ SearchResult Board::search(const GameCards& gameCards, S32 depth, Score alpha, c
 	piecesWithoutCards ^= MASK_TURN; // invert player bit
 	for (int taking = 1; taking >= (quiescent ? 1 : 0); taking--) {
 		U32 cardStuff = cardsPos.players[player];
-		const U32 moveMask = ~(pieces >> (player ? 32 : 0)) & ((pieces >> (player ? 0 : 32)) ^ (taking ? 0 : ~0));
+		const U32 takeMask = ~(pieces >> (player ? 32 : 0)) & (pieces >> (player ? 0 : 32) ^ (taking ? 0 : ~0));
+		const U32 kingMask = ~(pieces >> (player ? 32 : 0)) & ((pieces >> (player ? 0 : 32) | MASK_END_POSITIONS[player]) ^ (taking ? 0 : ~0));
 		for (int i = 0; i < 2; i++) {
 			unsigned long cardI = cardStuff & 0xff;
 			U64 piecesWithNewCards = piecesWithoutCards | (((U64)cardStuff & 0xff00) << (INDEX_CARDS - 8ULL));
@@ -39,11 +40,11 @@ SearchResult Board::search(const GameCards& gameCards, S32 depth, Score alpha, c
 
 			unsigned long fromI;
 			while (_BitScanForward(&fromI, bitScan)) {
-				U32 scan = moveBoard[fromI] & moveMask;
+				bool isKingMove = !kingPieceNum;
+				U32 scan = moveBoard[fromI] & (isKingMove ? kingMask : takeMask);
 				const U32 fromBit = (1ULL << fromI);
 				bitScan -= fromBit;
 				U64 newPiecesWithoutLandPiece = piecesWithNewCards & ~(((U64)fromBit) << (player ? 32 : 0));
-				bool isKingMove = !kingPieceNum;
 
 				const U32 endMask = opponentKing | (isKingMove ? MASK_END_POSITIONS[player] : 0);
 				while (scan) {

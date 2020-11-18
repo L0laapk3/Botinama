@@ -76,10 +76,10 @@ SearchResult searchTime(const GameCards& cards, const Board& board, const U64 ti
 				printf("%.2f\n", (float)result.score / SCORE_PIECE);
 			else {
 				S32 end = depth - (std::abs(result.score) - SCORE_WIN);
-				bool quiescentFind = end > depth;
-				if (!quiescentFind)
+				bool quiescenceUnsure = (end - 1) > depth;
+				if (!quiescenceUnsure)
 					shortestEnd = std::min(end, shortestEnd);
-				std::cout << (result.score > 0 ? "win" : "lose") << " in " << end << (quiescentFind ? "?" : "") << std::endl;
+				std::cout << (result.score > 0 ? "win" : "lose") << " in " << end << (quiescenceUnsure ? "?" : "") << std::endl;
 			}
 			if (lastIteration || shortestEnd <= depth)
 				break;

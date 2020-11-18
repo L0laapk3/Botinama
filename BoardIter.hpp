@@ -1,6 +1,7 @@
 #pragma once
 
 
+// unfortunately due to my lack of cpp knowledge I had to duplicate this into boardsearch. see there for version with move sorting
 template<MoveFunc cb>
 void Board::iterateMoves(const GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, S32 depth) const {
 	//card.print();
