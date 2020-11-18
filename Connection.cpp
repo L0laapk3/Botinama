@@ -47,9 +47,14 @@ Connection::Connection() {
 }
 
 
-Game Connection::waitGame() {
+void Connection::createGame() {
 	ws->send("create Botama");
+}
+void Connection::joinGame(const std::string& matchId) {
+	ws->send("join " + matchId + " Botama");
+}
 
+Game Connection::waitGame() {
 	assert(ws->getReadyState() != easywsclient::WebSocket::CLOSED);
 	while (!matchId.size()) {
 		ws->poll(-1);

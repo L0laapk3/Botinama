@@ -1,6 +1,6 @@
 
 #include <bitset>
-#include "BitBoard.h"
+#include "TableBase.h"
 #include "Board.h"
 
 
@@ -26,7 +26,7 @@ void placePieces(GameCards& gameCards, U64 board, U32 occupied, U32 beforeKing, 
 }
 
 // bitboards where player 0 wins
-void BitBoard::generate(GameCards& gameCards, std::array<U32, 2> maxPawns) {
+void TableBase::generate(GameCards& gameCards, std::array<U32, 2> maxPawns) {
 	U32 king = MASK_END_POSITIONS[0];
 	U32 otherKing = 1ULL;
 	for (U32 otherKingPos = 0; otherKingPos < 24; otherKingPos++) {

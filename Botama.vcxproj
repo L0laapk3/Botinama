@@ -93,7 +93,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="BitBoard.cpp" />
+    <ClCompile Include="TableBase.cpp" />
     <ClCompile Include="Board.cpp" />
     <ClCompile Include="BoardEval.cpp" />
     <ClCompile Include="BoardUtil.cpp" />
@@ -105,7 +105,7 @@
     <ClCompile Include="Connection.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BitBoard.h" />
+    <ClInclude Include="TableBase.h" />
     <ClInclude Include="BitScan.h" />
     <ClInclude Include="Board.h" />
     <ClInclude Include="BoardIter.hpp" />

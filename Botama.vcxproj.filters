@@ -30,9 +30,6 @@
     <ClCompile Include="BoardUtil.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BitBoard.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="BoardEval.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -43,6 +40,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Connection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TableBase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -62,9 +62,6 @@
     <ClInclude Include="Botama.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="BitBoard.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Score.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -78,6 +75,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="BitScan.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TableBase.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

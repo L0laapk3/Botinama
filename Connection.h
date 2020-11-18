@@ -15,8 +15,11 @@ struct Game {
 class Connection {
 public:
 	Connection();
+	Connection(std::string matchId);
 	~Connection();
 
+	void createGame();
+	void joinGame(const std::string& matchId);
 	Game waitGame();
 	void waitTurn(Game& game);
 	void submitMove(Game& game, const Board& board);

@@ -4,6 +4,6 @@
 #include "CardBoard.h"
 
 
-namespace BitBoard {
+namespace TableBase {
 	void generate(GameCards& gameCards, std::array<U32, 2> maxPawns = { 0, 0 });
 }

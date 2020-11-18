@@ -9,7 +9,7 @@
 #include "Board.h"
 #include "Card.h"
 #include "CardBoard.h"
-#include "BitBoard.h"
+#include "TableBase.h"
 #include "Connection.h"
 
 
@@ -47,8 +47,10 @@ void time(const GameCards& gameCards, Board board, U32 depth) {
 
 
 constexpr U32 startDepth = 0;
-constexpr U32 minDepth = 5;
-SearchResult searchTime(const GameCards& cards, const Board& board, const U64 timeBudget) {
+constexpr U32 minDepth = 4;
+SearchResult searchTime(const GameCards& cards, const Board& board, const U64 timeBudget, const bool verbose = false) {
+	if (verbose)
+		board.print(cards);
 	auto lastTime = 1ULL;
 	auto predictedTime = 1ULL;
 	S32 depth = startDepth;
@@ -63,8 +65,13 @@ SearchResult searchTime(const GameCards& cards, const Board& board, const U64 ti
 		bool foundWin = std::abs(result.score) >= SCORE_WIN;
 		bool foundProbableWin = std::abs(result.score) > SCORE_WIN - 64;
 		bool lastIteration = ((predictedTime > timeBudget * 1000) && (depth >= minDepth)) || (depth >= 64);
-		if (lastIteration || foundWin/* || time > 50000*/) {
-			printf("depth %2i in %.2fs (%2lluM/s): ", depth, (float)time / 1E6, result.total / time);
+		if (lastIteration || foundWin || verbose) {
+			if (timeBudget >= 1000)
+				printf("depth %2i in %.2fs (%2lluM/s): ", depth, (float)time / 1E6, result.total / time);
+			else if (timeBudget >= 10)
+				printf("depth %2i in %3.0fms (%2lluM/s): ", depth, (float)time / 1E3, result.total / time);
+			else
+				printf("depth %2i in %.1fms (%2lluM/s): ", depth, (float)time / 1E3, result.total / time);
 			if (!foundProbableWin)
 				printf("%.2f\n", (float)result.score / SCORE_PIECE);
 			else {
@@ -79,22 +86,25 @@ SearchResult searchTime(const GameCards& cards, const Board& board, const U64 ti
 		}
 		
 	}
+	if (verbose)
+		std::cout << std::endl;
 	return result;
 }
 
-int main() {
+int main(int argc, char** argv) {
 
-	// GameCards cards = CardBoard::fetchGameCards({ "boar", "horse", "elephant", "ox", "crab" });
-	// Board board = Board::fromString("0000000002000004000000000", false);
-	// board.print(cards);
-	// searchTime(cards, board, 1000);
+	// GameCards cards = CardBoard::fetchGameCards({ "crane", "eel", "horse", "ox", "boar" });
+	// Board board = Board::fromString("0000020000000000000000040", false);
+	// GameCards cards = CardBoard::fetchGameCards({ "crane", "ox", "horse", "eel", "boar" });
+	// Board board = Board::fromString("0000000000000020000000004", false);
+	//searchTime(cards, board, 1000 * 60, true);
 	// std::cout << board.eval(cards) << std::endl;
-	// std::cout << std::endl << cards[0].name << std::endl;
-	// cards[0].print();
-	// SearchResult result = board.search<true>(cards, 1);
-	// std::cout << 1 - (result.score - SCORE_WIN) << std::endl;
 
 	auto conn = Connection();
+	if (argc > 1)
+		conn.joinGame(argv[1]);
+	else
+		conn.createGame();
 	Game game = conn.waitGame();
 
 	while (true) {
