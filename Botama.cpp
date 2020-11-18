@@ -60,10 +60,11 @@ SearchResult searchTime(const Game& game, const U64 timeBudget) {
 		predictedTime = time * time / lastTime;
 		lastTime = time;
 		bool foundWin = std::abs(result.score) >= SCORE_WIN;
+		bool foundProbableWin = std::abs(result.score) > SCORE_WIN - 64;
 		bool lastIteration = ((predictedTime > timeBudget * 1000) && (depth >= minDepth)) || (depth >= 64);
 		if (lastIteration || foundWin || time > 10000) {
 			std::cout << "depth " << depth << " \t" << "in " << time / 1000 << "ms  \t" << result.total / time << "M/s\t";
-			if (!foundWin)
+			if (!foundProbableWin)
 				std::cout << "score: " << result.score << std::endl;
 			else {
 				S32 end = depth - (std::abs(result.score) - SCORE_WIN);
