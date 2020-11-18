@@ -52,7 +52,7 @@ public:
 
 
 	//BoardSearch
-	template<bool quiescent>
+	template<bool full>
 	SearchResult search(const GameCards& gameCards, U32 depth, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX) const;
 
 };

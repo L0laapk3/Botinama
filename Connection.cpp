@@ -128,6 +128,7 @@ std::string indexToPos(U32 i, bool flipped) {
 }
 
 void Connection::submitMove(Game& game, const Board& board) {
+	assert(board.pieces);
 	unsigned long from = 25;
 	unsigned long to = 25;
 	_BitScanForward(&from, game.board.pieces & ~board.pieces);
