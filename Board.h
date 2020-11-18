@@ -52,8 +52,7 @@ public:
 
 
 	//BoardSearch
-	template<bool full>
-	SearchResult search(const GameCards& gameCards, S32 depth, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX) const;
+	SearchResult search(const GameCards& gameCards, S32 depth, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX, const bool quiescent = false) const;
 
 };
 

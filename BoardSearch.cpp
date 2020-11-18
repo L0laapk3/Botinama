@@ -3,8 +3,7 @@
 #include <algorithm>
 
 
-template<bool full>
-SearchResult Board::search(const GameCards& gameCards, S32 depth, Score alpha, const Score beta) const {
+SearchResult Board::search(const GameCards& gameCards, S32 depth, Score alpha, const Score beta, const bool quiescent) const {
 	// negamax with alpha beta pruning
 	bool player = pieces & MASK_TURN;
 
@@ -22,7 +21,7 @@ SearchResult Board::search(const GameCards& gameCards, S32 depth, Score alpha, c
 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
 	U64 piecesWithoutCards = pieces & ~MASK_CARDS;
 	piecesWithoutCards ^= MASK_TURN; // invert player bit
-	for (int taking = 1; taking >= (full ? 0 : 1); taking--) {
+	for (int taking = 1; taking >= (quiescent ? 1 : 0); taking--) {
 		U32 cardStuff = cardsPos.players[player];
 		const U32 moveMask = ~(pieces >> (player ? 32 : 0)) & ((pieces >> (player ? 0 : 32)) ^ (taking ? 0 : ~0));
 		for (int i = 0; i < 2; i++) {
@@ -40,14 +39,13 @@ SearchResult Board::search(const GameCards& gameCards, S32 depth, Score alpha, c
 
 			unsigned long fromI;
 			while (_BitScanForward(&fromI, bitScan)) {
+				U32 scan = moveBoard[fromI] & moveMask;
 				const U32 fromBit = (1ULL << fromI);
 				bitScan -= fromBit;
 				U64 newPiecesWithoutLandPiece = piecesWithNewCards & ~(((U64)fromBit) << (player ? 32 : 0));
 				bool isKingMove = !kingPieceNum;
 
 				const U32 endMask = opponentKing | (isKingMove ? MASK_END_POSITIONS[player] : 0);
-				U32 scan = moveBoard[fromI] & moveMask;
-				foundAny |= scan;
 				while (scan) {
 					const U32 landBit = scan & -scan;
 					scan -= landBit;
@@ -58,6 +56,7 @@ SearchResult Board::search(const GameCards& gameCards, S32 depth, Score alpha, c
 					board.pieces |= ((U64)_popcnt32(beforeKingPieces)) << INDEX_KINGS[player];
 					board.pieces |= ((U64)_popcnt32(opponentBeforeKingPieces & ~landBit)) << INDEX_KINGS[!player];
 					const bool finished = landBit & endMask;
+					foundAny = true;
 					// end of movegen
 					// beginning of negamax
 
@@ -66,12 +65,12 @@ SearchResult Board::search(const GameCards& gameCards, S32 depth, Score alpha, c
 
 						childScore = SCORE_WIN + depth;
 						total++;
-					} else if (!depth || !full) {
-						const auto& childSearch = board.search<false>(gameCards, depth, -beta, -alpha);
+					} else if (!depth || quiescent) {
+						const auto& childSearch = board.search(gameCards, depth, -beta, -alpha, true);
 						childScore = -childSearch.score;
 						total += childSearch.total;
 					} else {
-						const auto& childSearch = board.search<true>(gameCards, depth, -beta, -alpha);
+						const auto& childSearch = board.search(gameCards, depth, -beta, -alpha, false);
 						childScore = -childSearch.score;
 						total += childSearch.total;
 					}
@@ -94,12 +93,8 @@ SearchResult Board::search(const GameCards& gameCards, S32 depth, Score alpha, c
 	}
 	pruneLoop:
 
-	if (!foundAny && !full)
+	if (!foundAny && quiescent)
 		return { (player ? -1 : 1) * eval(gameCards), 0, 1 };
 
 	return { bestScore, bestBoard, total };
 }
-
-
-template SearchResult Board::search<false>(const GameCards& gameCards, S32 depth, Score alpha, const Score beta) const;
-template SearchResult Board::search<true>(const GameCards& gameCards, S32 depth, Score alpha, const Score beta) const;

@@ -38,7 +38,7 @@ void bench(const GameCards& gameCards, Board board, U32 depth) {
 void time(const GameCards& gameCards, Board board, U32 depth) {
 	auto start = std::chrono::steady_clock::now();
 	//perftCheat(gameCards, board, false, depth);
-	auto result = board.search<true>(gameCards, depth);
+	auto result = board.search(gameCards, depth);
 	auto end = std::chrono::steady_clock::now();
 	std::cout << depth << "\t" << "in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms  \t" << result.score << "\t" << std::bitset<64>(result.board.pieces) << std::endl;
 	result.board.print(gameCards);
@@ -55,7 +55,7 @@ SearchResult searchTime(const Game& game, const U64 timeBudget) {
 	SearchResult result;
 	while (true) {
 	const auto beginTime = std::chrono::steady_clock::now();
-		result = game.board.search<true>(game.cards, ++depth);
+		result = game.board.search(game.cards, ++depth);
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 		predictedTime = time * time / lastTime;
 		lastTime = time;
@@ -68,12 +68,12 @@ SearchResult searchTime(const Game& game, const U64 timeBudget) {
 			else if (result.score > 0) {
 				S32 end = depth - (result.score - SCORE_WIN);
 				shortestEnd = std::min(end, shortestEnd);
-				std::cout << "win in " << end << std::endl;
+				std::cout << "win in " << end << (end > depth ? "?" : "") << std::endl;
 				assert(depth - (result.score - SCORE_WIN) != 1);
 			} else {
 				S32 end = depth - (-result.score - SCORE_WIN);
 				shortestEnd = std::min(end, shortestEnd);
-				std::cout << "lose in " << end << std::endl;
+				std::cout << "lose in " << end << (end > depth ? "?" : "") << std::endl;
 			}
 			if (lastIteration || shortestEnd <= depth)
 				break;
