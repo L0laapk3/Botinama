@@ -4,12 +4,11 @@
 
 
 template<bool full>
-SearchResult Board::search(const GameCards& gameCards, U32 depth, Score alpha, const Score beta) const {
+SearchResult Board::search(const GameCards& gameCards, S32 depth, Score alpha, const Score beta) const {
 	// negamax with alpha beta pruning
 	bool player = pieces & MASK_TURN;
 
-	if (full)
-		depth--;
+	depth--;
 
 	U64 total = 0;
 
@@ -25,7 +24,7 @@ SearchResult Board::search(const GameCards& gameCards, U32 depth, Score alpha, c
 	piecesWithoutCards ^= MASK_TURN; // invert player bit
 	for (int taking = 1; taking >= (full ? 0 : 1); taking--) {
 		U32 cardStuff = cardsPos.players[player];
-		const U32 takeMask = (pieces >> (player ? 0 : 32)) ^ (taking ? 0 : ~0);
+		const U32 moveMask = ~(pieces >> (player ? 32 : 0)) & ((pieces >> (player ? 0 : 32)) ^ (taking ? 0 : ~0));
 		for (int i = 0; i < 2; i++) {
 			unsigned long cardI = cardStuff & 0xff;
 			U64 piecesWithNewCards = piecesWithoutCards | (((U64)cardStuff & 0xff00) << (INDEX_CARDS - 8ULL));
@@ -47,7 +46,7 @@ SearchResult Board::search(const GameCards& gameCards, U32 depth, Score alpha, c
 				bool isKingMove = !kingPieceNum;
 
 				const U32 endMask = opponentKing | (isKingMove ? MASK_END_POSITIONS[player] : 0);
-				U32 scan = moveBoard[fromI] & ~(piecesWithNewCards >> (player ? 32 : 0)) & takeMask;
+				U32 scan = moveBoard[fromI] & moveMask;
 				foundAny |= scan;
 				while (scan) {
 					const U32 landBit = scan & -scan;
@@ -61,8 +60,10 @@ SearchResult Board::search(const GameCards& gameCards, U32 depth, Score alpha, c
 					const bool finished = landBit & endMask;
 					// end of movegen
 					// beginning of negamax
+
 					Score childScore;
 					if (finished) {
+
 						childScore = SCORE_WIN + depth;
 						total++;
 					} else if (!depth || !full) {
@@ -100,5 +101,5 @@ SearchResult Board::search(const GameCards& gameCards, U32 depth, Score alpha, c
 }
 
 
-template SearchResult Board::search<false>(const GameCards& gameCards, U32 depth, Score alpha, const Score beta) const;
-template SearchResult Board::search<true>(const GameCards& gameCards, U32 depth, Score alpha, const Score beta) const;
+template SearchResult Board::search<false>(const GameCards& gameCards, S32 depth, Score alpha, const Score beta) const;
+template SearchResult Board::search<true>(const GameCards& gameCards, S32 depth, Score alpha, const Score beta) const;

@@ -2,7 +2,7 @@
 
 
 template<MoveFunc cb>
-void Board::iterateMoves(const GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, U32 depth) const {
+void Board::iterateMoves(const GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, S32 depth) const {
 	//card.print();
 	U32 bitScan = (piecesWithNewCards >> (player ? 32 : 0)) & MASK_PIECES;
 	unsigned long lastFromI = 0;
@@ -45,7 +45,7 @@ void Board::iterateMoves(const GameCards& gameCards, const MoveBoard& moveBoards
 }
 
 template<MoveFunc cb>
-void Board::forwardMoves(const GameCards& gameCards, U32 depth) const {
+void Board::forwardMoves(const GameCards& gameCards, S32 depth) const {
 	bool player = pieces & MASK_TURN;
 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
 	U64 piecesWithoutCards = pieces & ~MASK_CARDS;
@@ -61,7 +61,7 @@ void Board::forwardMoves(const GameCards& gameCards, U32 depth) const {
 }
 
 template<MoveFunc cb>
-void Board::reverseMoves(const GameCards& gameCards, U32 depth) const {
+void Board::reverseMoves(const GameCards& gameCards, S32 depth) const {
 	bool player = !(pieces & MASK_TURN);
 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
 	U64 playerPiecesWithoutCards = pieces & ~MASK_CARDS;

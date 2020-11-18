@@ -46,11 +46,12 @@ void time(const GameCards& gameCards, Board board, U32 depth) {
 
 
 constexpr U32 startDepth = 0;
-constexpr U32 minDepth = 6;
+constexpr U32 minDepth = 5;
 SearchResult searchTime(const Game& game, const U64 timeBudget) {
 	auto lastTime = 1ULL;
 	auto predictedTime = 1ULL;
-	U32 depth = startDepth;
+	S32 depth = startDepth;
+	S32 shortestEnd = std::numeric_limits<S32>::max();
 	SearchResult result;
 	while (true) {
 	const auto beginTime = std::chrono::steady_clock::now();
@@ -58,17 +59,23 @@ SearchResult searchTime(const Game& game, const U64 timeBudget) {
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 		predictedTime = time * time / lastTime;
 		lastTime = time;
-		bool foundWin = std::abs(result.score) >= SCORE_WIN;
-		bool lastIteration = ((predictedTime > timeBudget * 1000) && (depth >= minDepth)) || (depth >= 64) || foundWin;
+		bool foundWin = std::abs(result.score) > SCORE_WIN - 64;
+		bool lastIteration = ((predictedTime > timeBudget * 1000) && (depth >= minDepth)) || (depth >= 64);
 		if (lastIteration || foundWin || time > 10000) {
 			std::cout << "depth " << depth << " \t" << "in " << time / 1000 << "ms  \t" << result.total / time << "M/s\t";
 			if (!foundWin)
 				std::cout << "score: " << result.score << std::endl;
-			else if (result.score > 0)
-				std::cout << "win in " << depth - (result.score - SCORE_WIN) << std::endl;
-			else
-				std::cout << "lose in " << depth - (-result.score - SCORE_WIN) << std::endl;
-			if (lastIteration)
+			else if (result.score > 0) {
+				S32 end = depth - (result.score - SCORE_WIN);
+				shortestEnd = std::min(end, shortestEnd);
+				std::cout << "win in " << end << std::endl;
+				assert(depth - (result.score - SCORE_WIN) != 1);
+			} else {
+				S32 end = depth - (-result.score - SCORE_WIN);
+				shortestEnd = std::min(end, shortestEnd);
+				std::cout << "lose in " << end << std::endl;
+			}
+			if (lastIteration || shortestEnd <= depth)
 				break;
 		}
 		
@@ -77,6 +84,15 @@ SearchResult searchTime(const Game& game, const U64 timeBudget) {
 }
 
 int main() {
+
+	// GameCards cards = CardBoard::fetchGameCards({ "rabbit", "frog", "crab", "crane", "tiger" });
+	// Board board = Board::fromString("0001210031300000040030030", false);
+	// board.print(cards);
+	// std::cout << std::endl << cards[0].name << std::endl;
+	// cards[0].print();
+	// SearchResult result = board.search<true>(cards, 1);
+	// std::cout << 1 - (result.score - SCORE_WIN) << std::endl;
+
 	auto conn = Connection();
 	Game game = conn.waitGame();
 
@@ -89,8 +105,10 @@ int main() {
 		}
 
 		conn.waitTurn(game);
-		if (conn.ended)
+		if (conn.ended) {
+			std::cout << (game.board.winner() ? "lost" : "won") << std::endl;
 			break;
+		}
 	}
 
 	//Board board = Board::fromString("1020101010000000303030403", true);

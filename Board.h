@@ -43,17 +43,17 @@ private:
 	//BoardIter
 private:
 	template<MoveFunc cb>
-	void iterateMoves(const GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, U32 depth) const;
+	void iterateMoves(const GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, S32 depth) const;
 public:
 	template<MoveFunc cb>
-	void forwardMoves(const GameCards& gameCards, U32 depth) const;
+	void forwardMoves(const GameCards& gameCards, S32 depth) const;
 	template<MoveFunc cb>
-	void reverseMoves(const GameCards& gameCards, U32 depth) const;
+	void reverseMoves(const GameCards& gameCards, S32 depth) const;
 
 
 	//BoardSearch
 	template<bool full>
-	SearchResult search(const GameCards& gameCards, U32 depth, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX) const;
+	SearchResult search(const GameCards& gameCards, S32 depth, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX) const;
 
 };
 
