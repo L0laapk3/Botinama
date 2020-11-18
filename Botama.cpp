@@ -62,7 +62,7 @@ SearchResult searchTime(const GameCards& cards, const Board& board, const U64 ti
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 		predictedTime = time * time / lastTime;
 		lastTime = time;
-		bool foundWin = std::abs(result.score) >= SCORE_WIN;
+		bool foundWin = std::abs(result.score) >= SCORE_WIN - 1;
 		bool foundProbableWin = std::abs(result.score) > SCORE_WIN - 64;
 		bool lastIteration = ((predictedTime > timeBudget * 1000) && (depth >= minDepth)) || (depth >= 64);
 		if (lastIteration || foundWin || verbose) {
@@ -81,7 +81,7 @@ SearchResult searchTime(const GameCards& cards, const Board& board, const U64 ti
 					shortestEnd = std::min(end, shortestEnd);
 				std::cout << (result.score > 0 ? "win" : "lose") << " in " << end << (quiescenceUnsure ? "?" : "") << std::endl;
 			}
-			if (lastIteration || shortestEnd <= depth)
+			if (lastIteration || (shortestEnd - 1) <= depth)
 				break;
 		}
 		
