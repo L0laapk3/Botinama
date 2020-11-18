@@ -65,12 +65,8 @@ SearchResult Board::search(const GameCards& gameCards, S32 depth, Score alpha, c
 
 						childScore = SCORE_WIN + depth;
 						total++;
-					} else if (!depth || quiescent) {
-						const auto& childSearch = board.search(gameCards, depth, -beta, -alpha, true);
-						childScore = -childSearch.score;
-						total += childSearch.total;
 					} else {
-						const auto& childSearch = board.search(gameCards, depth, -beta, -alpha, false);
+						const auto& childSearch = board.search(gameCards, depth, -beta, -alpha, !depth || quiescent);
 						childScore = -childSearch.score;
 						total += childSearch.total;
 					}
