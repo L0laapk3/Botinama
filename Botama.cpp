@@ -67,11 +67,11 @@ SearchResult searchTime(const GameCards& cards, const Board& board, const U64 ti
 		bool lastIteration = ((predictedTime > timeBudget * 1000) && (depth >= minDepth)) || (depth >= 64);
 		if (lastIteration || foundWin || verbose) {
 			if (timeBudget >= 1000)
-				printf("depth %2i in %.2fs (%2lluM/s): ", depth, (float)time / 1E6, result.total / time);
+				printf("depth %2i in %.2fs (%2lluM/s, EBF=%.2f): ", depth, (float)time / 1E6, result.total / time, std::pow(result.total, 1. / depth));
 			else if (timeBudget >= 10)
-				printf("depth %2i in %3.0fms (%2lluM/s): ", depth, (float)time / 1E3, result.total / time);
+				printf("depth %2i in %3.0fms (%2lluM/s, EBF=%.2f): ", depth, (float)time / 1E3, result.total / time, std::pow(result.total, 1. / depth));
 			else
-				printf("depth %2i in %.1fms (%2lluM/s): ", depth, (float)time / 1E3, result.total / time);
+				printf("depth %2i in %.1fms (%2lluM/s, EBF=%.2f): ", depth, (float)time / 1E3, result.total / time, std::pow(result.total, 1. / depth));
 			if (!foundProbableWin)
 				printf("%.2f\n", (float)result.score / SCORE_PIECE);
 			else {
