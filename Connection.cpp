@@ -9,6 +9,7 @@
 #include <memory>
 #include <regex>
 #include <iostream>
+#include "shellapi.h"
 
 #include "Connection.h"
 #include "BitScan.h"
@@ -46,6 +47,12 @@ Connection::Connection() {
 	assert(ws->getReadyState() != easywsclient::WebSocket::CLOSED);
 }
 
+Connection::~Connection() {
+#ifdef _WIN32
+	WSACleanup();
+#endif
+}
+
 
 void Connection::createGame() {
 	ws->send("create Botama");
@@ -71,7 +78,7 @@ Game Connection::waitGame() {
 	ws->send("spectate " + matchId);
 
 	std::string webUrl = "https://git.io/onitama#spectate-" + matchId;
-	//ShellExecute(0, 0, std::wstring(webUrl.begin(), webUrl.end()).c_str(), 0, 0, SW_SHOW);
+	ShellExecuteA(NULL, "open", webUrl.c_str(), NULL, NULL, SW_SHOWNORMAL);
 	std::cout << "https://git.io/onitama#spectate-" << matchId << std::endl;
 
 	std::string boardStr = "";
@@ -97,12 +104,6 @@ Game Connection::waitGame() {
 				Board::fromString(boardStr, !currentTurn, player)
 			};
 	}
-}
-
-Connection::~Connection() {
-#ifdef _WIN32
-	WSACleanup();
-#endif
 }
 
 void Connection::waitTurn(Game& game) {
