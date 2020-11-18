@@ -3,6 +3,7 @@
 #include <algorithm>
 
 
+template<bool quiescent>
 SearchResult Board::search(const GameCards& gameCards, U32 depth, Score alpha, const Score beta) const {
 	// negamax with alpha beta pruning
 	bool player = pieces & MASK_TURN;
@@ -61,7 +62,7 @@ SearchResult Board::search(const GameCards& gameCards, U32 depth, Score alpha, c
 					childScore = (player ? -1 : 1) * eval(gameCards);
 					total++;
 				} else {
-					const auto& childSearch = board.search(gameCards, depth, -beta, -alpha);
+					const auto& childSearch = board.search<true>(gameCards, depth, -beta, -alpha);
 					childScore = -childSearch.score;
 					total += childSearch.total;
 				}
@@ -85,3 +86,7 @@ SearchResult Board::search(const GameCards& gameCards, U32 depth, Score alpha, c
 
 	return { bestScore, bestBoard, total };
 }
+
+
+template SearchResult Board::search<false>(const GameCards& gameCards, U32 depth, Score alpha, const Score beta) const;
+template SearchResult Board::search<true>(const GameCards& gameCards, U32 depth, Score alpha, const Score beta) const;
