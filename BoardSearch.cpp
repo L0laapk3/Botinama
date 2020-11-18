@@ -6,8 +6,9 @@
 SearchResult Board::search(const GameCards& gameCards, U32 depth, Score alpha, const Score beta) const {
 	// negamax with alpha beta pruning
 	bool player = pieces & MASK_TURN;
-	if (!depth)
-		return { (player ? -1 : 1) * eval(gameCards) };
+
+	depth--;
+	U64 total = 0;
 
 	Board bestBoard;
 	Score bestScore = SCORE_MIN;
@@ -54,10 +55,16 @@ SearchResult Board::search(const GameCards& gameCards, U32 depth, Score alpha, c
 				// beginning of negamax
 				Score childScore;
 				if (finished) {
-					//const int32_t depthMod = (1 << 6) - depthMod;
-					childScore = SCORE_MAX;
-				} else
-					childScore = -board.search(gameCards, depth - 1, -beta, -alpha).score;
+					childScore = SCORE_WIN + depth;
+					total++;
+				} else if (!depth) {
+					childScore = (player ? -1 : 1) * eval(gameCards);
+					total++;
+				} else {
+					const auto& childSearch = board.search(gameCards, depth, -beta, -alpha);
+					childScore = -childSearch.score;
+					total += childSearch.total;
+				}
 
 				if (childScore > bestScore) {
 					bestScore = childScore;
@@ -65,7 +72,7 @@ SearchResult Board::search(const GameCards& gameCards, U32 depth, Score alpha, c
 					if (childScore > alpha) {
 						alpha = bestScore;
 						if (alpha >= beta)
-							goto pruneLoop;
+						 	goto pruneLoop;
 					}
 				}
 				// end of negamax
@@ -76,5 +83,5 @@ SearchResult Board::search(const GameCards& gameCards, U32 depth, Score alpha, c
 	}
 	pruneLoop:
 
-	return { bestScore, bestBoard };
+	return { bestScore, bestBoard, total };
 }

@@ -115,6 +115,7 @@ void Connection::waitTurn(Game& game) {
 			cards[3] = getRegex(message, "\"cards\":[^}]+\"red\":\\[\"[^\"]+\",\"([^\"]+)\"");
 			cards[4] = getRegex(message, "\"cards\":[^}]+\"side\":\"([^\"]+)\"");
 			currentTurn = getString(message, "currentTurn") == (player ? "red" : "blue");
+			ended = getString(message, "gameState") == "ended";
 		});
 	}
 	game.board = Board::fromString(boardStr, !currentTurn, player);

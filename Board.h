@@ -59,6 +59,7 @@ public:
 struct SearchResult {
 	Score score;
 	Board board;
+	U64 total;
 };
 
 

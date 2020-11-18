@@ -45,27 +45,32 @@ void time(const GameCards& gameCards, Board board, U32 depth) {
 }
 
 
+constexpr U32 startDepth = 0;
+constexpr U32 minDepth = 6;
 SearchResult searchTime(const Game& game, const U64 timeBudget) {
 	auto lastTime = 1ULL;
 	auto predictedTime = 1ULL;
-	U32 depth = 0;
+	U32 depth = startDepth;
 	SearchResult result;
+	while (true) {
 	const auto beginTime = std::chrono::steady_clock::now();
-	while ((depth < 2 || predictedTime < timeBudget * 1000) && depth < 63) {
 		result = game.board.search(game.cards, ++depth);
-		++depth;
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 		predictedTime = time * time / lastTime;
 		lastTime = time;
-		bool end = std::abs(result.score) > (1 << 29);
-		
-			std::cout << "depth " << depth << " \t" << "in " << time / 1000 << "ms  \t";
+		bool end = std::abs(result.score) >= SCORE_WIN;
+		bool lastIteration = ((predictedTime > timeBudget * 1000) && (depth >= minDepth)) || (depth >= 64);
+		if (lastIteration || end || time > 10000 || true) {
+			std::cout << "depth " << depth << " \t" << "in " << time / 1000 << "ms  \t" << result.total / time << "M/s\t";
 			if (!end)
 				std::cout << "score: " << result.score << std::endl;
 			else if (result.score > 0)
-				std::cout << "win" << std::endl;
+				std::cout << "win in " << depth - (result.score - SCORE_WIN) << std::endl;
 			else
-				std::cout << "lose" << std::endl;
+				std::cout << "lose in " << depth - (-result.score - SCORE_WIN) << std::endl;
+			if (lastIteration)
+				break;
+		}
 		
 	}
 	return result;
@@ -84,6 +89,8 @@ int main() {
 		}
 
 		conn.waitTurn(game);
+		if (conn.ended)
+			break;
 	}
 
 	//Board board = Board::fromString("1020101010000000303030403", true);

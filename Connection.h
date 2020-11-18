@@ -28,6 +28,7 @@ public:
 	int index;
 	bool player;
 	bool currentTurn;
+	bool ended = false;
 
 private:
 	std::unique_ptr<easywsclient::WebSocket> ws = nullptr;
