@@ -68,6 +68,8 @@
 		"xlocmes": "cpp",
 		"xlocmon": "cpp",
 		"xloctime": "cpp",
-		"sstream": "cpp"
+		"sstream": "cpp",
+		"map": "cpp",
+		"xtree": "cpp"
 	}
 }

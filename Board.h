@@ -15,13 +15,20 @@
 
 
 class Board;
-typedef void (*MoveFunc)(const GameCards& gameCards, const Board& board, const bool finished, U32 depth);
+typedef void (*MoveFunc)(const GameCards& gameCards, const Board& board, const bool finished, uint8_t maxDepth);
 
 struct SearchResult;
 
 class Board {
 public:
 	U64 pieces;
+	bool operator <(const Board& rhs) const {
+		return pieces < rhs.pieces;
+	}
+	bool operator==(const Board& rhs) {
+		return pieces == rhs.pieces;
+	}
+
 
 	static Board fromString(std::string str, bool player, bool flip = false);
 
@@ -31,8 +38,9 @@ public:
 	void valid() const;
 	bool winner() const;
 	bool currentPlayer() const;
+	Board invert() const;
 
-	U32 countForwardMoves(const GameCards& gameCards) const;
+	uint8_t countForwardMoves(const GameCards& gameCards) const;
 
 
 	Score eval(const GameCards& gameCards) const;
@@ -43,16 +51,17 @@ private:
 	//BoardIter
 private:
 	template<MoveFunc cb>
-	void iterateMoves(const GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, S32 depth) const;
+	void iterateMoves(const GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, uint8_t arg) const;
 public:
 	template<MoveFunc cb>
-	void forwardMoves(const GameCards& gameCards, S32 depth) const;
+	void forwardMoves(const GameCards& gameCards, uint8_t arg) const;
 	template<MoveFunc cb>
-	void reverseMoves(const GameCards& gameCards, S32 depth) const;
+	void reverseMoves(const GameCards& gameCards, uint8_t arg) const;
 
 
 	//BoardSearch
-	SearchResult search(const GameCards& gameCards, S32 depth, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX, const bool quiescent = false) const;
+	SearchResult search(const GameCards& gameCards, S32 maxDepth, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX, const bool quiescent = false) const;
+	SearchResult searchTime(const GameCards& cards, const U64 timeBudget, const int verboseLevel = 1) const;
 
 };
 

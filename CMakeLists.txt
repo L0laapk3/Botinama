@@ -9,6 +9,7 @@ ${PROJECT_SOURCE_DIR}/BoardUtil.cpp
 ${PROJECT_SOURCE_DIR}/Board.cpp
 ${PROJECT_SOURCE_DIR}/BoardEval.cpp
 ${PROJECT_SOURCE_DIR}/BoardSearch.cpp
+${PROJECT_SOURCE_DIR}/TableBase.cpp
 ${PROJECT_SOURCE_DIR}/easywsclient.cpp
 ${PROJECT_SOURCE_DIR}/Connection.cpp
 ${PROJECT_SOURCE_DIR}/Botama.cpp

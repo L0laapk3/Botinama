@@ -45,6 +45,22 @@ bool Board::currentPlayer() const {
 	return pieces & MASK_TURN;
 }
 
+Board Board::invert() const {
+	Board board{ 0 };
+	U64 source = _rotr64(pieces, 32);
+	for (int i = 0; i < 25; i++) {
+		board.pieces <<= 1;
+		board.pieces |= source & (1 | (1ULL << 32));
+		source >>= 1;
+	}
+	board.pieces |= (_popcnt32(pieces & MASK_PIECES) - 1 - ((pieces >> INDEX_KINGS[0]) & 0x7)) << INDEX_KINGS[1];
+	board.pieces |= (_popcnt32((pieces >> 32) & MASK_PIECES) - 1 - ((pieces >> INDEX_KINGS[1]) & 0x7)) << INDEX_KINGS[0];
+	board.pieces |= ((U64)CARDS_INVERT[(pieces >> INDEX_CARDS) & 0x1f]) << INDEX_CARDS;
+	board.pieces |= (pieces & MASK_TURN) ^ MASK_TURN;
+	//std::cout << "invert" << std::endl << std::bitset<64>(pieces) << std::endl << std::bitset<64>(board.pieces) << std::endl;
+	return board;
+}
+
 #undef NDEBUG
 #include <assert.h>
 void Board::valid() const {

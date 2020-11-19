@@ -10,11 +10,11 @@
 
 
 
-U32 Board::countForwardMoves(const GameCards& gameCards) const {
+uint8_t Board::countForwardMoves(const GameCards& gameCards) const {
 	bool player = pieces & MASK_TURN;
 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
 	U32 cardStuff = cardsPos.players[player];
-	U32 total = 0;
+	uint8_t total = 0;
 	U32 playerPieces = (pieces >> (player ? 32 : 0)) & MASK_PIECES;
 	const auto& card0 = gameCards[cardStuff & 0xff].moveBoards[player];
 	const auto& card1 = gameCards[(cardStuff >> 16) & 0xff].moveBoards[player];

@@ -67,3 +67,4 @@ const std::array<CardsPos, 30> CARDS_LUT = { {
 	CardsPos::construct(3, 5, 2, 4, 1,	14,	1,	22,	11),
 	CardsPos::construct(4, 5, 2, 3, 1,	8,	2,	23,	17),
 } };
+const std::array<U32, 30> CARDS_INVERT = { 5, 4, 3, 2, 1, 0, 11, 10, 9, 8, 7, 6, 17, 16, 15, 14, 13, 12, 23, 22, 21, 20, 19, 18, 29, 28, 27, 26, 25, 24 };
