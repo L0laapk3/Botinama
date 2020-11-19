@@ -49,15 +49,28 @@
 
 int main(int argc, char** argv) {
 
-	GameCards cards = CardBoard::fetchGameCards({ "crane", "eel", "horse", "ox", "boar" });
+	// GameCards cards = CardBoard::fetchGameCards({ "crane", "eel", "horse", "ox", "boar" });
 	// Board board = Board::fromString("0000020000000000000000040", false);
 	// GameCards cards = CardBoard::fetchGameCards({ "crane", "ox", "horse", "eel", "boar" });
 	// Board board = Board::fromString("0000000000000020000000004", false);
 	//searchTime(cards, board, 1000 * 60, true);
 	// std::cout << board.eval(cards) << std::endl;
-
+	GameCards cards = CardBoard::fetchGameCards({ "boar", "cobra", "horse", "crane", "eel" });
 	TableBase::generate(cards, { 0, 0 });
-	std::cout << TableBase::wonBoards.size() << std::endl;
+
+	//U32 largestDepth = 0;
+	//for (int i1 = 0; i1 < 16; i1++)
+	//for (int i2 = i1+1; i2 < 16; i2++)
+	//for (int i3 = i2 + 1; i3 < 16; i3++)
+	//for (int i4 = i3 + 1; i4 < 16; i4++)
+	//for (int i5 = i4 + 1; i5 < 16; i5++) {
+	//	GameCards cards = GameCards{ { {&CARDS[i1]}, {&CARDS[i2]}, {&CARDS[i3]}, {&CARDS[i4]}, {&CARDS[i5]} } };
+	//	U32 maxDepth = TableBase::generate(cards, { 0, 0 });
+	//	if (largestDepth < maxDepth) {
+	//		largestDepth = maxDepth;
+	//		std::cout << maxDepth << ' ' << cards[0].name << ' ' << cards[1].name << ' ' << cards[2].name << ' ' << cards[3].name << ' ' << cards[4].name << std::endl;
+	//	}
+	//}
 
 	return 0;
 

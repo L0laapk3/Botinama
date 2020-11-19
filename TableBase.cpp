@@ -2,15 +2,14 @@
 #include "TableBase.h"
 
 #include <bitset>
+#include <chrono>
 
 
 
-std::deque<Board> queue{};
-std::map<Board, uint8_t> TableBase::pendingBoards{};
-std::map<Board, uint8_t> TableBase::wonBoards{};
-
-
-uint8_t currDepth = 0;
+std::deque<Board> queue;
+std::map<Board, uint8_t> TableBase::pendingBoards;
+std::map<Board, uint16_t> TableBase::wonBoards;
+uint16_t currDepth;
 
 template<bool isMine>
 void TableBase::addToTables(const GameCards& gameCards, const Board& board, const bool finished, uint8_t _) {
@@ -109,7 +108,15 @@ void TableBase::placePiecesKingTake(const GameCards& gameCards, const Board& boa
 }
 
 // generates the tables for all the boards where player 0 wins
-void TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPawns) {
+uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPawns) {
+
+	queue = {};
+	pendingBoards = {};
+	wonBoards = {};
+	currDepth = 0;
+
+	const auto beginTime = std::chrono::steady_clock::now();
+
 	for (myMaxPawns = 0; myMaxPawns <= maxPawns[0]; myMaxPawns++)
 		for (otherMaxPawns = 0; otherMaxPawns <= maxPawns[1]; otherMaxPawns++) {
 			// all temple wins
@@ -140,6 +147,9 @@ void TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPawns
 			}
 		}
 	while (singleDepth(gameCards)) { }
+	
+	const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
+	//std::cout << (float)time / 1000 << "ms" << std::endl;
 
 	for (int depth = 1; depth < currDepth; depth++) {
 		U64 count = 0;
@@ -147,7 +157,10 @@ void TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPawns
 			if (distance == depth) {
 				count++;
 				//board.searchTime(gameCards, 1000);
+				if (depth == 70)
+					board.print(gameCards);
 			}
 		printf("%4llu boards are win in %2u\n", count, depth);
 	}
+	return currDepth - 1;
 }
