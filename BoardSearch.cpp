@@ -103,7 +103,7 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 
 constexpr U32 startDepth = 0;
 constexpr U32 minDepth = 4;
-SearchResult Board::searchTime(const GameCards& cards, const U64 timeBudget, const int verboseLevel) const {
+SearchResult Board::searchTime(const GameCards& cards, const U64 timeBudget, const int verboseLevel, const int expectedDepth) const {
 	if (verboseLevel >= 2)
 		print(cards);
 	auto lastTime = 1ULL;
@@ -132,10 +132,22 @@ SearchResult Board::searchTime(const GameCards& cards, const U64 timeBudget, con
 			if (foundProbableWin) {
 				S32 end = maxDepth - (std::abs(result.score) - SCORE_WIN);
 				bool quiescenceUnsure = (end - 1) > maxDepth;
-				if (!quiescenceUnsure)
+				bool wrongWinDepth = false;
+				if (!quiescenceUnsure) {
 					shortestEnd = std::min(end, shortestEnd);
-				if (verboseLevel >= 1)
-					std::cout << (result.score > 0 ? "win" : "lose") << " in " << end << (quiescenceUnsure ? "?" : "") << std::endl;
+					if (expectedDepth >= 0 && end != expectedDepth) {
+						print(cards);
+						wrongWinDepth = true;
+					}
+				}
+				if (verboseLevel >= 1 || wrongWinDepth) {
+					std::cout << (result.score > 0 ? "win" : "lose") << " in " << end << (quiescenceUnsure ? "?" : "");
+					if (wrongWinDepth) {
+						std::cout << " (expected " << expectedDepth << ")" << std::endl;
+						assert(0);
+					}
+					std::cout << std::endl;
+				}
 			} else if (verboseLevel >= 1)
 				printf("%.2f\n", (float)result.score / SCORE_PIECE);
 

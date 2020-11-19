@@ -122,6 +122,7 @@ void Connection::waitTurn(Game& game) {
 			cards[4] = getRegex(message, "\"cards\":[^}]+\"side\":\"([^\"]+)\"");
 			currentTurn = getString(message, "currentTurn") == (player ? "red" : "blue");
 			ended = getString(message, "gameState") == "ended";
+			//std::cout << boardStr << ' ' << getRegex(message, "\"cards\":([^}]+\\})") << std::endl;
 		});
 	}
 	game.board = Board::fromString(boardStr, !currentTurn, player);

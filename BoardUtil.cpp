@@ -80,15 +80,20 @@ std::string cardsShortName(const GameCards& gameCards, int i, int length) {
 	res += ' ';
 	return res;
 }
-void Board::print(const GameCards& gameCards, bool finished) const {
-	Board::print(gameCards, { *this }, { finished });
+void Board::print(const GameCards& gameCards, bool finished, const bool verbose) const {
+	Board::print(gameCards, { *this }, { finished }, verbose);
 }
-void Board::print(const GameCards& gameCards, std::vector<Board> boards, std::vector<bool> finished) {
+void Board::print(const GameCards& gameCards, std::vector<Board> boards, std::vector<bool> finished, const bool verbose) {
 	constexpr size_t MAXPERLINE = 10;
 	for (size_t batch = 0; batch < boards.size(); batch += MAXPERLINE) {
-		std::array<int, MAXPERLINE> blueKingPos;
-		std::array<int, MAXPERLINE> redKingPos;
-		std::array<CardsPos, MAXPERLINE> cards;
+		std::array<U32, MAXPERLINE> blueKingPos{ 0 };
+		std::array<U32, MAXPERLINE> redKingPos{ 0 };
+		std::array<CardsPos, MAXPERLINE> cards{ 0 };
+		if (verbose)
+			for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
+				const Board& board = boards[i];
+				std::cout << std::bitset<7>(board.pieces >> 32 >> 25) << ' ' << std::bitset<25>(board.pieces >> 32) << ' ' << std::bitset<7>(board.pieces >> 25) << ' ' << std::bitset<25>(board.pieces) << std::endl;
+			}
 		for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
 			const Board& board = boards[i];
 			blueKingPos[i] = _popcnt32(board.pieces & MASK_PIECES) - 1 - ((board.pieces >> INDEX_KINGS[0]) & 7);

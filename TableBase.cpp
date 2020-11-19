@@ -7,19 +7,20 @@
 
 
 std::deque<Board> queue;
-std::map<Board, uint8_t> TableBase::pendingBoards;
+std::map<Board, uint8_t> pendingBoards;
 std::map<Board, uint16_t> TableBase::wonBoards;
 uint16_t currDepth;
 
 template<bool isMine>
-void TableBase::addToTables(const GameCards& gameCards, const Board& board, const bool finished, uint8_t _) {
+void TableBase::addToTables(const GameCards& gameCards, const Board& board, const bool finished) {
 	// this function assumed that it is called in the correct distanceToWin order
 	// also assumes that there are no duplicate starting boards
-	//board.print(gameCards, finished);
+	//board.print(gameCards, finished, true);
 
 	if (finished)
 		return;
 
+	//board.print(gameCards);
 	bool exploreChildren = false;
 	if (isMine) {
 		// you played this move, immediately add it to won boards
@@ -43,20 +44,25 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 			}
 		}
 	}
-	if (exploreChildren)
+	if (exploreChildren) {
 		queue.push_back(board);
+		board.searchTime(gameCards, 1000, 0, currDepth + 1);
+	}
 };
 
 
+std::array<uint8_t, 2> maxPieces;
 bool TableBase::singleDepth(const GameCards& gameCards) {
 	currDepth++;
 	U32 stop = queue.size();
 	for (int i = 0; i < stop; i++) {
 		const Board& board = queue.front();
-		if (currDepth % 2 == 1)
-			board.reverseMoves<*addToTables<true>>(gameCards, 0);
+		//std::cout << std::endl << std::endl << "NEW ONE" << std::endl << std::endl;
+		//board.print(gameCards);
+		if (currDepth % 2 == 0)
+			board.reverseMoves<*addToTables<true>>(gameCards, maxPieces);
 		else
-			board.reverseMoves<*addToTables<false>>(gameCards, 0);
+			board.reverseMoves<*addToTables<false>>(gameCards, maxPieces);
 		queue.pop_front();
 	}
 	return queue.size();
@@ -71,36 +77,44 @@ void TableBase::placePieces(const GameCards& gameCards, U64 pieces, U32 occupied
 		board.pieces |= _popcnt64((((U64)beforeOtherKing) << 32) & board.pieces) << INDEX_KINGS[1];
 		if (templeWin) {
 			board.pieces |= _popcnt64(beforeKing & board.pieces) << INDEX_KINGS[0];
-			for (int i = 0; i < 30; i++) {
-				assert(0 == currDepth);
-				queue.push_back(board);
-				//loopUntilExhausted(gameCards);
-				board.pieces += 1ULL << INDEX_CARDS;
-			}
+			//board.print(gameCards);
+			addToTables<true>(gameCards, board);
+			board.pieces += 1ULL << INDEX_CARDS;
 		} else {
 			for (int kingI = 0; kingI < myMaxPawns + 1; kingI++) {
 				//board.print(gameCards);
-				addToTables<true>(gameCards, board, false, 0);
-				//loopUntilExhausted(gameCards);
+				addToTables<true>(gameCards, board);
 				board.pieces += 1ULL << INDEX_KINGS[0];
 			}
 		}
-		return;
-	}
-	bool player = spotsLeft <= minSpots0;
-	U64 piece = 1ULL << startAt;
-	while (piece & MASK_PIECES) {
-		startAt++;
-		if (piece & ~occupied)
-			placePieces<templeWin>(gameCards, pieces | (((U64)piece) << (player ? 32 : 0)), occupied | piece, beforeKing, beforeOtherKing, spotsLeft == minSpots0 ? 0 : startAt, spotsLeft - 1, minSpots0, minSpotsAll, myMaxPawns, otherMaxPawns);
-		piece <<= 1;
+	} else {
+		bool player = spotsLeft <= minSpots0;
+		U64 piece = 1ULL << startAt;
+		while (piece & MASK_PIECES) {
+			startAt++;
+			if (piece & ~occupied)
+				placePieces<templeWin>(gameCards, pieces | (((U64)piece) << (player ? 32 : 0)), occupied | piece, beforeKing, beforeOtherKing, spotsLeft == minSpots0 ? 0 : startAt, spotsLeft - 1, minSpots0, minSpotsAll, myMaxPawns, otherMaxPawns);
+			piece <<= 1;
+		}
 	}
 }
 
-U32 myMaxPawns;
-U32 otherMaxPawns;
+uint8_t myMaxPawns;
+uint8_t otherMaxPawns;
+void TableBase::placePiecesTemple(const GameCards& gameCards, const Board& board, const bool finished) {
+	if (finished)
+		return;
+	U32 otherKing = 1ULL;
+	for (U32 otherKingPos = 0; otherKingPos < 22; otherKingPos++) {
+		while ((otherKing & board.pieces) || (otherKing == MASK_END_POSITIONS[1]) || (otherKing == MASK_END_POSITIONS[0]))
+			otherKing <<= 1;
+		U64 pieces = board.pieces | (((U64)otherKing) << 32);
+		placePieces<true>(gameCards, pieces, board.pieces | otherKing | MASK_END_POSITIONS[0], (board.pieces & MASK_PIECES) - 1, otherKing - 1, 0, 22, 22 - myMaxPawns, 22 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns);
+		otherKing <<= 1;
+	}
+}
 U32 takenKingPos;
-void TableBase::placePiecesKingTake(const GameCards& gameCards, const Board& board, const bool finished, uint8_t _) {
+void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, const bool finished) {
 	if (finished)
 		return;
 	U64 pieces = board.pieces | (((U64)takenKingPos) << 32);
@@ -110,6 +124,7 @@ void TableBase::placePiecesKingTake(const GameCards& gameCards, const Board& boa
 // generates the tables for all the boards where player 0 wins
 uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPawns) {
 
+	maxPieces = { (uint8_t)(maxPawns[0] + 1), (uint8_t)(maxPawns[1] + 1) };
 	queue = {};
 	pendingBoards = {};
 	wonBoards = {};
@@ -121,15 +136,12 @@ uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPa
 		for (otherMaxPawns = 0; otherMaxPawns <= maxPawns[1]; otherMaxPawns++) {
 			// all temple wins
 			U32 king = MASK_END_POSITIONS[0];
-			U32 otherKing = 1ULL;
-			for (U32 otherKingPos = 0; otherKingPos < 23; otherKingPos++) {
-				otherKing <<= (otherKing == king) || (otherKing == MASK_END_POSITIONS[1]);
-				U64 pieces = king | (((U64)otherKing) << 32) | MASK_TURN;
-				placePieces<true>(gameCards, pieces, king | otherKing, king - 1, otherKing - 1, 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns);
-				otherKing <<= 1;
+			Board board{ king | MASK_TURN };
+			for (int i = 0; i < 30; i++) {
+				board.reverseMoves<*placePiecesTemple>(gameCards, { (uint8_t)(myMaxPawns + 1), 0 });
+				board.pieces += 1ULL << INDEX_CARDS;
 			}
 		}
-	singleDepth(gameCards); // push everything to depth 2
 
 	for (myMaxPawns = 0; myMaxPawns <= maxPawns[0]; myMaxPawns++)
 		for (otherMaxPawns = 0; otherMaxPawns <= maxPawns[1]; otherMaxPawns++) {
@@ -139,28 +151,32 @@ uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPa
 				takenKingPos <<= takenKingPos == MASK_END_POSITIONS[1];
 				Board board{ takenKingPos | MASK_TURN };
 				for (int i = 0; i < 30; i++) {
-					board.reverseMoves<*placePiecesKingTake>(gameCards, 0);
+					board.reverseMoves<*placePiecesDead>(gameCards, { (uint8_t)(myMaxPawns + 1), 0 });
 					board.pieces += 1ULL << INDEX_CARDS;
 				}
 				board.pieces &= ~(0x1FULL << INDEX_CARDS);
 				takenKingPos <<= 1;
 			}
 		}
-	while (singleDepth(gameCards)) { }
+	do {
+		printf("%7llu winning depth %2u boards\n", queue.size(), currDepth + 1);
+	} while (singleDepth(gameCards));
 	
 	const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
-	//std::cout << (float)time / 1000 << "ms" << std::endl;
+	//std::cout << wonb (float)time / 1000 << "ms" << std::endl;
+	printf("%7llu winning boards in %.3fs (%.0fk/s)", wonBoards.size(), (float)time / 1000000, (float)wonBoards.size() * 1000 / time);
 
 	for (int depth = 1; depth < currDepth; depth++) {
 		U64 count = 0;
 		for (auto const& [board, distance] : wonBoards)
 			if (distance == depth) {
 				count++;
-				//board.searchTime(gameCards, 1000);
-				if (depth == 70)
-					board.print(gameCards);
+				/*if (depth > 1)
+					board.searchTime(gameCards, 1000, 0, depth);*/
+				//if (depth == 70)
+				//	board.print(gameCards);
 			}
-		printf("%4llu boards are win in %2u\n", count, depth);
+		//printf("%7llu boards are win in %2u\n", count, depth);
 	}
-	return currDepth - 1;
+	return currDepth;
 }
