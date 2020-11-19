@@ -5,27 +5,27 @@
 
 
 
-std::array<std::deque<Board>, TableBase::MAXDEPTH> todoBoards = {};
+std::deque<Board> queue{};
 std::map<Board, uint8_t> TableBase::pendingBoards{};
 std::map<Board, uint8_t> TableBase::wonBoards{};
 
 
+uint8_t currDepth = 0;
 
-
-void TableBase::addToTables(const GameCards& gameCards, const Board& board, const bool finished, uint8_t distanceToWin) {
+template<bool isMine>
+void TableBase::addToTables(const GameCards& gameCards, const Board& board, const bool finished, uint8_t _) {
 	// this function assumed that it is called in the correct distanceToWin order
 	// also assumes that there are no duplicate starting boards
 	//board.print(gameCards, finished);
 
 	if (finished)
 		return;
-	bool isMine = distanceToWin % 2 == 1;
 
 	bool exploreChildren = false;
 	if (isMine) {
 		// you played this move, immediately add it to won boards
 		// only insert and iterate if it doesnt already exist (keeps lowest distance)
-		const auto& result = wonBoards.emplace(board, distanceToWin);
+		const auto& result = wonBoards.emplace(board, currDepth);
 		exploreChildren = result.second;
 	} else {
 		// opponents move. All forward moves must lead to a loss first
@@ -38,30 +38,29 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 		}
 		else {
 			if (--(it->second) == 0) {
-				wonBoards.insert({ board, distanceToWin }); // use last call with highest distance
+				wonBoards.insert({ board, currDepth }); // use last call with highest distance
 				pendingBoards.erase(it);
 				exploreChildren = true;
 			}
 		}
 	}
-	if (exploreChildren && (distanceToWin < MAXDEPTH))
-		todoBoards[distanceToWin].push_back(board);
+	if (exploreChildren)
+		queue.push_back(board);
 };
 
 
-void TableBase::loopDepth(const GameCards& gameCards, const int depth) {
-	U32 startCount = wonBoards.size();
-	auto& queue = todoBoards[depth];
-	int i = 0;
-	while (queue.size()) {
-		if (i++ > 100000) {
-			std::cout << depth << '\t' << queue.size() << '\t' << pendingBoards.size() << '\t' << wonBoards.size() << std::endl;
-			i = 0;
-		}
-		const Board board = queue.back();
-		queue.pop_back();
-		board.reverseMoves<*addToTables>(gameCards, depth + 1);
+bool TableBase::singleDepth(const GameCards& gameCards) {
+	currDepth++;
+	U32 stop = queue.size();
+	for (int i = 0; i < stop; i++) {
+		const Board& board = queue.front();
+		if (currDepth % 2 == 1)
+			board.reverseMoves<*addToTables<true>>(gameCards, 0);
+		else
+			board.reverseMoves<*addToTables<false>>(gameCards, 0);
+		queue.pop_front();
 	}
+	return queue.size();
 }
 
 
@@ -74,14 +73,15 @@ void TableBase::placePieces(const GameCards& gameCards, U64 pieces, U32 occupied
 		if (templeWin) {
 			board.pieces |= _popcnt64(beforeKing & board.pieces) << INDEX_KINGS[0];
 			for (int i = 0; i < 30; i++) {
-				todoBoards[0].push_back(board);
+				assert(0 == currDepth);
+				queue.push_back(board);
 				//loopUntilExhausted(gameCards);
 				board.pieces += 1ULL << INDEX_CARDS;
 			}
 		} else {
 			for (int kingI = 0; kingI < myMaxPawns + 1; kingI++) {
 				//board.print(gameCards);
-				addToTables(gameCards, board, false, 1);
+				addToTables<true>(gameCards, board, false, 0);
 				//loopUntilExhausted(gameCards);
 				board.pieces += 1ULL << INDEX_KINGS[0];
 			}
@@ -122,7 +122,7 @@ void TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPawns
 				otherKing <<= 1;
 			}
 		}
-	loopDepth(gameCards, 0); // push everything to depth 2
+	singleDepth(gameCards); // push everything to depth 2
 
 	for (myMaxPawns = 0; myMaxPawns <= maxPawns[0]; myMaxPawns++)
 		for (otherMaxPawns = 0; otherMaxPawns <= maxPawns[1]; otherMaxPawns++) {
@@ -139,15 +139,14 @@ void TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPawns
 				takenKingPos <<= 1;
 			}
 		}
-	for (int depth = 1; depth < MAXDEPTH; depth++)
-		loopDepth(gameCards, depth);
+	while (singleDepth(gameCards)) { }
 
-	for (int depth = 1; depth < MAXDEPTH; depth++) {
+	for (int depth = 1; depth < currDepth; depth++) {
 		U64 count = 0;
 		for (auto const& [board, distance] : wonBoards)
 			if (distance == depth) {
 				count++;
-				board.searchTime(gameCards, 1000);
+				//board.searchTime(gameCards, 1000);
 			}
 		printf("%4llu boards are win in %2u\n", count, depth);
 	}

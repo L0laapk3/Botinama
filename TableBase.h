@@ -15,9 +15,10 @@ namespace TableBase {
 	extern std::map<Board, uint8_t> pendingBoards;
 	extern std::map<Board, uint8_t> wonBoards;
 
+	template<bool isMine>
 	void addToTables(const GameCards& gameCards, const Board& board, const bool finished, uint8_t distanceToWin);
 
-	void loopDepth(const GameCards& gameCards, const int depth);
+	bool singleDepth(const GameCards& gameCards);
 	
 	template<bool templeWin>
 	void placePieces(const GameCards& gameCards, U64 pieces, U32 occupied, U32 beforeKing, U32 beforeOtherKing, U32 startAt, U32 spotsLeft, U32 minSpots0, U32 minSpotsAll, U32 myMaxPawns, U32 otherMaxPawns);
