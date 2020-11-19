@@ -50,6 +50,7 @@
 int main(int argc, char** argv) {
 
 	GameCards cards = CardBoard::fetchGameCards({ "ox", "boar", "horse", "elephant", "crab" });
+	//GameCards cards = CardBoard::fetchGameCards({ "ox", "crane", "horse", "eel", "boar" });
 
 	//GameCards cards = CardBoard::fetchGameCards({ "crane", "ox", "horse", "eel", "boar" });
 	/*GameCards cards = CardBoard::fetchGameCards({ "goose", "eel", "horse", "dragon", "frog" }, true);
@@ -75,7 +76,7 @@ int main(int argc, char** argv) {
 	//	}
 	//}
 
-	TableBase::generate(cards, { 0, 0 });
+	TableBase::generate(cards, { 1, 0 });
 	return 0;
 
 	auto conn = Connection();
