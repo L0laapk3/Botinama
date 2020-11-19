@@ -65,6 +65,7 @@ void Board::forwardMoves(const GameCards& gameCards) const {
 
 template<MoveFunc cb>
 void Board::reverseMoves(const GameCards& gameCards, const std::array<uint8_t, 2>& maxPieces) const {
+	//print(gameCards);
 	bool player = !(pieces & MASK_TURN);
 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
 	U64 playerPiecesWithoutCards = pieces & ~MASK_CARDS;
@@ -75,6 +76,7 @@ void Board::reverseMoves(const GameCards& gameCards, const std::array<uint8_t, 2
 		unsigned long cardI = cardStuff & 0xff;
 		U64 piecesWithNewCards = playerPiecesWithoutCards | (((U64)cardStuff & 0xff00) << (INDEX_CARDS - 8ULL));
 		cardStuff >>= 16;
+		//std::cout << _popcnt32((pieces >> (player ? 0 : 32)) & MASK_PIECES) << std::endl;
 		iterateMoves<cb, true>(gameCards, card.moveBoards[!player], piecesWithNewCards, player, maxPieces[!player] > _popcnt32((pieces >> (player ? 0 : 32)) & MASK_PIECES));
 	}
 }

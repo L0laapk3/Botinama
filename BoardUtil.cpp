@@ -64,6 +64,7 @@ Board Board::invert() const {
 #undef NDEBUG
 #include <assert.h>
 void Board::valid() const {
+	return;
 	assert((pieces & (pieces >> 32) & MASK_PIECES) == 0); // overlapping pieces
 
 	assert(((pieces >> INDEX_KINGS[0]) & 7) <= _popcnt32(pieces & MASK_PIECES)); //loose blue king

@@ -84,6 +84,7 @@ void TableBase::placePieces(const GameCards& gameCards, U64 pieces, std::array<U
 			//if (board.pieces & (1ULL << 22))
 			//	board.print(gameCards);
 			addToTables<true>(gameCards, board);
+
 			board.pieces += 1ULL << INDEX_CARDS;
 		} else {
 			board.pieces &= ~(7ULL << INDEX_KINGS[0]);
@@ -91,7 +92,6 @@ void TableBase::placePieces(const GameCards& gameCards, U64 pieces, std::array<U
 			//if (board.pieces & (1ULL << 22))
 			//	board.print(gameCards);
 			for (int kingI = 0; kingI < myMaxPawns + 1; kingI++) {
-
 				if (_pdep_u32(1 << kingI, board.pieces) != MASK_END_POSITIONS[0])
 					addToTables<true>(gameCards, board);
 				board.pieces += 1ULL << INDEX_KINGS[0];
