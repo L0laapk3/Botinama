@@ -10,18 +10,19 @@ void Board::iterateMoves(const GameCards& gameCards, const MoveBoard& moveBoards
 	const U32 opponentKingPieceNum = (piecesWithNewCards >> INDEX_KINGS[!player]) & 7;
 	const U32 beforeKingMask = _pdep_u32(1ULL << kingPieceNum, piecesWithNewCards >> (player ? 32 : 0)) - 1;
 	const U32 opponentKing = _pdep_u32(1ULL << opponentKingPieceNum, piecesWithNewCards >> (player ? 0 : 32));
-	U32 opponentBeforeKingPieces = (piecesWithNewCards >> (player ? 0 : 32)) & (opponentKing - 1);
+	const U32 opponentBeforeKingPieces = (piecesWithNewCards >> (player ? 0 : 32)) & (opponentKing - 1);
 	piecesWithNewCards &= ~(((U64)0b1111111) << INDEX_KINGS[0]);
 
 	unsigned long fromI;
 	while (_BitScanForward(&fromI, bitScan)) {
+		U32 opponentBeforeKingPiecesWithExtra = opponentBeforeKingPieces;
 		const U32 fromBit = (1ULL << fromI);
 		bitScan -= fromBit;
 		bool isKingMove = !kingPieceNum;
 		U64 newPiecesWithoutLandPiece = piecesWithNewCards & ~(((U64)fromBit) << (player ? 32 : 0));
 		for (int i = 0; i <= createPiece && reverse; i++) { // spawn a piece, simulate taking for reverse moves
 			newPiecesWithoutLandPiece |= i ? ((U64)fromBit) << (player ? 0 : 32) : 0;
-			opponentBeforeKingPieces |= i ? fromBit & (opponentKing - 1) : 0;
+			opponentBeforeKingPiecesWithExtra |= i ? fromBit & (opponentKing - 1) : 0;
 
 			const U32 endMask = opponentKing | (isKingMove ? MASK_END_POSITIONS[player] : 0);
 			U32 scan = moveBoards[fromI];
@@ -38,7 +39,7 @@ void Board::iterateMoves(const GameCards& gameCards, const MoveBoard& moveBoards
 					newPieces &= ~(((U64)landBit) << (player ? 0 : 32)); // possible take piece
 				const U32 beforeKingPieces = (newPieces >> (player ? 32 : 0)) & (isKingMove ? landBit - 1 : beforeKingMask);
 				newPieces |= ((U64)_popcnt32(beforeKingPieces)) << INDEX_KINGS[player];
-				newPieces |= ((U64)_popcnt32(opponentBeforeKingPieces & ~landBit)) << INDEX_KINGS[!player];
+				newPieces |= ((U64)_popcnt32(opponentBeforeKingPiecesWithExtra & ~landBit)) << INDEX_KINGS[!player];
 				const bool finished = landBit & endMask;
 				cb(gameCards, Board{ newPieces }, finished);
 			}
@@ -65,7 +66,7 @@ void Board::forwardMoves(const GameCards& gameCards) const {
 
 template<MoveFunc cb>
 void Board::reverseMoves(const GameCards& gameCards, const std::array<uint8_t, 2>& maxPieces) const {
-	//print(gameCards);
+	//print(gameCards, false, true);
 	bool player = !(pieces & MASK_TURN);
 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
 	U64 playerPiecesWithoutCards = pieces & ~MASK_CARDS;

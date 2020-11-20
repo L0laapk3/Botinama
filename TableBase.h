@@ -10,7 +10,7 @@
 
 // generating the tablebase is not thread safe!! for now
 namespace TableBase {
-	extern std::map<Board, uint16_t> wonBoards;
+	extern std::map<Board, uint8_t> wonBoards;
 
 	template<bool isMine>
 	void addToTables(const GameCards& gameCards, const Board& board, const bool finished = false);
