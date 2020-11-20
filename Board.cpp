@@ -53,7 +53,20 @@ uint8_t Board::findImmediateWins(const GameCards& gameCards) const {
 	const U32 opponentPositionsToAttackKing = player1card0Reverse[kingI] | player1card1Reverse[kingI];
 	const U32 opponentPositionsToReachTemple = player1card0Reverse[INDEX_END_POSITIONS[!player]] | player1card1Reverse[INDEX_END_POSITIONS[!player]];
 	if (opponentPositionsToReachTemple & opponentKing)
-		return 1; // lose in 2 if opponent king reaches temple
-	// todo: lose if opponent can take your king and you cannot prevent it??
+		return 2; // lose in 2 if opponent king reaches temple
+	// iterate over all pieces that can attack the king and check if they are under attack themself
+	U32 allPiecesToPreventOpponentFromTakingKing = (pieces >> (player ? 32 : 0));
+	U32 opponentPiecesToAttackKing = opponentPositionsToAttackKing & (pieces >> (player ? 0 : 32));
+	unsigned long opponentPieceToAttackKingI;
+	while (_BitScanForward(&opponentPieceToAttackKingI, opponentPiecesToAttackKing)) {
+		const U32 positionsToPreventOpponentFromTakingKing = player0card0Reverse[opponentPieceToAttackKingI] | player0card1Reverse[opponentPieceToAttackKingI];
+		const U32 opponentPiecesToCoverAttackingPiece = player1card0Reverse[opponentPieceToAttackKingI] | player1card1Reverse[opponentPieceToAttackKingI];
+		if (opponentPiecesToCoverAttackingPiece & (pieces >> (player ? 0 : 32)))
+			allPiecesToPreventOpponentFromTakingKing &= ~king;
+		else
+			allPiecesToPreventOpponentFromTakingKing |= king;
+		if (!(positionsToPreventOpponentFromTakingKing & allPiecesToPreventOpponentFromTakingKing))
+			return 2;
+	}
 	return 0;
 }
