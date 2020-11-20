@@ -175,7 +175,7 @@ uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPa
 			}
 		}
 	do {
-		printf("%8llu winning depth %2u boards\n", queue.size(), currDepth + 1);
+		printf("%9llu winning depth %2u boards\n", queue.size(), currDepth + 1);
 	} while (singleDepth(gameCards));
 	
 	const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
