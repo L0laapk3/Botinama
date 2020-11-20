@@ -6,9 +6,9 @@
 
 
 
-std::deque<Board> queue;
-std::unordered_map<Board, uint8_t, BoardHash> pendingBoards;
-std::unordered_map<Board, uint8_t, BoardHash> TableBase::wonBoards;
+std::deque<Board> queue{};
+google::dense_hash_map<Board, uint8_t, BoardHash> pendingBoards{};
+google::dense_hash_map<Board, uint8_t, BoardHash> TableBase::wonBoards{};
 uint16_t currDepth;
 
 uint16_t storeDepth() {
@@ -142,9 +142,11 @@ void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, 
 uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPawns) {
 
 	maxPieces = { (uint8_t)(maxPawns[0] + 1), (uint8_t)(maxPawns[1] + 1) };
-	queue = {};
-	pendingBoards = {};
-	wonBoards = {};
+	queue.empty();
+	pendingBoards.set_empty_key(Board{ 0 });
+	pendingBoards.empty();
+	wonBoards.set_empty_key(Board{ 0 });
+	wonBoards.empty();
 	currDepth = 0;
 
 	const auto beginTime = std::chrono::steady_clock::now();

@@ -6,11 +6,12 @@
 #include "Board.h"
 #include "CardBoard.h"
 #include <queue>
+#include "sparsehash/dense_hash_map.h"
 
 
 // generating the tablebase is not thread safe!! for now
 namespace TableBase {
-	extern std::unordered_map<Board, uint8_t, BoardHash> wonBoards;
+	extern google::dense_hash_map<Board, uint8_t, BoardHash> wonBoards;
 
 	template<bool isMine>
 	void addToTables(const GameCards& gameCards, const Board& board, const bool finished = false);
