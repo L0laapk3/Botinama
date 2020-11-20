@@ -41,11 +41,10 @@ public:
 	Board invert() const;
 
 	uint8_t countForwardMoves(const GameCards& gameCards) const;
-
+	uint8_t findImmediateWins(const GameCards& gameCards) const;
 
 	Score eval(const GameCards& gameCards) const;
 private:
-	Score findImmediateWins(const GameCards& gameCards) const;
 
 
 	//BoardIter

@@ -76,6 +76,9 @@ int main(int argc, char** argv) {
 	//	}
 	//}
 
+	// TableBase::generate(cards, { 0, 0 });
+	// TableBase::generate(cards, { 0, 1 });
+	// TableBase::generate(cards, { 1, 1 });
 	TableBase::generate(cards, { 1, 2 });
 	return 0;
 

@@ -28,7 +28,7 @@ uint8_t Board::countForwardMoves(const GameCards& gameCards) const {
 }
 
 
-Score Board::findImmediateWins(const GameCards& gameCards) const {
+uint8_t Board::findImmediateWins(const GameCards& gameCards) const {
 	bool player = pieces & MASK_TURN;
 	// check win in 1 ply
 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
@@ -44,7 +44,7 @@ Score Board::findImmediateWins(const GameCards& gameCards) const {
 	const U32 positionsToAttackOpponentKing = player0card0Reverse[opponentKingI] | player0card1Reverse[opponentKingI];
 	const U32 positionsToReachTemple = player0card0Reverse[INDEX_END_POSITIONS[player]] | player0card1Reverse[INDEX_END_POSITIONS[player]];
 	if ((positionsToAttackOpponentKing & (pieces >> (player ? 32 : 0))) || (positionsToReachTemple & king))
-		return SCORE_MAX; // win if take opponent king or if king reaches temple
+		return 1; // win in 1 if take opponent king or if king reaches temple
 	U32 player1cards = cardsPos.players[player];
 	const auto& player1card0Reverse = gameCards[player1cards & 0xff].moveBoards[player];
 	const auto& player1card1Reverse = gameCards[(player1cards >> 16) & 0xff].moveBoards[player];
@@ -53,7 +53,7 @@ Score Board::findImmediateWins(const GameCards& gameCards) const {
 	const U32 opponentPositionsToAttackKing = player1card0Reverse[kingI] | player1card1Reverse[kingI];
 	const U32 opponentPositionsToReachTemple = player1card0Reverse[INDEX_END_POSITIONS[!player]] | player1card1Reverse[INDEX_END_POSITIONS[!player]];
 	if (opponentPositionsToReachTemple & opponentKing)
-		return SCORE_MIN; // lose if opponent king reaches temple
+		return 1; // lose in 2 if opponent king reaches temple
 	// todo: lose if opponent can take your king and you cannot prevent it??
 	return 0;
 }

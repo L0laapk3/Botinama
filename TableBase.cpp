@@ -15,19 +15,17 @@ uint16_t storeDepth() {
 	return ~((uint8_t)0) - (currDepth >> 3);
 }
 
+U64 lookups = 0;
 template<bool isMine>
 void TableBase::addToTables(const GameCards& gameCards, const Board& board, const bool finished) {
 	// this function assumed that it is called in the correct distanceToWin order
 	// also assumes that there are no duplicate starting boards
 	//board.print(gameCards, finished, true);
 
+	lookups++;
+
 	if (finished)
 		return;
-
-	if (_pdep_u32(1 << (0x7 & (board.pieces >> INDEX_KINGS[0])), board.pieces) == MASK_END_POSITIONS[0]) {
-		board.print(gameCards, finished, true);
-		assert(0);
-	}
 
 	//board.print(gameCards);
 	bool exploreChildren = false;
@@ -96,7 +94,8 @@ void TableBase::placePieces(const GameCards& gameCards, U64 pieces, std::array<U
 			//if (board.pieces & (1ULL << 22))
 			//	board.print(gameCards);
 			for (int kingI = 0; kingI < myMaxPawns + 1; kingI++) {
-				if (_pdep_u32(1 << kingI, board.pieces) != MASK_END_POSITIONS[0])
+				U32 kingPos = _pdep_u32(1 << kingI, board.pieces);
+				if (kingPos != MASK_END_POSITIONS[0])
 					addToTables<true>(gameCards, board);
 				board.pieces += 1ULL << INDEX_KINGS[0];
 			}
@@ -143,14 +142,15 @@ uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPa
 
 	maxPieces = { (uint8_t)(maxPawns[0] + 1), (uint8_t)(maxPawns[1] + 1) };
 	queue.empty();
-	pendingBoards.set_empty_key(Board{ 0 });
-	//pendingBoards.set_deleted_key(Board{ 1 });
+	pendingBoards.set_empty_key(Board{ ~0ULL });
+	//pendingBoards.set_deleted_key(Board{ 0 });
 	pendingBoards.empty();
-	wonBoards.set_empty_key(Board{ 0 });
-	wonBoards.empty();
+	wonBoards.set_empty_key(Board{ ~0ULL });
+	// wonBoards.empty();
 	currDepth = 0;
 
 	const auto beginTime = std::chrono::steady_clock::now();
+	auto beginTime2 = beginTime;
 
 	for (myMaxPawns = 0; myMaxPawns <= maxPawns[0]; myMaxPawns++)
 		for (otherMaxPawns = 0; otherMaxPawns <= maxPawns[1]; otherMaxPawns++) {
@@ -178,7 +178,10 @@ uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPa
 			}
 		}
 	do {
-		printf("%9llu winning depth %2u boards\n", queue.size(), currDepth + 1);
+		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime2).count());
+		printf("%9llu winning depth %2u boards (%9llu pending, in %5.2fs, %9llu lookups, %4.1fM/s)\n", queue.size(), currDepth + 1, pendingBoards.size(), (float)time / 1000000, lookups, (float)lookups / time);
+		lookups = 0;
+		beginTime2 = std::chrono::steady_clock::now();
 	} while (singleDepth(gameCards));
 	
 	const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
