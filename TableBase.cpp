@@ -8,7 +8,8 @@
 
 std::deque<Board> queue{};
 google::dense_hash_map<Board, uint8_t, BoardHash> pendingBoards{};
-google::dense_hash_map<Board, uint8_t, BoardHash> TableBase::wonBoards{};
+google::dense_hash_map<Board, uint8_t, BoardHash> TableBase::wonOddBoards{};
+google::dense_hash_map<Board, uint8_t, BoardHash> TableBase::wonEvenBoards{};
 uint16_t currDepth;
 
 uint16_t storeDepth() {
@@ -32,7 +33,7 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 	if (isMine) {
 		// you played this move, immediately add it to won boards
 		// only insert and iterate if it doesnt already exist (keeps lowest distance)
-		const auto& result = wonBoards.emplace(board, storeDepth());
+		const auto& result = wonOddBoards.emplace(board, storeDepth());
 		exploreChildren = result.second;
 	} else {
 		// opponents move. All forward moves must lead to a loss first
@@ -44,7 +45,7 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 			pendingBoards.insert({ board, board.countForwardMoves(gameCards) - 1 });
 		} else {
 			if (--(it->second) == 0) {
-				wonBoards.insert({ board, storeDepth() }); // use last call with highest distance
+				wonEvenBoards.insert({ board, storeDepth() }); // use last call with highest distance
 				//pendingBoards.erase(it);
 				exploreChildren = true;
 			}
@@ -145,7 +146,8 @@ uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPa
 	pendingBoards.set_empty_key(Board{ ~0ULL });
 	//pendingBoards.set_deleted_key(Board{ 0 });
 	pendingBoards.empty();
-	wonBoards.set_empty_key(Board{ ~0ULL });
+	wonOddBoards.set_empty_key(Board{ ~0ULL });
+	wonEvenBoards.set_empty_key(Board{ ~0ULL });
 	// wonBoards.empty();
 	currDepth = 0;
 
@@ -186,19 +188,8 @@ uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPa
 	
 	const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 	//std::cout << wonb (float)time / 1000 << "ms" << std::endl;
-	printf("%9llu winning boards in %.3fs (%.0fk/s)", wonBoards.size(), (float)time / 1000000, (float)wonBoards.size() * 1000 / time);
+	const U64 wonCount = wonOddBoards.size() + wonEvenBoards.size();
+	printf("%9llu winning boards in %.3fs (%.0fk/s)", wonCount, (float)time / 1000000, (float)wonCount * 1000 / time);
 
-	for (int depth = 1; depth < currDepth; depth++) {
-		U64 count = 0;
-		for (auto const& [board, distance] : wonBoards)
-			if (distance == depth) {
-				count++;
-				/*if (depth > 1)
-					board.searchTime(gameCards, 1000, 0, depth);*/
-				//if (depth == 70)
-				//	board.print(gameCards);
-			}
-		//printf("%7llu boards are win in %2u\n", count, depth);
-	}
 	return currDepth;
 }

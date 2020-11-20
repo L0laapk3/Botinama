@@ -62,11 +62,11 @@ uint8_t Board::findImmediateWins(const GameCards& gameCards) const {
 		const U32 positionsToPreventOpponentFromTakingKing = player0card0Reverse[opponentPieceToAttackKingI] | player0card1Reverse[opponentPieceToAttackKingI];
 		const U32 opponentPiecesToCoverAttackingPiece = player1card0Reverse[opponentPieceToAttackKingI] | player1card1Reverse[opponentPieceToAttackKingI];
 		if (opponentPiecesToCoverAttackingPiece & (pieces >> (player ? 0 : 32)))
-			allPiecesToPreventOpponentFromTakingKing &= ~king;
+			allPiecesToPreventOpponentFromTakingKing &= ~(1ULL << kingI);
 		else
-			allPiecesToPreventOpponentFromTakingKing |= king;
+			allPiecesToPreventOpponentFromTakingKing |= (1ULL << kingI);
 		if (!(positionsToPreventOpponentFromTakingKing & allPiecesToPreventOpponentFromTakingKing))
-			return 2;
+			return 2; // cannot prevent opponent from taking king
 	}
 	return 0;
 }

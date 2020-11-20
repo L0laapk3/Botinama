@@ -11,7 +11,8 @@
 
 // generating the tablebase is not thread safe!! for now
 namespace TableBase {
-	extern google::dense_hash_map<Board, uint8_t, BoardHash> wonBoards;
+	extern google::dense_hash_map<Board, uint8_t, BoardHash> wonOddBoards;
+	extern google::dense_hash_map<Board, uint8_t, BoardHash> wonEvenBoards;
 
 	template<bool isMine>
 	void addToTables(const GameCards& gameCards, const Board& board, const bool finished = false);
