@@ -49,7 +49,16 @@
 
 int main(int argc, char** argv) {
 
+	//GameCards cards = CardBoard::fetchGameCards({ "crab", "ox", "horse", "boar", "elephant" });
+	//Board board = Board::fromString("4000000000000000000020000", true);
+	//board.print(cards);
+	//std::cout << (U32)board.findImmediateWins(cards) << std::endl;
+	//return 0;
+
+
+	// PERFT CARDS
 	GameCards cards = CardBoard::fetchGameCards({ "ox", "boar", "horse", "elephant", "crab" });
+
 	//GameCards cards = CardBoard::fetchGameCards({ "ox", "crane", "horse", "eel", "boar" });
 
 	//GameCards cards = CardBoard::fetchGameCards({ "crane", "ox", "horse", "eel", "boar" });
@@ -79,7 +88,7 @@ int main(int argc, char** argv) {
 	// TableBase::generate(cards, { 0, 0 });
 	// TableBase::generate(cards, { 0, 1 });
 	// TableBase::generate(cards, { 1, 1 });
-	TableBase::generate(cards, { 1, 2 });
+	TableBase::generate(cards, { 1, 1 });
 	return 0;
 
 	auto conn = Connection();

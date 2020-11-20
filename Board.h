@@ -41,7 +41,8 @@ public:
 	Board invert() const;
 
 	uint8_t countForwardMoves(const GameCards& gameCards) const;
-	uint8_t findImmediateWins(const GameCards& gameCards) const;
+	bool winInOne(const GameCards& gameCards) const;
+	uint8_t winInTwo(const GameCards& gameCards) const;
 
 	Score eval(const GameCards& gameCards) const;
 private:

@@ -1,4 +1,5 @@
 ﻿
+
 #include "Board.h"
 #include "Botama.h"
 
@@ -27,8 +28,38 @@ uint8_t Board::countForwardMoves(const GameCards& gameCards) const {
 	return total;
 }
 
+bool Board::winInOne(const GameCards& gameCards) const {
+	bool player = pieces & MASK_TURN;
+	// check win in 1 ply
+	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
+	U32 player0cards = cardsPos.players[player];
+	const auto& player0card0Reverse = gameCards[player0cards & 0xff].moveBoards[!player];
+	const auto& player0card1Reverse = gameCards[(player0cards >> 16) & 0xff].moveBoards[!player];
+	const U32 kingPieceNum = (pieces >> INDEX_KINGS[player]) & 7;
+	const U32 opponentKingPieceNum = (pieces >> INDEX_KINGS[!player]) & 7;
+	const U32 king = _pdep_u32(1ULL << kingPieceNum, pieces >> (player ? 32 : 0));
+	const U32 opponentKing = _pdep_u32(1ULL << opponentKingPieceNum, pieces >> (player ? 0 : 32));
+	unsigned long opponentKingI;
+	_BitScanForward(&opponentKingI, opponentKing);
+	const U32 positionsToAttackOpponentKing = player0card0Reverse[opponentKingI] | player0card1Reverse[opponentKingI];
+	const U32 positionsToReachTemple = player0card0Reverse[INDEX_END_POSITIONS[player]] | player0card1Reverse[INDEX_END_POSITIONS[player]];
+	return (positionsToAttackOpponentKing & (pieces >> (player ? 32 : 0))) || (positionsToReachTemple & king);
+}
 
-uint8_t Board::findImmediateWins(const GameCards& gameCards) const {
+
+uint8_t Board::winInTwo(const GameCards& gameCards) const {
+	// broken.. this is really hard without move generation
+	// example broken board:
+	// boar elep
+	//  |     |h
+	//  |     |o
+	//  |     |r
+	//  |     |s
+	// +|X  0 |e
+	// ox   crab
+	// its a win in 2 as X is only able to move left into O's crab
+
+
 	bool player = pieces & MASK_TURN;
 	// check win in 1 ply
 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
@@ -45,7 +76,7 @@ uint8_t Board::findImmediateWins(const GameCards& gameCards) const {
 	const U32 positionsToReachTemple = player0card0Reverse[INDEX_END_POSITIONS[player]] | player0card1Reverse[INDEX_END_POSITIONS[player]];
 	if ((positionsToAttackOpponentKing & (pieces >> (player ? 32 : 0))) || (positionsToReachTemple & king))
 		return 1; // win in 1 if take opponent king or if king reaches temple
-	U32 player1cards = cardsPos.players[player];
+	U32 player1cards = cardsPos.players[!player];
 	const auto& player1card0Reverse = gameCards[player1cards & 0xff].moveBoards[player];
 	const auto& player1card1Reverse = gameCards[(player1cards >> 16) & 0xff].moveBoards[player];
 	unsigned long kingI;

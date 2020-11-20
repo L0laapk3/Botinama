@@ -53,6 +53,12 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 	}
 	if (exploreChildren) {
 		queue.push_back(board);
+		const U32 winIn = board.findImmediateWins(gameCards);
+		if (winIn != (currDepth + 1 > 2 ? 0 : currDepth + 1)) {
+			std::cout << "win in " << currDepth + 1 << ", but expected " << winIn << std::endl;
+			board.print(gameCards, false, true);
+			assert(0);
+		};
 		//board.searchTime(gameCards, 1000, 0, currDepth + 1);
 	}
 };
