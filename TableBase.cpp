@@ -43,11 +43,11 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 
 		const auto it = pendingBoards.find(board);
 		if (it == pendingBoards.end()) {
-			pendingBoards[board] = board.countForwardMoves(gameCards) - 1;
+			pendingBoards.insert({ board, board.countForwardMoves(gameCards) - 1 });
 		} else {
 			if (--(it->second) == 0) {
 				wonBoards.insert({ board, storeDepth() }); // use last call with highest distance
-				pendingBoards.erase(it);
+				//pendingBoards.erase(it);
 				exploreChildren = true;
 			}
 		}
@@ -143,9 +143,10 @@ uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPa
 
 	maxPieces = { (uint8_t)(maxPawns[0] + 1), (uint8_t)(maxPawns[1] + 1) };
 	queue.empty();
-	pendingBoards.set_empty_key(Board{ ~1ULL });
+	pendingBoards.set_empty_key(Board{ 0 });
+	//pendingBoards.set_deleted_key(Board{ 1 });
 	pendingBoards.empty();
-	wonBoards.set_empty_key(Board{ ~1ULL });
+	wonBoards.set_empty_key(Board{ 0 });
 	wonBoards.empty();
 	currDepth = 0;
 
