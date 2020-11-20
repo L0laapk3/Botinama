@@ -19,16 +19,16 @@ typedef void (*MoveFunc)(const GameCards& gameCards, const Board& board, const b
 
 struct SearchResult;
 
+
 class Board {
 public:
 	U64 pieces;
 	bool operator <(const Board& rhs) const {
 		return pieces < rhs.pieces;
 	}
-	bool operator==(const Board& rhs) {
+	bool operator==(const Board& rhs) const {
 		return pieces == rhs.pieces;
 	}
-
 
 	static Board fromString(std::string str, bool player, bool flip = false);
 
@@ -64,6 +64,13 @@ public:
 	SearchResult searchTime(const GameCards& cards, const U64 timeBudget, const int verboseLevel = 1, const int expectedDepth = -1) const;
 
 };
+
+struct BoardHash {
+	size_t operator()(const Board& b) const {
+		return std::hash<U64>()(b.pieces);
+	}
+};
+
 
 struct SearchResult {
 	Score score;

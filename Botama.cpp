@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
 	//	}
 	//}
 
-	TableBase::generate(cards, { 1, 2 });
+	TableBase::generate(cards, { 1, 1 });
 	return 0;
 
 	auto conn = Connection();

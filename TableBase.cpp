@@ -7,8 +7,8 @@
 
 
 std::deque<Board> queue;
-std::map<Board, uint8_t> pendingBoards;
-std::map<Board, uint8_t> TableBase::wonBoards;
+std::unordered_map<Board, uint8_t, BoardHash> pendingBoards;
+std::unordered_map<Board, uint8_t, BoardHash> TableBase::wonBoards;
 uint16_t currDepth;
 
 uint16_t storeDepth() {
