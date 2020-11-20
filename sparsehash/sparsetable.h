@@ -235,7 +235,7 @@
 #include <type_traits>
 #include "sparsehash/internal/hashtable-common.h"
 #include "sparsehash/internal/libc_allocator_with_realloc.h"
-#include "sparsehash/traits"
+#include "sparsehash/traits.h"
 
 namespace google {
 // The smaller this is, the faster lookup is (because the group bitmap is

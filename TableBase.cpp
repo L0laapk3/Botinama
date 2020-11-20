@@ -39,7 +39,7 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 	} else {
 		// opponents move. All forward moves must lead to a loss first
 		// this function should only get called at most countForwardMoves times
-		assert(wonBoards.end() == wonBoards.find(board));
+		//assert(wonBoards.end() == wonBoards.find(board));
 
 		const auto it = pendingBoards.find(board);
 		if (it == pendingBoards.end()) {
@@ -143,9 +143,9 @@ uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPa
 
 	maxPieces = { (uint8_t)(maxPawns[0] + 1), (uint8_t)(maxPawns[1] + 1) };
 	queue.empty();
-	pendingBoards.set_empty_key(Board{ 0 });
+	pendingBoards.set_empty_key(Board{ ~1ULL });
 	pendingBoards.empty();
-	wonBoards.set_empty_key(Board{ 0 });
+	wonBoards.set_empty_key(Board{ ~1ULL });
 	wonBoards.empty();
 	currDepth = 0;
 

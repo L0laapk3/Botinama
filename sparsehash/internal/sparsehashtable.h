@@ -102,7 +102,7 @@
 #include <utility>      // for pair
 #include <type_traits>  // for remove_const
 #include "sparsehash/internal/hashtable-common.h"
-#include "sparsehash/sparsetable"  // IWYU pragma: export
+#include "sparsehash/sparsetable.h"  // IWYU pragma: export
 #include <stdexcept>               // For length_error
 
 namespace google {
