@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
 	// std::cout << (U32)TableBase::wonEvenBoards[board] << std::endl;
 	// std::cout << (U32)TableBase::wonOddBoards[board] << std::endl;
 
-	TableBase::generate(cards, { 1, 1 });
+	TableBase::generate(cards, { 1, 2 });
 	return 0;
 	// std::cout << board.eval(cards) << std::endl;
 

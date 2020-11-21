@@ -5,13 +5,14 @@
 #include "Botama.h"
 #include "Board.h"
 #include "CardBoard.h"
-#include "sparsehash/dense_hash_map.h"
+//#include "sparsehash/dense_hash_map.h"
+#include "flat_hash_map/bytell_hash_map.hpp"
 
 
 // generating the tablebase is not thread safe!! for now
 namespace TableBase {
-	extern google::dense_hash_map<Board, uint8_t, BoardHash> wonOddBoards;
-	extern google::dense_hash_map<Board, uint8_t, BoardHash> wonEvenBoards;
+	extern ska::bytell_hash_map<Board, uint8_t, BoardHash> wonOddBoards;
+	extern ska::bytell_hash_map<Board, uint8_t, BoardHash> wonEvenBoards;
 
 	template<bool isMine>
 	void addToTables(const GameCards& gameCards, const Board& board, const bool finished = false);

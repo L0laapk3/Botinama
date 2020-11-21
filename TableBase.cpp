@@ -8,9 +8,9 @@
 
 
 std::vector<Board> queue{};
-google::dense_hash_map<Board, uint8_t, BoardHash> pendingBoards{};
-google::dense_hash_map<Board, uint8_t, BoardHash> TableBase::wonOddBoards{};
-google::dense_hash_map<Board, uint8_t, BoardHash> TableBase::wonEvenBoards{};
+ska::bytell_hash_map<Board, uint8_t, BoardHash> pendingBoards{};
+ska::bytell_hash_map<Board, uint8_t, BoardHash> TableBase::wonOddBoards{};
+ska::bytell_hash_map<Board, uint8_t, BoardHash> TableBase::wonEvenBoards{};
 uint16_t currDepth;
 
 uint8_t storeDepth() {
@@ -152,17 +152,17 @@ uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPa
 
 	maxPieces = { (uint8_t)(maxPawns[0] + 1), (uint8_t)(maxPawns[1] + 1) };
 	queue.clear();
-	pendingBoards.set_empty_key(Board{ ~0ULL });
+	//pendingBoards.set_empty_key(Board{ ~0ULL });
 	//pendingBoards.set_deleted_key(Board{ 0 });
 	pendingBoards.clear();
-	wonOddBoards.set_empty_key(Board{ ~0ULL });
-	wonEvenBoards.set_empty_key(Board{ ~0ULL });
+	//wonOddBoards.set_empty_key(Board{ ~0ULL });
+	//wonEvenBoards.set_empty_key(Board{ ~0ULL });
 	// wonBoards.empty();
 	currDepth = 0;
     queue.reserve(1E7); 
-	pendingBoards.reserve(1E7);
-    wonOddBoards.reserve(1E7); 
-    wonEvenBoards.reserve(1E7); 
+	pendingBoards.reserve(1E8);
+    wonOddBoards.reserve(2E7); 
+    wonEvenBoards.reserve(2E7); 
 
 	const auto beginTime = std::chrono::steady_clock::now();
 	auto beginTime2 = beginTime;
