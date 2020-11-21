@@ -8,9 +8,9 @@
 
 
 std::vector<Board> queue{};
-ska::bytell_hash_map<Board, uint8_t, BoardHash> pendingBoards{};
-ska::bytell_hash_map<Board, uint8_t, BoardHash> TableBase::wonOddBoards{};
-ska::bytell_hash_map<Board, uint8_t, BoardHash> TableBase::wonEvenBoards{};
+TableBase::MapType pendingBoards{};
+TableBase::MapType TableBase::wonOddBoards{};
+TableBase::MapType TableBase::wonEvenBoards{};
 uint16_t currDepth;
 
 uint8_t storeDepth() {
@@ -152,11 +152,11 @@ uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPa
 
 	maxPieces = { (uint8_t)(maxPawns[0] + 1), (uint8_t)(maxPawns[1] + 1) };
 	queue.clear();
-	//pendingBoards.set_empty_key(Board{ ~0ULL });
-	//pendingBoards.set_deleted_key(Board{ 0 });
 	pendingBoards.clear();
-	//wonOddBoards.set_empty_key(Board{ ~0ULL });
-	//wonEvenBoards.set_empty_key(Board{ ~0ULL });
+	// pendingBoards.set_empty_key(Board{ ~0ULL });
+	// pendingBoards.set_deleted_key(Board{ 0 });
+	// wonOddBoards.set_empty_key(Board{ ~0ULL });
+	// wonEvenBoards.set_empty_key(Board{ ~0ULL });
 	// wonBoards.empty();
 	currDepth = 0;
     queue.reserve(1E7); 

@@ -67,9 +67,17 @@ public:
 };
 
 struct BoardHash {
-	size_t operator()(const Board& b) const {
-		return std::hash<U64>()(b.pieces);
+	uint64_t xorshift(const uint64_t& n, int i) const {
+		return n^(n>>i);
 	}
+	size_t operator()(const Board& b) const {
+			uint64_t p = 0x5555555555555555ull; // pattern of alternating 0 and 1
+			uint64_t c = 17316035218449499591ull;// random uneven integer constant; 
+			return c*xorshift(p*xorshift(b.pieces,32),32);
+	}
+	// size_t operator()(const Board& b) const {
+	// 	return std::hash<U64>()(b.pieces);
+	// }
 };
 
 
