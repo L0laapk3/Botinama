@@ -3,16 +3,18 @@
 
 #include <bitset>
 #include <chrono>
+#include <vector>
 
 
 
-std::deque<Board> queue{};
+std::vector<Board> queue{};
 google::dense_hash_map<Board, uint8_t, BoardHash> pendingBoards{};
 google::dense_hash_map<Board, uint8_t, BoardHash> TableBase::wonOddBoards{};
 google::dense_hash_map<Board, uint8_t, BoardHash> TableBase::wonEvenBoards{};
 uint16_t currDepth;
 
-uint16_t storeDepth() {
+uint8_t storeDepth() {
+	return currDepth;
 	return ~((uint8_t)0) - (currDepth >> 3);
 }
 
@@ -53,31 +55,32 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 	}
 	if (exploreChildren) {
 		queue.push_back(board);
-		const U32 winIn = board.findImmediateWins(gameCards);
-		if (winIn != (currDepth + 1 > 2 ? 0 : currDepth + 1)) {
-			std::cout << "win in " << currDepth + 1 << ", but expected " << winIn << std::endl;
-			board.print(gameCards, false, true);
-			assert(0);
-		};
-		//board.searchTime(gameCards, 1000, 0, currDepth + 1);
+		//if (currDepth > 1 || true) {
+		//	//board.searchTime(gameCards, 1000, 0, currDepth + 1);
+		//	//std::cout << std::endl << "START THE SEARCH" << std::endl << std::endl;
+		//	if (!board.searchWinIn(gameCards, currDepth + 1)) {
+		//		std::cout << "win not found" << std::endl;
+		//		board.print(gameCards);
+		//		board.searchWinIn(gameCards, currDepth + 1);
+		//		assert(0);
+		//	}
+		//}
 	}
 };
 
 
 std::array<uint8_t, 2> maxPieces;
+std::vector<Board> currQueue{};
 bool TableBase::singleDepth(const GameCards& gameCards) {
 	currDepth++;
-	U32 stop = queue.size();
-	for (int i = 0; i < stop; i++) {
-		const Board& board = queue.front();
-		//std::cout << std::endl << std::endl << "NEW ONE" << std::endl << std::endl;
-		//board.print(gameCards);
+	std::swap(queue, currQueue);
+	for (const Board& board : currQueue) {
 		if (currDepth % 2 == 0)
 			board.reverseMoves<*addToTables<true>>(gameCards, maxPieces);
 		else
 			board.reverseMoves<*addToTables<false>>(gameCards, maxPieces);
-		queue.pop_front();
 	}
+	currQueue.clear();
 	return queue.size();
 }
 
@@ -148,7 +151,7 @@ void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, 
 uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPawns) {
 
 	maxPieces = { (uint8_t)(maxPawns[0] + 1), (uint8_t)(maxPawns[1] + 1) };
-	queue.empty();
+	queue.clear();
 	pendingBoards.set_empty_key(Board{ ~0ULL });
 	//pendingBoards.set_deleted_key(Board{ 0 });
 	pendingBoards.empty();

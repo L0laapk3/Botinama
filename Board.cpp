@@ -29,6 +29,7 @@ uint8_t Board::countForwardMoves(const GameCards& gameCards) const {
 }
 
 bool Board::winInOne(const GameCards& gameCards) const {
+	//print(gameCards);
 	bool player = pieces & MASK_TURN;
 	// check win in 1 ply
 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
@@ -43,8 +44,12 @@ bool Board::winInOne(const GameCards& gameCards) const {
 	_BitScanForward(&opponentKingI, opponentKing);
 	const U32 positionsToAttackOpponentKing = player0card0Reverse[opponentKingI] | player0card1Reverse[opponentKingI];
 	const U32 positionsToReachTemple = player0card0Reverse[INDEX_END_POSITIONS[player]] | player0card1Reverse[INDEX_END_POSITIONS[player]];
-	return (positionsToAttackOpponentKing & (pieces >> (player ? 32 : 0))) || (positionsToReachTemple & king);
+	const bool templeBlocked = MASK_END_POSITIONS[player] & (pieces >> (player ? 32 : 0));
+	//std::cout << std::bitset<25>(positionsToAttackOpponentKing) << std::endl << std::bitset<25>(pieces >> (player ? 32 : 0)) << std::endl;
+	//std::cout << "mate in 1: " << !!(positionsToAttackOpponentKing & (pieces >> (player ? 32 : 0))) << ' ' << !!(templeBlocked ? 0 : positionsToReachTemple & king) << std::endl;
+	return (positionsToAttackOpponentKing & (pieces >> (player ? 32 : 0))) || (templeBlocked ? 0 : positionsToReachTemple & king);
 }
+
 
 
 uint8_t Board::winInTwo(const GameCards& gameCards) const {
@@ -57,7 +62,7 @@ uint8_t Board::winInTwo(const GameCards& gameCards) const {
 	//  |     |s
 	// +|X  0 |e
 	// ox   crab
-	// its a win in 2 as X is only able to move left into O's crab
+	// its a win in 2 as X is only able to move right into O's crab
 
 
 	bool player = pieces & MASK_TURN;

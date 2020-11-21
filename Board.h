@@ -42,6 +42,7 @@ public:
 
 	uint8_t countForwardMoves(const GameCards& gameCards) const;
 	bool winInOne(const GameCards& gameCards) const;
+	bool searchWinIn(const GameCards& gameCards, const U16 depth) const;
 	uint8_t winInTwo(const GameCards& gameCards) const;
 
 	Score eval(const GameCards& gameCards) const;

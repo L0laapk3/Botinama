@@ -59,14 +59,19 @@ int main(int argc, char** argv) {
 	// PERFT CARDS
 	GameCards cards = CardBoard::fetchGameCards({ "ox", "boar", "horse", "elephant", "crab" });
 
-	//GameCards cards = CardBoard::fetchGameCards({ "ox", "crane", "horse", "eel", "boar" });
+	//GameCards cards = CardBoard::fetchGameCards({ "ox", "boar", "horse", "crane", "eel" }, false);
+
 
 	//GameCards cards = CardBoard::fetchGameCards({ "crane", "ox", "horse", "eel", "boar" });
-	/*GameCards cards = CardBoard::fetchGameCards({ "goose", "eel", "horse", "dragon", "frog" }, true);
-	Board board = Board::fromString("0000000210000000043000000", false, true);
-	board.print(cards);
-	board.searchTime(cards, 1000, 2);
-	return 0;*/
+	// Board board = Board::fromString("0000020000001040000003000", false, false);
+	// board.print(cards);
+	// // board.searchTime(cards, 60*1000, 2);
+
+	// std::cout << (U32)TableBase::wonEvenBoards[board] << std::endl;
+	// std::cout << (U32)TableBase::wonOddBoards[board] << std::endl;
+
+	TableBase::generate(cards, { 1, 1 });
+	return 0;
 	// std::cout << board.eval(cards) << std::endl;
 
 
@@ -88,8 +93,7 @@ int main(int argc, char** argv) {
 	// TableBase::generate(cards, { 0, 0 });
 	// TableBase::generate(cards, { 0, 1 });
 	// TableBase::generate(cards, { 1, 1 });
-	TableBase::generate(cards, { 1, 1 });
-	return 0;
+	//return 0;
 
 	auto conn = Connection();
 	if (argc > 1)
