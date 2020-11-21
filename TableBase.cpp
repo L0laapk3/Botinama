@@ -154,11 +154,15 @@ uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPa
 	queue.clear();
 	pendingBoards.set_empty_key(Board{ ~0ULL });
 	//pendingBoards.set_deleted_key(Board{ 0 });
-	pendingBoards.empty();
+	pendingBoards.clear();
 	wonOddBoards.set_empty_key(Board{ ~0ULL });
 	wonEvenBoards.set_empty_key(Board{ ~0ULL });
 	// wonBoards.empty();
 	currDepth = 0;
+    queue.reserve(1E7); 
+	pendingBoards.reserve(1E7);
+    wonOddBoards.reserve(1E7); 
+    wonEvenBoards.reserve(1E7); 
 
 	const auto beginTime = std::chrono::steady_clock::now();
 	auto beginTime2 = beginTime;
