@@ -56,8 +56,8 @@ int main(int argc, char** argv) {
 	//return 0;
 
 
-	// PERFT CARDS
-	GameCards cards = CardBoard::fetchGameCards({ "ox", "boar", "horse", "elephant", "crab" });
+	// PERFT CARDS - 0269C
+	GameCards cards = CardBoard::fetchGameCards({ "boar", "ox", "elephant", "horse", "crab" });
 
 	//GameCards cards = CardBoard::fetchGameCards({ "ox", "boar", "horse", "crane", "eel" }, false);
 
@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
 	// std::cout << (U32)TableBase::wonEvenBoards[board] << std::endl;
 	// std::cout << (U32)TableBase::wonOddBoards[board] << std::endl;
 
-	TableBase::generate(cards, 4);
+	TableBase::generate(cards, 5);
 	return 0;
 	// std::cout << board.eval(cards) << std::endl;
 

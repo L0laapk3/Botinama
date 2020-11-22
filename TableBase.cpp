@@ -4,6 +4,9 @@
 #include <bitset>
 #include <chrono>
 #include <vector>
+#include <fstream>
+
+#include "BitScan.h"
 
 
 
@@ -155,11 +158,16 @@ void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, 
 	placePieces<false>(gameCards, pieces, { occupied, occupied }, 0, takenKingPos - 1, 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns);
 }
 
-// generates the tables for all the boards where player 0 wins
+
+
 uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
+	return generate(gameCards, men, (men + 1) / 2);
+}
+// generates the tables for all the boards where player 0 wins
+uint8_t TableBase::generate(const GameCards& gameCards, const U32 men, const U32 menPerSide) {
 
 	maxMen = men;
-	maxMenPerSide = (maxMen + 1) / 2;
+	maxMenPerSide = std::min<U32>(std::min(menPerSide, men - 1), 5);
 
 	queue.clear();
 	pendingBoards.clear();
@@ -174,7 +182,7 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
     wonOddBoards.reserve(2E7); 
     wonEvenBoards.reserve(2E7); 
 
-	const auto beginTime = std::chrono::steady_clock::now();
+	auto beginTime = std::chrono::steady_clock::now();
 	auto beginTime2 = beginTime;
 
 	for (myMaxPawns = 0; myMaxPawns <= maxMenPerSide - 1; myMaxPawns++)
@@ -210,17 +218,72 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 		beginTime2 = std::chrono::steady_clock::now();
 	} while (singleDepth(gameCards));
 	
-	const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
+	auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 	//std::cout << wonb (float)time / 1000 << "ms" << std::endl;
 	const U64 wonCount = wonOddBoards.size() + wonEvenBoards.size();
-	printf("%9llu winning boards in %.3fs (%.0fk/s)", wonCount, (float)time / 1000000, (float)wonCount * 1000 / time);
+	printf("%9llu winning boards in %.3fs (%.0fk/s)\n", wonCount, (float)time / 1000000, (float)wonCount * 1000 / time);
 
 	pendingBoards.clear();
 	pendingBoards.shrink_to_fit();
 	queue.shrink_to_fit();
+	wonOddBoards.clear();
 	wonOddBoards.shrink_to_fit();
+
+	beginTime = std::chrono::steady_clock::now();
+
+	std::vector<BoardValue> evenWins(wonEvenBoards.begin(), wonEvenBoards.end());
+	wonEvenBoards.clear();
 	wonEvenBoards.shrink_to_fit();
-	while (true) {};
+	std::sort(evenWins.begin(), evenWins.end(), [](const auto& a, const auto& b) { return a.boardComp < b.boardComp; });
+	//U32 last = 0;
+	//for (auto& d : evenWins) {
+	//	U32 tmp = d.boardComp;
+	//	d.boardComp -= last;
+	//	last = tmp;
+	//}
+	
+	time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
+	printf("sorted %9llu boards in %.3fs\n", evenWins.size(), (float)time / 1000000);
+
+	std::cout << sizeof(BoardValue) << std::endl;
+	std::ofstream f("0269c.bin", std::ios::binary | std::ios::out);
+	f.write(reinterpret_cast<char*>(evenWins.data()), evenWins.size()*sizeof(BoardValue));
+	f.close();
 
 	return currDepth;
+}
+
+
+TableBase::BoardValue::BoardValue(const std::pair<Board, uint8_t>& pair) : DTW(pair.second), boardComp(0) {
+	const uint64_t& pieces = pair.first.pieces;
+	unsigned long pieceI, otherPieceI;
+	U32 bluePieces = pieces & MASK_PIECES;
+	U32 redPieces = (pieces >> 32) & MASK_PIECES;
+	const U32 king = _pdep_u32(1 << ((pieces >> INDEX_KINGS[0]) & 7), bluePieces);
+	const U32 otherKing = _pdep_u32(1 << ((pieces >> INDEX_KINGS[1]) & 7), redPieces);
+	_BitScanForward(&pieceI, king);
+	_BitScanForward(&otherPieceI, otherKing);
+	boardComp = boardComp * 25 + pieceI;
+	boardComp = boardComp * 25 + otherPieceI;
+	bluePieces &= ~king;
+	redPieces &= ~otherKing;
+
+	pieceI = 26;
+	otherPieceI = 26;
+	_BitScanForward(&pieceI, bluePieces);
+	_BitScanForward(&otherPieceI, redPieces);
+	boardComp = boardComp * 26 + pieceI;
+	boardComp = boardComp * 26 + otherPieceI;
+	bluePieces &= ~(1 << pieceI);
+	redPieces &= ~(1 << otherPieceI);
+	
+	pieceI = 26;
+	otherPieceI = 26;
+	_BitScanForward(&pieceI, bluePieces);
+	_BitScanForward(&otherPieceI, redPieces);
+	boardComp = boardComp * 26 + pieceI;
+	boardComp = boardComp * 26 + otherPieceI;
+
+	boardComp = boardComp * 30 + ((pieces & MASK_CARDS) >> INDEX_CARDS);
+	boardComp = boardComp * 2  + ((pieces & MASK_TURN) >> INDEX_TURN);
 }
