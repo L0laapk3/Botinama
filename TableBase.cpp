@@ -55,8 +55,8 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 	}
 	if (exploreChildren) {
 		queue.push_back(board);
+		//board.searchTime(gameCards, 1000, 0, currDepth + 1);
 		//if (currDepth > 1 || true) {
-		//	//board.searchTime(gameCards, 1000, 0, currDepth + 1);
 		//	//std::cout << std::endl << "START THE SEARCH" << std::endl << std::endl;
 		//	if (!board.searchWinIn(gameCards, currDepth + 1)) {
 		//		std::cout << "win not found" << std::endl;
@@ -69,16 +69,17 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 };
 
 
-std::array<uint8_t, 2> maxPieces;
+U32 maxMen;
+U32 maxMenPerSide;
 std::vector<Board> currQueue{};
 bool TableBase::singleDepth(const GameCards& gameCards) {
 	currDepth++;
 	std::swap(queue, currQueue);
 	for (const Board& board : currQueue) {
 		if (currDepth % 2 == 0)
-			board.reverseMoves<*addToTables<true>>(gameCards, maxPieces);
+			board.reverseMoves<*addToTables<true>>(gameCards, maxMen, maxMenPerSide);
 		else
-			board.reverseMoves<*addToTables<false>>(gameCards, maxPieces);
+			board.reverseMoves<*addToTables<false>>(gameCards, maxMen, maxMenPerSide);
 	}
 	currQueue.clear();
 	return queue.size();
@@ -90,6 +91,8 @@ template<bool templeWin>
 void TableBase::placePieces(const GameCards& gameCards, U64 pieces, std::array<U32, 2> occupied, U32 beforeKing, U32 beforeOtherKing, U32 startAt, U32 spotsLeft, U32 minSpots0, U32 minSpotsAll, U32 myMaxPawns, U32 otherMaxPawns) {
 	if (spotsLeft == minSpotsAll) {
 		Board board{ pieces };
+		//std::cout << std::bitset<64>((((U64)beforeOtherKing) << 32) & board.pieces) << ' ' << _popcnt64((((U64)beforeOtherKing) << 32) & board.pieces) << std::endl;
+		//std::cout << ((board.pieces >> INDEX_KINGS[1]) & 7) << std::endl;
 		board.pieces |= _popcnt64((((U64)beforeOtherKing) << 32) & board.pieces) << INDEX_KINGS[1];
 		if (templeWin) {
 			board.pieces |= _popcnt64(beforeKing & board.pieces) << INDEX_KINGS[0];
@@ -103,8 +106,12 @@ void TableBase::placePieces(const GameCards& gameCards, U64 pieces, std::array<U
 			//std::cout << std::bitset<25>(board.pieces >> 32) << ' ' << std::bitset<25>(board.pieces) << std::endl;
 			//if (board.pieces & (1ULL << 22))
 			//	board.print(gameCards);
-			for (int kingI = 0; kingI < myMaxPawns + 1; kingI++) {
-				U32 kingPos = _pdep_u32(1 << kingI, board.pieces);
+			U32 kingI = 1;
+			while (true) {
+				U32 kingPos = _pdep_u32(kingI, board.pieces);
+				if (!(kingPos & MASK_PIECES))
+					break;
+				kingI <<= 1;
 				if (kingPos != MASK_END_POSITIONS[0])
 					addToTables<true>(gameCards, board);
 				board.pieces += 1ULL << INDEX_KINGS[0];
@@ -123,8 +130,8 @@ void TableBase::placePieces(const GameCards& gameCards, U64 pieces, std::array<U
 	}
 }
 
-uint8_t myMaxPawns;
-uint8_t otherMaxPawns;
+U32 myMaxPawns;
+U32 otherMaxPawns;
 void TableBase::placePiecesTemple(const GameCards& gameCards, const Board& board, const bool finished) {
 	if (finished)
 		return;
@@ -144,13 +151,16 @@ void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, 
 		return;
 	U64 pieces = board.pieces | (((U64)takenKingPos) << 32);
 	U32 occupied = board.pieces | takenKingPos;
+	//std::cout << "dead" << ((board.pieces >> INDEX_KINGS[1]) & 7) << std::endl;
 	placePieces<false>(gameCards, pieces, { occupied, occupied }, 0, takenKingPos - 1, 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns);
 }
 
 // generates the tables for all the boards where player 0 wins
-uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPawns) {
+uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 
-	maxPieces = { (uint8_t)(maxPawns[0] + 1), (uint8_t)(maxPawns[1] + 1) };
+	maxMen = men;
+	maxMenPerSide = (maxMen + 1) / 2;
+
 	queue.clear();
 	pendingBoards.clear();
 	// pendingBoards.set_empty_key(Board{ ~0ULL });
@@ -167,13 +177,13 @@ uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPa
 	const auto beginTime = std::chrono::steady_clock::now();
 	auto beginTime2 = beginTime;
 
-	for (myMaxPawns = 0; myMaxPawns <= maxPawns[0]; myMaxPawns++)
-		for (otherMaxPawns = 0; otherMaxPawns <= maxPawns[1]; otherMaxPawns++) {
+	for (myMaxPawns = 0; myMaxPawns <= maxMenPerSide - 1; myMaxPawns++)
+		for (otherMaxPawns = 0; otherMaxPawns <= std::min(maxMenPerSide - 1, maxMen - myMaxPawns - 2); otherMaxPawns++) {
 			{ // all temple wins
 				U32 king = MASK_END_POSITIONS[0];
 				Board board{ king | MASK_TURN };
 				for (int i = 0; i < 30; i++) {
-					board.reverseMoves<*placePiecesTemple>(gameCards, { maxPieces[0], 0 });
+					board.reverseMoves<*placePiecesTemple>(gameCards, maxMen, 0);
 					board.pieces += 1ULL << INDEX_CARDS;
 				}
 			}
@@ -184,7 +194,8 @@ uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPa
 					takenKingPos <<= takenKingPos == MASK_END_POSITIONS[1];
 					Board board{ takenKingPos | MASK_TURN | (7ULL << INDEX_KINGS[0]) };
 					for (int i = 0; i < 30; i++) {
-						board.reverseMoves<*placePiecesDead>(gameCards, { maxPieces[0], 0 });
+						//std::cout << "alive" << ((board.pieces >> INDEX_KINGS[1]) & 7) << std::endl;
+						board.reverseMoves<*placePiecesDead>(gameCards, maxMen, 0);
 						board.pieces += 1ULL << INDEX_CARDS;
 					}
 					board.pieces &= ~(0x1FULL << INDEX_CARDS);
@@ -203,6 +214,13 @@ uint8_t TableBase::generate(const GameCards& gameCards, std::array<U32, 2> maxPa
 	//std::cout << wonb (float)time / 1000 << "ms" << std::endl;
 	const U64 wonCount = wonOddBoards.size() + wonEvenBoards.size();
 	printf("%9llu winning boards in %.3fs (%.0fk/s)", wonCount, (float)time / 1000000, (float)wonCount * 1000 / time);
+
+	pendingBoards.clear();
+	pendingBoards.shrink_to_fit();
+	queue.shrink_to_fit();
+	wonOddBoards.shrink_to_fit();
+	wonEvenBoards.shrink_to_fit();
+	while (true) {};
 
 	return currDepth;
 }

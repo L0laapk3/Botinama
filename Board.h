@@ -57,7 +57,7 @@ public:
 	template<MoveFunc cb>
 	void forwardMoves(const GameCards& gameCards) const;
 	template<MoveFunc cb>
-	void reverseMoves(const GameCards& gameCards, const std::array<uint8_t, 2>& maxPieces) const;
+	void reverseMoves(const GameCards& gameCards, const U32 maxMen, const U32 maxMenPerSide) const;
 
 
 	//BoardSearch
