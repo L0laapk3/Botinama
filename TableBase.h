@@ -5,7 +5,6 @@
 #include "Botama.h"
 #include "Board.h"
 #include "CardBoard.h"
-#include "sparsehash/dense_hash_map.h"
 #include "flat_hash_map/bytell_hash_map.hpp"
 
 

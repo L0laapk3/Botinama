@@ -7,6 +7,7 @@
 #include <fstream>
 
 #include "BitScan.h"
+//#include "bxzstr/bxzstr.hpp"
 
 
 
@@ -241,49 +242,59 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men, const U32
 	//	d.boardComp -= last;
 	//	last = tmp;
 	//}
+	std::vector<uint8_t> boardArray = { };
+	boardArray.resize(((U64)25)*25*26*26/2*26*26/2*30);
+
+	for (auto& d : evenWins) {
+		boardArray[d.boardComp] = ~d.DTW;
+	}
 	
 	time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 	printf("sorted %9llu boards in %.3fs\n", evenWins.size(), (float)time / 1000000);
 
-	std::cout << sizeof(BoardValue) << std::endl;
 	std::ofstream f("0269c.bin", std::ios::binary | std::ios::out);
-	f.write(reinterpret_cast<char*>(evenWins.data()), evenWins.size()*sizeof(BoardValue));
+	// bxz::ofstream f("0269c.bin", bxz::lzma, 9);
+	// f.write(reinterpret_cast<char*>(evenWins.data()), evenWins.size()*sizeof(BoardValue));
+	f.write(reinterpret_cast<char*>(boardArray.data()), boardArray.size()*sizeof(uint8_t));
 	f.close();
 
 	return currDepth;
 }
 
 
-TableBase::BoardValue::BoardValue(const std::pair<Board, uint8_t>& pair) : DTW(pair.second), boardComp(0) {
-	const uint64_t& pieces = pair.first.pieces;
-	unsigned long pieceI, otherPieceI;
+U32 compress6Men(U64 pieces) {
+	U32 boardComp = 0;
 	U32 bluePieces = pieces & MASK_PIECES;
 	U32 redPieces = (pieces >> 32) & MASK_PIECES;
 	const U32 king = _pdep_u32(1 << ((pieces >> INDEX_KINGS[0]) & 7), bluePieces);
 	const U32 otherKing = _pdep_u32(1 << ((pieces >> INDEX_KINGS[1]) & 7), redPieces);
-	_BitScanForward(&pieceI, king);
-	_BitScanForward(&otherPieceI, otherKing);
-	boardComp = boardComp * 25 + pieceI;
-	boardComp = boardComp * 25 + otherPieceI;
+	unsigned long kingI, otherKingI;
+	_BitScanForward(&kingI, king);
+	_BitScanForward(&otherKingI, otherKing);
+	boardComp = boardComp * 25 + kingI;
+	boardComp = boardComp * 25 + otherKingI;
 	bluePieces &= ~king;
 	redPieces &= ~otherKing;
 
-	pieceI = 26;
-	otherPieceI = 26;
-	_BitScanForward(&pieceI, bluePieces);
-	_BitScanForward(&otherPieceI, redPieces);
-	boardComp = boardComp * 26 + pieceI;
-	boardComp = boardComp * 26 + otherPieceI;
-	bluePieces &= ~(1 << pieceI);
-	redPieces &= ~(1 << otherPieceI);
+	unsigned long piece1I = 26, otherPiece1I = 26;
+	_BitScanForward(&piece1I, bluePieces);
+	_BitScanForward(&otherPiece1I, redPieces);
+	bluePieces &= ~(1 << piece1I);
+	redPieces &= ~(1 << otherPiece1I);
 	
-	pieceI = 26;
-	otherPieceI = 26;
-	_BitScanForward(&pieceI, bluePieces);
-	_BitScanForward(&otherPieceI, redPieces);
-	boardComp = boardComp * 26 + pieceI;
-	boardComp = boardComp * 26 + otherPieceI;
+	unsigned long piece2I = 26, otherPiece2I = 26;
+	_BitScanForward(&piece2I, bluePieces);
+	_BitScanForward(&otherPiece2I, redPieces);
+	const U32 pieceValue = piece1I * 26 + piece2I;
+	const U32 otherPieceValue = otherPiece1I * 26 + otherPiece2I;
+	boardComp = boardComp * 26 * 13 + std::min(pieceValue, 26*26-1 - pieceValue);
+	boardComp = boardComp * 26 * 13 + std::min(otherPieceValue, 26*26-1 - otherPieceValue);
 
+	//boardComp = boardComp * 2  + ((pieces & MASK_TURN) >> INDEX_TURN);
 	boardComp = boardComp * 30 + ((pieces & MASK_CARDS) >> INDEX_CARDS);
-	boardComp = boardComp * 2  + ((pieces & MASK_TURN) >> INDEX_TURN);
+
+	return boardComp;
 }
+
+
+TableBase::BoardValue::BoardValue(const std::pair<Board, uint8_t>& pair) : DTW(pair.second), boardComp(compress6Men(pair.first.pieces)) { }

@@ -16,11 +16,13 @@ ${PROJECT_SOURCE_DIR}/Botama.cpp
 )
 
 add_executable(Botama ${source_files})
-target_include_directories(Botama PUBLIC inc)
+
+target_link_libraries(Botama PRIVATE ${PROJECT_SOURCE_DIR}/lib/liblzma.a)
+target_include_directories(Botama PUBLIC include)
 target_compile_features(Botama PUBLIC cxx_std_20)
 
-set(CMAKE_CXX_FLAGS "-march=native")
-set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -DNDEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrt")
+set(CMAKE_CXX_FLAGS "-march=native -Iinclude")
+set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -DNDEBUG -D_MT -Xclang --dependent-lib=msvcrt")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Ofast -g -DNDEBUG -Xclang -gcodeview -D_DLL -D_MT -Xclang --dependent-lib=msvcrt")
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
