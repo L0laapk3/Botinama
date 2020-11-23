@@ -71,26 +71,26 @@ struct sherwood_v8_constants
         5209859150892887590,
     };
 };
-template<typename T>
-constexpr int8_t sherwood_v8_constants<T>::magic_for_empty;
-template<typename T>
-constexpr int8_t sherwood_v8_constants<T>::magic_for_reserved;
-template<typename T>
-constexpr int8_t sherwood_v8_constants<T>::bits_for_direct_hit;
-template<typename T>
-constexpr int8_t sherwood_v8_constants<T>::magic_for_direct_hit;
-template<typename T>
-constexpr int8_t sherwood_v8_constants<T>::magic_for_list_entry;
+template<typename V>
+constexpr int8_t sherwood_v8_constants<V>::magic_for_empty;
+template<typename V>
+constexpr int8_t sherwood_v8_constants<V>::magic_for_reserved;
+template<typename V>
+constexpr int8_t sherwood_v8_constants<V>::bits_for_direct_hit;
+template<typename V>
+constexpr int8_t sherwood_v8_constants<V>::magic_for_direct_hit;
+template<typename V>
+constexpr int8_t sherwood_v8_constants<V>::magic_for_list_entry;
 
-template<typename T>
-constexpr int8_t sherwood_v8_constants<T>::bits_for_distance;
+template<typename V>
+constexpr int8_t sherwood_v8_constants<V>::bits_for_distance;
 
-template<typename T>
-constexpr int sherwood_v8_constants<T>::num_jump_distances;
-template<typename T>
-constexpr size_t sherwood_v8_constants<T>::jump_distances[num_jump_distances];
+template<typename V>
+constexpr int sherwood_v8_constants<V>::num_jump_distances;
+template<typename V>
+constexpr size_t sherwood_v8_constants<V>::jump_distances[num_jump_distances];
 
-template<typename T, uint8_t BlockSize>
+template<typename V, uint8_t BlockSize>
 struct sherwood_v8_block
 {
     sherwood_v8_block()
@@ -102,7 +102,7 @@ struct sherwood_v8_block
     int8_t control_bytes[BlockSize];
     union
     {
-        T data[BlockSize];
+        V data[BlockSize];
     };
 
     static sherwood_v8_block * empty_block()
@@ -132,11 +132,11 @@ struct sherwood_v8_block
     }
 };
 
-template<typename T, typename FindKey, typename ArgumentHash, typename Hasher, typename ArgumentEqual, typename Equal, typename ArgumentAlloc, typename ByteAlloc, uint8_t BlockSize>
+template<typename V, typename FindKey, typename ArgumentHash, typename Hasher, typename ArgumentEqual, typename Equal, typename ArgumentAlloc, typename ByteAlloc, uint8_t BlockSize>
 class sherwood_v8_table : private ByteAlloc, private Hasher, private Equal
 {
     using AllocatorTraits = std::allocator_traits<ByteAlloc>;
-    using BlockType = sherwood_v8_block<T, BlockSize>;
+    using BlockType = sherwood_v8_block<V, BlockSize>;
     using BlockPointer = BlockType *;
     using BytePointer = typename AllocatorTraits::pointer;
     struct convertible_to_iterator;
@@ -144,7 +144,7 @@ class sherwood_v8_table : private ByteAlloc, private Hasher, private Equal
 
 public:
 
-    using value_type = T;
+    using value_type = V;
     using size_type = size_t;
     using difference_type = std::ptrdiff_t;
     using hasher = ArgumentHash;
@@ -192,18 +192,18 @@ public:
         : sherwood_v8_table(first, last, bucket_count, hash, ArgumentEqual(), alloc)
     {
     }
-    sherwood_v8_table(std::initializer_list<T> il, size_type bucket_count = 0, const ArgumentHash & hash = ArgumentHash(), const ArgumentEqual & equal = ArgumentEqual(), const ArgumentAlloc & alloc = ArgumentAlloc())
+    sherwood_v8_table(std::initializer_list<V> il, size_type bucket_count = 0, const ArgumentHash & hash = ArgumentHash(), const ArgumentEqual & equal = ArgumentEqual(), const ArgumentAlloc & alloc = ArgumentAlloc())
         : sherwood_v8_table(bucket_count, hash, equal, alloc)
     {
         if (bucket_count == 0)
             rehash(il.size());
         insert(il.begin(), il.end());
     }
-    sherwood_v8_table(std::initializer_list<T> il, size_type bucket_count, const ArgumentAlloc & alloc)
+    sherwood_v8_table(std::initializer_list<V> il, size_type bucket_count, const ArgumentAlloc & alloc)
         : sherwood_v8_table(il, bucket_count, ArgumentHash(), ArgumentEqual(), alloc)
     {
     }
-    sherwood_v8_table(std::initializer_list<T> il, size_type bucket_count, const ArgumentHash & hash, const ArgumentAlloc & alloc)
+    sherwood_v8_table(std::initializer_list<V> il, size_type bucket_count, const ArgumentHash & hash, const ArgumentAlloc & alloc)
         : sherwood_v8_table(il, bucket_count, hash, ArgumentEqual(), alloc)
     {
     }
@@ -279,7 +279,7 @@ public:
             clear();
             _max_load_factor = other._max_load_factor;
             rehash_for_other_container(other);
-            for (T & elem : other)
+            for (V & elem : other)
                 emplace(std::move(elem));
             other.clear();
         }
@@ -708,7 +708,7 @@ public:
     }
     size_t max_size() const
     {
-        return (AllocatorTraits::max_size(*this)) / sizeof(T);
+        return (AllocatorTraits::max_size(*this)) / sizeof(V);
     }
     size_t bucket_count() const
     {
@@ -716,7 +716,7 @@ public:
     }
     size_type max_bucket_count() const
     {
-        return (AllocatorTraits::max_size(*this)) / sizeof(T);
+        return (AllocatorTraits::max_size(*this)) / sizeof(V);
     }
     size_t bucket(const FindKey & key) const
     {
@@ -1035,15 +1035,15 @@ private:
         }
     };
 };
-template<typename T, typename Enable = void>
+template<typename V, typename Enable = void>
 struct AlignmentOr8Bytes
 {
     static constexpr size_t value = 8;
 };
-template<typename T>
-struct AlignmentOr8Bytes<T, typename std::enable_if<alignof(T) >= 1>::type>
+template<typename V>
+struct AlignmentOr8Bytes<V, typename std::enable_if<alignof(V) >= 1>::type>
 {
-    static constexpr size_t value = alignof(T);
+    static constexpr size_t value = alignof(V);
 };
 template<typename... Args>
 struct CalculateBytellBlockSize;
@@ -1182,36 +1182,36 @@ private:
     };
 };
 
-template<typename T, typename H = std::hash<T>, typename E = std::equal_to<T>, typename A = std::allocator<T> >
+template<typename V, typename H = std::hash<V>, typename E = std::equal_to<V>, typename A = std::allocator<V> >
 class bytell_hash_set
         : public detailv8::sherwood_v8_table
         <
-            T,
-            T,
+            V,
+            V,
             H,
             detailv8::functor_storage<size_t, H>,
             E,
             detailv8::functor_storage<bool, E>,
             A,
             typename std::allocator_traits<A>::template rebind_alloc<unsigned char>,
-            detailv8::CalculateBytellBlockSize<T>::value
+            detailv8::CalculateBytellBlockSize<V>::value
         >
 {
     using Table = detailv8::sherwood_v8_table
     <
-        T,
-        T,
+        V,
+        V,
         H,
         detailv8::functor_storage<size_t, H>,
         E,
         detailv8::functor_storage<bool, E>,
         A,
         typename std::allocator_traits<A>::template rebind_alloc<unsigned char>,
-        detailv8::CalculateBytellBlockSize<T>::value
+        detailv8::CalculateBytellBlockSize<V>::value
     >;
 public:
 
-    using key_type = T;
+    using key_type = V;
 
     using Table::Table;
     bytell_hash_set()
@@ -1221,7 +1221,7 @@ public:
     template<typename... Args>
     std::pair<typename Table::iterator, bool> emplace(Args &&... args)
     {
-        return Table::emplace(T(std::forward<Args>(args)...));
+        return Table::emplace(V(std::forward<Args>(args)...));
     }
     std::pair<typename Table::iterator, bool> emplace(const key_type & arg)
     {
@@ -1244,7 +1244,7 @@ public:
     {
         if (lhs.size() != rhs.size())
             return false;
-        for (const T & value : lhs)
+        for (const V & value : lhs)
         {
             if (rhs.find(value) == rhs.end())
                 return false;

@@ -80,5 +80,8 @@
     <ClInclude Include="TableBase.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="AtomicArray.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

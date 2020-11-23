@@ -20,15 +20,10 @@ namespace TableBase {
 	};
 #pragma pack (pop)
 
-	typedef ska::bytell_hash_map<Board, uint8_t, BoardHash> MapType;
-	// typedef google::dense_hash_map<Board, uint8_t, BoardHash> MapType;
-
-	extern MapType wonOddBoards;
-	extern MapType wonEvenBoards;
-
 	template<bool isMine>
 	void addToTables(const GameCards& gameCards, const Board& board, const bool finished = false);
 
+	void singleDepthThread(const GameCards& gameCards, const int threadNum, const int threadCount);
 	bool singleDepth(const GameCards& gameCards);
 	
 	template<bool templeWin>
