@@ -50,8 +50,19 @@
 
 int main(int argc, char** argv) {
 
+	TableBase::init();
+
+	// GameCards shitCards = CardBoard::fetchGameCards({"horse", "eel", "boar", "ox", "crane"});
+	// TableBase::generate(shitCards, 4);
+	// Board board = Board::fromString("0002001000000300400000000", false);
+	// board.print(shitCards);
+	// std::cout << (int)TableBase::wonBoards[TableBase::compress6Men(board)*2+1] << std::endl;
+	// return 0;
+
+
 	// PERFT CARDS - 0269C
-	GameCards perftCards = CardBoard::fetchGameCards({ "boar", "ox", "elephant", "horse", "crab" });
+	//GameCards perftCards = CardBoard::fetchGameCards({ "boar", "ox", "elephant", "horse", "crab" });
+	
 	//GameCards bugCards = CardBoard::fetchGameCards({ "crab", "ox", "frog", "boar", "rabbit" });
 	//Board board = Board::fromString("4000000000000000000020000", true);
 	//board.print(cards);
@@ -91,8 +102,8 @@ int main(int argc, char** argv) {
 	//	}
 	//}
 
-	TableBase::generate(perftCards, 6);
-	return 0;
+	// TableBase::generate(perftCards, 6);
+	// return 0;
 
 	auto conn = Connection();
 	if (argc > 1)
@@ -108,7 +119,6 @@ int main(int argc, char** argv) {
 		// std::cout << game.board.eval(game.cards) << std::endl;
 		if (!game.board.currentPlayer()) {
 			auto bestMove = game.board.searchTime(game.cards, 1000, 1);
-			std::cout << std::endl;
 			conn.submitMove(game, bestMove.board);
 		}
 

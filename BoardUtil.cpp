@@ -118,7 +118,7 @@ void Board::print(const GameCards& gameCards, std::vector<Board> boards, std::ve
 					else if (board.pieces & mask)
 						str = (!blueKingPos[i]-- ? '0' : 'o') + str; // bloo
 					else if ((board.pieces >> 32) & mask)
-						str = (!redKingPos[i]-- ? 'X' : '+') + str; // +ed
+						str = (!redKingPos[i]-- ? 'X' : '+') + str; // r+d
 					else
 						str = ' ' + str;
 				}

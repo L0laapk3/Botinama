@@ -25,7 +25,7 @@ int8_t storeDepth() {
 	if ((currDepth >> 3) >= 126)
 		[[unlikely]]
 		std::cout << "depth overflow!! :(" << std::endl;
-	return currDepth + 1;//(currDepth >> 3);
+	return (currDepth >> 3) + 1;
 }
 
 template<bool isMine>
@@ -174,7 +174,13 @@ void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, 
 	placePieces<false>(gameCards, pieces, { occupied, occupied }, 0, takenKingPos - 1, 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns);
 }
 
-
+void TableBase::init() {
+	currDepth = 0;
+	queue.reserve(1E9);
+	currQueue.reserve(1E9);
+	wonBoards.resize(TABLESIZE * 2, 127);
+	pendingBoards.resize(TABLESIZE);
+}
 
 uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 
@@ -183,12 +189,6 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 	U32 menPerSide = (men + 1) / 2;
 	maxMen = men;
 	maxMenPerSide = std::min<U32>(std::min(menPerSide, men - 1), 5);
-
-	currDepth = 0;
-	queue.reserve(1E9);
-	currQueue.reserve(1E9);
-	wonBoards.resize(TABLESIZE*2, 127);
-	pendingBoards.resize(TABLESIZE);
 
 	auto beginTime = std::chrono::steady_clock::now();
 	auto beginTime2 = beginTime;
@@ -226,7 +226,7 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 		printf("%9llu winning depth %3u boards in %6.2fs\n", queue.size(), currDepth + 1, (float)time / 1000000);
 		wonCount += queue.size();
 		beginTime2 = std::chrono::steady_clock::now();
-	} while (singleDepth(gameCards) && currDepth < 126);
+	} while (singleDepth(gameCards));
 	
 	auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 	//std::cout << wonb (float)time / 1000 << "ms" << std::endl;
@@ -316,8 +316,8 @@ U32 TableBase::compress6Men(const Board& board) {
 	//boardComp = boardComp * 2  + ((pieces & MASK_TURN) >> INDEX_TURN);
 	boardComp = boardComp * 30 + ((board.pieces & MASK_CARDS) >> INDEX_CARDS);
 
-	//U64 decomp = decompress6Men(boardComp);
-	//assert(decomp == pieces);
+	U64 decomp = decompress6Men(boardComp).pieces;
+	assert(decomp == board.pieces);
 
 	return boardComp;
 }

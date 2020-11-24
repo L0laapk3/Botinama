@@ -55,10 +55,10 @@ Connection::~Connection() {
 
 
 void Connection::createGame() {
-	ws->send("create Botama-TB");
+	ws->send("create Botama-TB-alt");
 }
 void Connection::joinGame(const std::string& matchId) {
-	ws->send("join " + matchId + " Botama-TB");
+	ws->send("join " + matchId + " Botama-TB-alt");
 }
 
 Game Connection::waitGame() {

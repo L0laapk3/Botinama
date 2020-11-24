@@ -6,7 +6,7 @@
 #include "TableBase.h"
 
 
-SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha, const Score beta, const bool quiescent) const {
+SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, const bool softTB, Score alpha, const Score beta, const bool quiescent) const {
 	// negamax with alpha beta pruning
 	bool player = pieces & MASK_TURN;
 
@@ -76,7 +76,7 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 							TBHit = result != 127;
 							if (TBHit) {
 								//uint16_t depth = ((uint16_t)(result > 0 ? result : -result) << 3) | 7;
-								uint16_t depth = (result > 0 ? result : -result);
+								uint16_t depth = (((uint16_t)(result > 0 ? result : -result)) << 3);
 								//board.print(gameCards);
 								//std::cout << "win in " << depth << " for " << (result > 0 ? "blue" : "red");
 								Score score = (quiescent ? SCORE_WIN - SCORE_QUIESCENCE_WIN_OFFSET : SCORE_WIN) + maxDepth - depth;
@@ -88,8 +88,8 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 							}
 						} else
 							TBHit = false;
-						if (!TBHit) {
-							const auto& childSearch = board.search(gameCards, maxDepth, -beta, -alpha, !maxDepth || quiescent);
+						if (softTB || !TBHit) {
+							const auto& childSearch = board.search(gameCards, maxDepth, softTB, -beta, -alpha, !maxDepth || quiescent);
 							childScore = -childSearch.score;
 							total += childSearch.total;
 						}
@@ -100,7 +100,7 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 						bestBoard = board;
 						if (childScore > alpha) {
 							alpha = bestScore;
-							if (alpha > beta)
+							if (alpha >= beta)
 								goto pruneLoop;
 						}
 					}
@@ -201,7 +201,7 @@ SearchResult Board::searchTime(const GameCards& cards, const U64 timeBudget, con
 	SearchResult result;
 	while (true) {
 		const auto beginTime = std::chrono::steady_clock::now();
-		result = search(cards, ++maxDepth);
+		result = search(cards, ++maxDepth, shortestEnd != std::numeric_limits<S32>::max());
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 		predictedTime = time * time / lastTime;
 		lastTime = time;
@@ -210,7 +210,19 @@ SearchResult Board::searchTime(const GameCards& cards, const U64 timeBudget, con
 		bool lastIteration = ((predictedTime > timeBudget * 1000) && (maxDepth >= minDepth)) || (maxDepth >= 64);
 
 		if (lastIteration || foundWin || verboseLevel >= 2) {
-			if (verboseLevel >= 1) {
+			bool wrongWinDepth = false;
+			S32 end = maxDepth - (std::abs(result.score) - (foundWin ? SCORE_WIN : SCORE_WIN - SCORE_QUIESCENCE_WIN_OFFSET));
+			if (foundProbableWin) {
+				if (foundWin) {
+					shortestEnd = std::min(end, shortestEnd);
+					if (expectedDepth >= 0 && end != expectedDepth) {
+						print(cards);
+						wrongWinDepth = true;
+					}
+				}
+			}
+			
+			if ((verboseLevel >= 1 && (foundProbableWin ? (shortestEnd - 1) <= maxDepth : true)) || verboseLevel >= 2) {
 				if (timeBudget >= 1000)
 					printf("depth %2i in %.2fs (%2lluM/s, EBF=%5.2f): ", maxDepth, (float)time / 1E6, result.total / time, std::pow(result.total, 1. / maxDepth));
 				else if (timeBudget >= 10)
@@ -219,18 +231,8 @@ SearchResult Board::searchTime(const GameCards& cards, const U64 timeBudget, con
 					printf("depth %2i in %.1fms (%2lluM/s, EBF=%5.2f): ", maxDepth, (float)time / 1E3, result.total / time, std::pow(result.total, 1. / maxDepth));
 			}
 			if (foundProbableWin) {
-				bool quiescenceUnsure = !foundWin;
-				S32 end = maxDepth - (std::abs(result.score) - (quiescenceUnsure ? SCORE_WIN - SCORE_QUIESCENCE_WIN_OFFSET : SCORE_WIN));
-				bool wrongWinDepth = false;
-				if (!quiescenceUnsure) {
-					shortestEnd = std::min(end, shortestEnd);
-					if (expectedDepth >= 0 && end != expectedDepth) {
-						print(cards);
-						wrongWinDepth = true;
-					}
-				}
-				if (verboseLevel >= 1 || wrongWinDepth) {
-					std::cout << (result.score > 0 ? "win" : "lose") << " in " << end << (quiescenceUnsure ? "?" : "");
+				if ((verboseLevel >= 1 && (shortestEnd - 1) <= maxDepth) || wrongWinDepth || verboseLevel >= 2) {
+					std::cout << (result.score > 0 ? "win" : "lose") << " in " << end << (foundWin ? "" : "?");
 					if (wrongWinDepth) {
 						std::cout << " (expected " << expectedDepth << ")" << std::endl;
 						assert(0);
