@@ -20,6 +20,8 @@ namespace TableBase {
 	};
 #pragma pack (pop)
 
+	extern std::vector<int8_t> wonBoards;
+
 	template<bool isMine>
 	void addToTables(const GameCards& gameCards, const Board& board, const bool finished = false);
 
@@ -31,5 +33,8 @@ namespace TableBase {
 	void placePiecesTemple(const GameCards& gameCards, const Board& board, const bool finished);
 	void placePiecesDead(const GameCards& gameCards, const Board& board, const bool finished);
 	uint8_t generate(const GameCards& gameCards, const U32 maxMen);
-	uint8_t generate(const GameCards& gameCards, const U32 maxMen, const U32 maxMenPerSide);
+
+	U32 compress6Men(const Board& board);
+	Board decompress6Men(U32 boardComp);
+
 }

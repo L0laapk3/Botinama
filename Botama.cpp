@@ -5,6 +5,7 @@
 #include <bitset>
 #include <chrono>
 #include <algorithm>
+#include <thread>
 
 #include "Board.h"
 #include "Card.h"
@@ -49,15 +50,15 @@
 
 int main(int argc, char** argv) {
 
-	//GameCards cards = CardBoard::fetchGameCards({ "crab", "ox", "horse", "boar", "elephant" });
+	// PERFT CARDS - 0269C
+	GameCards perftCards = CardBoard::fetchGameCards({ "boar", "ox", "elephant", "horse", "crab" });
+	//GameCards bugCards = CardBoard::fetchGameCards({ "crab", "ox", "frog", "boar", "rabbit" });
 	//Board board = Board::fromString("4000000000000000000020000", true);
 	//board.print(cards);
 	//std::cout << (U32)board.findImmediateWins(cards) << std::endl;
 	//return 0;
 
 
-	// PERFT CARDS - 0269C
-	GameCards cards = CardBoard::fetchGameCards({ "boar", "ox", "elephant", "horse", "crab" });
 
 	//GameCards cards = CardBoard::fetchGameCards({ "ox", "boar", "horse", "crane", "eel" }, false);
 
@@ -70,8 +71,8 @@ int main(int argc, char** argv) {
 	// std::cout << (U32)TableBase::wonEvenBoards[board] << std::endl;
 	// std::cout << (U32)TableBase::wonOddBoards[board] << std::endl;
 
-	TableBase::generate(cards, 6);
-	return 0;
+	//TableBase::generate(cards, 6);
+	//return 0;
 	// std::cout << board.eval(cards) << std::endl;
 
 
@@ -90,10 +91,8 @@ int main(int argc, char** argv) {
 	//	}
 	//}
 
-	// TableBase::generate(cards, { 0, 0 });
-	// TableBase::generate(cards, { 0, 1 });
-	// TableBase::generate(cards, { 1, 1 });
-	//return 0;
+	TableBase::generate(perftCards, 6);
+	return 0;
 
 	auto conn = Connection();
 	if (argc > 1)
@@ -101,12 +100,15 @@ int main(int argc, char** argv) {
 	else
 		conn.createGame();
 	Game game = conn.waitGame();
+	std::thread TBThread(TableBase::generate, game.cards, 4);
+	TBThread.join();
 
 	while (true) {
 		// game.board.print(game.cards);
 		// std::cout << game.board.eval(game.cards) << std::endl;
 		if (!game.board.currentPlayer()) {
-			auto bestMove = game.board.searchTime(game.cards, 1000);
+			auto bestMove = game.board.searchTime(game.cards, 1000, 1);
+			std::cout << std::endl;
 			conn.submitMove(game, bestMove.board);
 		}
 

@@ -26,6 +26,16 @@ CardBoard::CardBoard(const Card* card) : Card(card->name, card->moves), moveBoar
                 moveBoards[1][24ULL - i] |= (1 << j);
         }
     }
+    //std::vector<unsigned long long> one{};
+    //std::vector<unsigned long long> two{};
+    //for (U64 i = 0; i < 25; i++) {
+    //    one.push_back(moveBoards[0][i]);
+    //    two.push_back(moveBoards[1][i]);
+    //}
+    //Card::print(one);
+    //std::cout << std::endl;
+    //Card::print(two);
+    //std::cout << std::endl << std::endl << std::endl << std::endl;
 }
 
 GameCards CardBoard::fetchGameCards(std::array<std::string, 5> cardNames, bool flipped) {

@@ -14,20 +14,20 @@
 
 constexpr U32 TABLESIZE = 25*25*26*26/2*26*26/2*30;
 
-std::vector<uint8_t> wonEvenBoards{};
-std::vector<uint8_t> wonOddBoards{};
+std::vector<int8_t> TableBase::wonBoards{};
 std::vector<uint8_t> pendingBoards{};
 
 std::vector<Board> queue{};
 
 uint16_t currDepth;
 
-uint8_t storeDepth() {
-	return currDepth + 1;
-	//return ~((uint8_t)0) - (currDepth >> 3);
+int8_t storeDepth() {
+	if ((currDepth >> 3) >= 126)
+		[[unlikely]]
+		std::cout << "depth overflow!! :(" << std::endl;
+	return currDepth + 1;//(currDepth >> 3);
 }
 
-U64 lookups = 0;
 template<bool isMine>
 void TableBase::addToTables(const GameCards& gameCards, const Board& board, const bool finished) {
 	// this function assumed that it is called in the correct distanceToWin order
@@ -39,32 +39,43 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 	if (finished)
 		return;
 
-	U32 compressedBoard = compress6Men(board.pieces);
+	U32 compressedBoard = compress6Men(board);
 	//board.print(gameCards);
 	bool exploreChildren = false;
 	if (isMine) {
 		// you played this move, immediately add it to won boards
 		// only insert and iterate if it doesnt already exist (keeps lowest distance)
 
-		exploreChildren = wonOddBoards[compressedBoard] == 0;
-		if (exploreChildren)
-			wonOddBoards[compressedBoard] = storeDepth();
+		exploreChildren = wonBoards[compressedBoard*2+isMine] == 127;
+		if (exploreChildren) {
+			[[likely]]
+			const int8_t depthVal = storeDepth();
+			wonBoards[compressedBoard*2+isMine] = depthVal;
+			wonBoards[compress6Men(board.invert())*2+!isMine] = -depthVal;
+		}
 
 	} else {
 		// opponents move. All forward moves must lead to a loss first
 		// this function should only get called at most countForwardMoves times
 		//assert(wonBoards.end() == wonBoards.find(board));
 		if (pendingBoards[compressedBoard] == 0) {
-			pendingBoards[compressedBoard] = 255 - (board.countForwardMoves(gameCards) - 1);
-		} else {
+			[[unlikely]]
+			uint8_t actionCount = 255 - (board.countForwardMoves(gameCards) - 1);
+			pendingBoards[compressedBoard] = actionCount;
+			exploreChildren = actionCount == 255;
+		} else
 			exploreChildren = ++pendingBoards[compressedBoard] == 255;
-			if (exploreChildren)
-				wonEvenBoards[compressedBoard] = storeDepth(); //should be unique and not require lock
+		if (exploreChildren) {
+			[[unlikely]]
+			const int8_t depthVal = storeDepth();
+			wonBoards[compressedBoard*2+isMine] = depthVal;
+			wonBoards[compress6Men(board.invert())*2+!isMine] = -depthVal;
 		}
 	}
 	if (exploreChildren) {
 		queue.push_back(board);
-		//board.searchTime(gameCards, 1000, 0, currDepth + 1);
+		// board.searchTime(gameCards, 1000, 0, currDepth + 1);
+		// board.invert().searchTime(gameCards, 1000, 0, currDepth + 1);
 		//if (currDepth > 1 || true) {
 		//	//std::cout << std::endl << "START THE SEARCH" << std::endl << std::endl;
 		//	if (!board.searchWinIn(gameCards, currDepth + 1)) {
@@ -81,11 +92,6 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 U32 maxMen;
 U32 maxMenPerSide;
 std::vector<Board> currQueue{};
-void TableBase::singleDepthThread(const GameCards& gameCards, const int threadNum, const int threadCount) {
-	int i = currQueue.size() * threadNum / threadCount;
-	const int stopAt = currQueue.size() * (threadNum + 1) / threadCount;
-}
-
 bool TableBase::singleDepth(const GameCards& gameCards) {
 	currDepth++;
 	std::swap(queue, currQueue);
@@ -171,18 +177,17 @@ void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, 
 
 
 uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
-	return generate(gameCards, men, (men + 1) / 2);
-}
-// generates the tables for all the boards where player 0 wins
-uint8_t TableBase::generate(const GameCards& gameCards, const U32 men, const U32 menPerSide) {
 
+	std::cout << "generating endgame.." << std::endl;
+
+	U32 menPerSide = (men + 1) / 2;
 	maxMen = men;
 	maxMenPerSide = std::min<U32>(std::min(menPerSide, men - 1), 5);
 
 	currDepth = 0;
-	queue.clear();
-	wonEvenBoards.resize(TABLESIZE);
-	wonOddBoards.resize(TABLESIZE);
+	queue.reserve(1E9);
+	currQueue.reserve(1E9);
+	wonBoards.resize(TABLESIZE*2, 127);
 	pendingBoards.resize(TABLESIZE);
 
 	auto beginTime = std::chrono::steady_clock::now();
@@ -218,18 +223,19 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men, const U32
 	do {
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime2).count());
 		//printf("%9llu winning depth %2u boards in %6.2fs using %10llu lookups (%5.1fM lookups/s)\n", queue.size(), currDepth + 1, (float)time / 1000000, lookups, (float)lookups / time);
-		printf("%9llu winning depth %2u boards in %6.2fs\n", queue.size(), currDepth + 1, (float)time / 1000000);
+		printf("%9llu winning depth %3u boards in %6.2fs\n", queue.size(), currDepth + 1, (float)time / 1000000);
 		wonCount += queue.size();
-		lookups = 0;
 		beginTime2 = std::chrono::steady_clock::now();
-	} while (singleDepth(gameCards));
+	} while (singleDepth(gameCards) && currDepth < 126);
 	
 	auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 	//std::cout << wonb (float)time / 1000 << "ms" << std::endl;
 	printf("%9llu winning boards in %.3fs (%.0fk/s)\n", wonCount, (float)time / 1000000, (float)wonCount * 1000 / time);
 
-	wonOddBoards.clear();
-	wonOddBoards.shrink_to_fit();
+	queue.clear();
+	queue.shrink_to_fit();
+	currQueue.clear();
+	currQueue.shrink_to_fit();
 	pendingBoards.clear();
 	pendingBoards.shrink_to_fit();
 
@@ -243,22 +249,47 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men, const U32
 	
 	time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 
-	// std::ofstream f("0269c.bin", std::ios::binary | std::ios::out);
-	// // bxz::ofstream f("0269c.bin", bxz::lzma, 9);
-	// // f.write(reinterpret_cast<char*>(evenWins.data()), evenWins.size()*sizeof(BoardValue));
-	// f.write(reinterpret_cast<char*>(wonEvenBoards.data()), wonEvenBoards.size()*sizeof(uint8_t));
-	// f.close();
+	if (false) {
+		std::cout << "write output" << std::endl;
+		std::ofstream f("0269c.bin", std::ios::binary | std::ios::out);
+		// // bxz::ofstream f("0269c.bin", bxz::lzma, 9);
+		// // f.write(reinterpret_cast<char*>(evenWins.data()), evenWins.size()*sizeof(BoardValue));
+		std::vector<char> allData{};
+		std::vector<char> bitmap{};
+		char c;
+		int bitCount = 0;
+		for (size_t i = 0; i < wonBoards.size(); i++) {
+			const int8_t val = wonBoards[i];
+			c <<= 1;
+			if (val != 127) {
+				c |= 1;
+				allData.push_back(val);
+			}
+			bitCount++;
+			if (bitCount == 8) {
+				bitmap.push_back(c);
+				bitCount = 0;
+				c = 0;
+			}
+			if (i % (1 << 28) == 0) {
+				std::cout << i << ' ' << allData.size() << std::endl;
+			}
+		}
+		f.write(bitmap.data(), bitmap.size()*sizeof(char));
+		f.write(allData.data(), allData.size()*sizeof(char));
+		f.close();
+		std::cout << "done output" << std::endl;
+	}
 
 	return currDepth;
 }
 
-U64 decompress6Men(U32 boardComp);
-U32 compress6Men(U64 pieces) {
+U32 TableBase::compress6Men(const Board& board) {
 	U32 boardComp = 0;
-	U32 bluePieces = pieces & MASK_PIECES;
-	U32 redPieces = (pieces >> 32) & MASK_PIECES;
-	const U32 king = _pdep_u32(1 << ((pieces >> INDEX_KINGS[0]) & 7), bluePieces);
-	const U32 otherKing = _pdep_u32(1 << ((pieces >> INDEX_KINGS[1]) & 7), redPieces);
+	U32 bluePieces = board.pieces & MASK_PIECES;
+	U32 redPieces = (board.pieces >> 32) & MASK_PIECES;
+	const U32 king = _pdep_u32(1 << ((board.pieces >> INDEX_KINGS[0]) & 7), bluePieces);
+	const U32 otherKing = _pdep_u32(1 << ((board.pieces >> INDEX_KINGS[1]) & 7), redPieces);
 	unsigned long kingI, otherKingI;
 	_BitScanForward(&kingI, king);
 	_BitScanForward(&otherKingI, otherKing);
@@ -283,7 +314,7 @@ U32 compress6Men(U64 pieces) {
 
 
 	//boardComp = boardComp * 2  + ((pieces & MASK_TURN) >> INDEX_TURN);
-	boardComp = boardComp * 30 + ((pieces & MASK_CARDS) >> INDEX_CARDS);
+	boardComp = boardComp * 30 + ((board.pieces & MASK_CARDS) >> INDEX_CARDS);
 
 	//U64 decomp = decompress6Men(boardComp);
 	//assert(decomp == pieces);
@@ -291,7 +322,7 @@ U32 compress6Men(U64 pieces) {
 	return boardComp;
 }
 
-U64 decompress6Men(U32 boardComp) { // still bugged lol
+Board TableBase::decompress6Men(U32 boardComp) { // still bugged lol
 	U64 pieces = 0;
 	pieces |= ((U64)boardComp % 30) << INDEX_CARDS;
 	boardComp /= 30;
@@ -326,8 +357,8 @@ U64 decompress6Men(U32 boardComp) { // still bugged lol
 	pieces |= (1ULL << kingI);
 	pieces |= ((U64)_popcnt32(((1ULL << kingI) - 1) & pieces)) << INDEX_KINGS[0];
 
-	return pieces;
+	return Board{ pieces };
 }
 
 
-TableBase::BoardValue::BoardValue(const std::pair<Board, uint8_t>& pair) : DTW(pair.second), boardComp(compress6Men(pair.first.pieces)) { }
+TableBase::BoardValue::BoardValue(const std::pair<Board, uint8_t>& pair) : DTW(pair.second), boardComp(compress6Men(pair.first)) { }

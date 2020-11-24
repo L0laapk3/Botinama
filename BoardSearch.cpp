@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <chrono>
 
+#include "TableBase.h"
+
 
 SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha, const Score beta, const bool quiescent) const {
 	// negamax with alpha beta pruning
@@ -64,13 +66,33 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 
 					Score childScore;
 					if (finished) {
-
-						childScore = SCORE_WIN + maxDepth;
+						childScore = (maxDepth >= -1 ? SCORE_WIN : SCORE_WIN - SCORE_QUIESCENCE_WIN_OFFSET) + maxDepth;
 						total++;
+
 					} else {
-						const auto& childSearch = board.search(gameCards, maxDepth, -beta, -alpha, !maxDepth || quiescent);
-						childScore = -childSearch.score;
-						total += childSearch.total;
+						bool TBHit;
+						if (_popcnt32(board.pieces & MASK_PIECES) <= 3 && _popcnt64(board.pieces & (MASK_PIECES << 32)) <= 3) {
+							const int8_t result = TableBase::wonBoards[TableBase::compress6Men(board)*2+player];
+							TBHit = result != 127;
+							if (TBHit) {
+								//uint16_t depth = ((uint16_t)(result > 0 ? result : -result) << 3) | 7;
+								uint16_t depth = (result > 0 ? result : -result);
+								//board.print(gameCards);
+								//std::cout << "win in " << depth << " for " << (result > 0 ? "blue" : "red");
+								Score score = (quiescent ? SCORE_WIN - SCORE_QUIESCENCE_WIN_OFFSET : SCORE_WIN) + maxDepth - depth;
+								if (result < 0 == player)
+									childScore = score;
+								else
+									childScore = -score;
+								//std::cout << ' ' << childScore << std::endl;
+							}
+						} else
+							TBHit = false;
+						if (!TBHit) {
+							const auto& childSearch = board.search(gameCards, maxDepth, -beta, -alpha, !maxDepth || quiescent);
+							childScore = -childSearch.score;
+							total += childSearch.total;
+						}
 					}
 
 					if (childScore > bestScore) {
@@ -78,7 +100,7 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 						bestBoard = board;
 						if (childScore > alpha) {
 							alpha = bestScore;
-							if (alpha >= beta)
+							if (alpha > beta)
 								goto pruneLoop;
 						}
 					}
@@ -183,21 +205,22 @@ SearchResult Board::searchTime(const GameCards& cards, const U64 timeBudget, con
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 		predictedTime = time * time / lastTime;
 		lastTime = time;
-		bool foundWin = std::abs(result.score) >= SCORE_WIN - 1;
-		bool foundProbableWin = std::abs(result.score) > SCORE_WIN - 64;
+		bool foundWin = std::abs(result.score) >= SCORE_WIN - SCORE_QUIESCENCE_WIN_OFFSET / 2;
+		bool foundProbableWin = std::abs(result.score) >= SCORE_WIN - SCORE_QUIESCENCE_WIN_OFFSET * 2;
 		bool lastIteration = ((predictedTime > timeBudget * 1000) && (maxDepth >= minDepth)) || (maxDepth >= 64);
+
 		if (lastIteration || foundWin || verboseLevel >= 2) {
 			if (verboseLevel >= 1) {
 				if (timeBudget >= 1000)
-					printf("depth %2i in %.2fs (%2lluM/s, EBF=%.2f): ", maxDepth, (float)time / 1E6, result.total / time, std::pow(result.total, 1. / maxDepth));
+					printf("depth %2i in %.2fs (%2lluM/s, EBF=%5.2f): ", maxDepth, (float)time / 1E6, result.total / time, std::pow(result.total, 1. / maxDepth));
 				else if (timeBudget >= 10)
-					printf("depth %2i in %3.0fms (%2lluM/s, EBF=%.2f): ", maxDepth, (float)time / 1E3, result.total / time, std::pow(result.total, 1. / maxDepth));
+					printf("depth %2i in %3.0fms (%2lluM/s, EBF=%5.2f): ", maxDepth, (float)time / 1E3, result.total / time, std::pow(result.total, 1. / maxDepth));
 				else
-					printf("depth %2i in %.1fms (%2lluM/s, EBF=%.2f): ", maxDepth, (float)time / 1E3, result.total / time, std::pow(result.total, 1. / maxDepth));
+					printf("depth %2i in %.1fms (%2lluM/s, EBF=%5.2f): ", maxDepth, (float)time / 1E3, result.total / time, std::pow(result.total, 1. / maxDepth));
 			}
 			if (foundProbableWin) {
-				S32 end = maxDepth - (std::abs(result.score) - SCORE_WIN);
-				bool quiescenceUnsure = (end - 1) > maxDepth;
+				bool quiescenceUnsure = !foundWin;
+				S32 end = maxDepth - (std::abs(result.score) - (quiescenceUnsure ? SCORE_WIN - SCORE_QUIESCENCE_WIN_OFFSET : SCORE_WIN));
 				bool wrongWinDepth = false;
 				if (!quiescenceUnsure) {
 					shortestEnd = std::min(end, shortestEnd);
