@@ -8,7 +8,9 @@
 #include <mutex>
 
 #include "BitScan.h"
-//#include "bxzstr/bxzstr.hpp"
+#include <7zpp/7zpp.h>
+#undef max
+#undef min
 
 
 
@@ -22,10 +24,10 @@ std::vector<Board> queue{};
 uint16_t currDepth;
 
 int8_t storeDepth() {
-	if (currDepth >= 126)
+	if (currDepth >= 127)
 		[[unlikely]]
 		std::cout << "depth overflow!! :(" << std::endl;
-	return std::min(currDepth + 1, 126);
+	return std::min(currDepth + 1, 127);
 }
 
 template<bool isMine>
@@ -46,7 +48,7 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 		// you played this move, immediately add it to won boards
 		// only insert and iterate if it doesnt already exist (keeps lowest distance)
 
-		exploreChildren = wonBoards[compressedBoard*2+isMine] == 127;
+		exploreChildren = wonBoards[compressedBoard*2+isMine] == 0;
 		if (exploreChildren) {
 			[[likely]]
 			const int8_t depthVal = storeDepth();
@@ -178,7 +180,7 @@ void TableBase::init() {
 	currDepth = 0;
 	queue.reserve(1E9);
 	currQueue.reserve(1E9);
-	wonBoards.resize(TABLESIZE * 2, 127);
+	wonBoards.resize(TABLESIZE * 2, 0);
 	pendingBoards.resize(TABLESIZE);
 }
 
@@ -261,7 +263,7 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 		for (size_t i = 0; i < wonBoards.size(); i++) {
 			const int8_t val = wonBoards[i];
 			c <<= 1;
-			if (val != 127) {
+			if (val != 0) {
 				c |= 1;
 				allData.push_back(val);
 			}
@@ -283,6 +285,57 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 
 	return currDepth;
 }
+
+
+
+std::string zipSearchName;
+bool zipFound = false;
+int zipIndex = 0;
+class ListCallBackOutput : SevenZip::ListCallback {
+	virtual void OnFileFound(const SevenZip::FileInfo& fInfo) {
+		if (fInfo.FileName == zipSearchName)
+			zipFound = true;
+		else if (!zipFound)
+			zipIndex++;
+	}
+};
+
+void TableBase::load(const std::string& fName) {
+	SevenZip::SevenZipLibrary lib;
+	lib.Load("7z.dll");
+	std::wcout << "loaded 7z" << std::endl;
+	
+	zipSearchName = fName;
+	SevenZip::SevenZipLister lister(lib, "6men.7z");
+	ListCallBackOutput myListCallBack;
+	lister.ListArchive("", (SevenZip::ListCallback*)&myListCallBack);
+
+	std::cout << zipFound << ' ' << zipIndex << std::endl;
+
+	SevenZip::SevenZipExtractor extractor(lib, "6men.7z");
+	std::vector<BYTE> fileBuffer;
+	extractor.ExtractFileToMemory(zipIndex, fileBuffer);
+	std::cout << "size: " << fileBuffer.size() << std::endl;
+
+	std::vector<int8_t> wonEvenBoards{};
+	wonEvenBoards.reserve(TABLESIZE);
+
+	const auto dataStart = fileBuffer.begin() + (TABLESIZE + 7) / 8;
+	auto bufferIt = dataStart;
+	auto boardIt = wonEvenBoards.begin();
+	for (auto bitMap = fileBuffer.begin(); bitMap != dataStart; bitMap++)
+		for (U16 bit = 0; bit < (1 << 8); bit <<= 1)
+			if (*bitMap & bit) {
+				*boardIt = (int8_t)*bufferIt;
+				bufferIt++;
+			}
+			boardIt++;
+}
+
+
+
+
+
 
 U32 TableBase::compress6Men(const Board& board) {
 	U32 boardComp = 0;
@@ -316,8 +369,12 @@ U32 TableBase::compress6Men(const Board& board) {
 	//boardComp = boardComp * 2  + ((pieces & MASK_TURN) >> INDEX_TURN);
 	boardComp = boardComp * 30 + ((board.pieces & MASK_CARDS) >> INDEX_CARDS);
 
-	// U64 decomp = decompress6Men(boardComp).pieces;
-	// assert(decomp == board.pieces);
+	U64 decomp = decompress6Men(boardComp).pieces;
+	if (decomp != (board.pieces & ~(U64)MASK_TURN)) {
+		std::cout << std::bitset<64>(board.pieces) << std::endl;
+		std::cout << std::bitset<64>(decomp) << std::endl;
+		assert(decomp == (board.pieces & ~(U64)MASK_TURN));
+	}
 
 	return boardComp;
 }

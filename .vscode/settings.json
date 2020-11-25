@@ -73,6 +73,9 @@
 		"xtree": "cpp",
 		"random": "cpp",
 		"fstream": "cpp",
-		"*.rh": "cpp"
+		"*.rh": "cpp",
+		"forward_list": "cpp",
+		"set": "cpp",
+		"unordered_set": "cpp"
 	}
 }

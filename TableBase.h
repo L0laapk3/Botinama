@@ -34,6 +34,7 @@ namespace TableBase {
 	void placePiecesDead(const GameCards& gameCards, const Board& board, const bool finished);
 	void init();
 	uint8_t generate(const GameCards& gameCards, const U32 maxMen);
+	void load(const std::string& fName);
 
 	U32 compress6Men(const Board& board);
 	Board decompress6Men(U32 boardComp);
