@@ -61,7 +61,7 @@ public:
 
 
 	//BoardSearch
-	SearchResult search(const GameCards& gameCards, S32 maxDepth, const bool softTB, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX, const bool quiescent = false) const;
+	SearchResult search(const GameCards& gameCards, S32 maxDepth, const U16 maxTB_DTW, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX, const bool quiescent = false) const;
 	SearchResult searchTime(const GameCards& cards, const U64 timeBudget, const int verboseLevel = 1, const int expectedDepth = -1) const;
 
 };

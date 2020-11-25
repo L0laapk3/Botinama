@@ -34,5 +34,6 @@ public:
 	bool ended = false;
 
 private:
+	void handleJoinGame();
 	std::unique_ptr<easywsclient::WebSocket> ws = nullptr;
 };

@@ -54,15 +54,7 @@ Connection::~Connection() {
 }
 
 
-void Connection::createGame() {
-	ws->send("create Botama-TB-alt");
-}
-void Connection::joinGame(const std::string& matchId) {
-	ws->send("join " + matchId + " Botama-TB-alt");
-}
-
-Game Connection::waitGame() {
-	assert(ws->getReadyState() != easywsclient::WebSocket::CLOSED);
+void Connection::handleJoinGame() {
 	while (!matchId.size()) {
 		ws->poll(-1);
 		assert(ws->getReadyState() != easywsclient::WebSocket::CLOSED);
@@ -80,6 +72,19 @@ Game Connection::waitGame() {
 	std::string webUrl = "https://git.io/onitama#spectate-" + matchId;
 	ShellExecuteA(NULL, "open", webUrl.c_str(), NULL, NULL, SW_SHOWNORMAL);
 	std::cout << "https://git.io/onitama#spectate-" << matchId << std::endl;
+}
+
+void Connection::createGame() {
+	ws->send("create Botama-TB-alt");
+	handleJoinGame();
+}
+void Connection::joinGame(const std::string& matchId) {
+	ws->send("join " + matchId + " Botama-TB-alt");
+	handleJoinGame();
+}
+
+Game Connection::waitGame() {
+	assert(ws->getReadyState() != easywsclient::WebSocket::CLOSED);
 
 	std::string boardStr = "";
 	while (true) {

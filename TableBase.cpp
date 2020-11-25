@@ -316,8 +316,8 @@ U32 TableBase::compress6Men(const Board& board) {
 	//boardComp = boardComp * 2  + ((pieces & MASK_TURN) >> INDEX_TURN);
 	boardComp = boardComp * 30 + ((board.pieces & MASK_CARDS) >> INDEX_CARDS);
 
-	U64 decomp = decompress6Men(boardComp).pieces;
-	assert(decomp == board.pieces);
+	// U64 decomp = decompress6Men(boardComp).pieces;
+	// assert(decomp == board.pieces);
 
 	return boardComp;
 }
