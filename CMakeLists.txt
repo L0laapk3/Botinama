@@ -22,7 +22,7 @@ target_compile_features(Botama PUBLIC cxx_std_20)
 add_subdirectory(${PROJECT_SOURCE_DIR}/7zip-cpp ${PROJECT_SOURCE_DIR}/build/build7zpp)
 # I know this is a garbage way to do this but at this point I really dont care
 #target_include_directories(Botama PRIVATE ${PROJECT_SOURCE_DIR}/7zip-cpp/Include "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.28.29333/include" "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.28.29333/atlmfc/include" "C:/Program Files (x86)/Windows Kits/10/Include/10.0.18362.0/ucrt" "C:/Program Files (x86)/Windows Kits/10/include/10.0.18362.0/shared" "C:/Program Files (x86)/Windows Kits/10/include/10.0.18362.0/um" "C:/Program Files (x86)/Windows Kits/10/include/10.0.18362.0/winrt")
-target_include_directories(Botama PRIVATE ${PROJECT_SOURCE_DIR}/7zip-cpp/Include)
+target_include_directories(Botama PRIVATE ${PROJECT_SOURCE_DIR}/Include)
 target_link_libraries(Botama 7zpp)
 add_dependencies(Botama 7zpp)
 

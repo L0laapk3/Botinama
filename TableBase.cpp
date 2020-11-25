@@ -180,7 +180,7 @@ void TableBase::init() {
 	currDepth = 0;
 	//queue.reserve(1E9);
 	//currQueue.reserve(1E9);
-	wonBoards.resize(TABLESIZE * 2, 0);
+	wonBoards.resize(TABLESIZE*2, 0);
 	//pendingBoards.resize(TABLESIZE);
 }
 
@@ -306,6 +306,7 @@ void TableBase::load(const GameCards& gameCards, const std::string& fName) {
 	SevenZip::SevenZipLibrary lib;
 	if (!lib.Load("7z.dll"))
 		std::cerr << "Couldn't find 7z.dll" << std::endl;
+	wonBoards.resize(TABLESIZE*2);
 	std::wcout << "loaded 7z" << std::endl;
 	
 	zipSearchName = fName;
@@ -324,33 +325,20 @@ void TableBase::load(const GameCards& gameCards, const std::string& fName) {
 	fileBuffer.reserve(decompressedSize);
 	extractor.ExtractFileToMemory(zipIndex, fileBuffer);
 
-	std::vector<int8_t> wonEvenBoards{};
-	wonEvenBoards.reserve(TABLESIZE);
-
 	std::cout << "Unpacking file.." << std::endl;
+	std::cout << TABLESIZE*2 << ' ' << fileBuffer.size() << std::endl;
 
-	const auto dataStart = fileBuffer.begin() + (TABLESIZE + 7) / 8;
+	const auto dataStart = fileBuffer.begin() + (TABLESIZE*2 + 7) / 8;
 	auto bufferIt = dataStart;
-	auto boardIt = wonEvenBoards.begin();
+	U32 boardComp = 0;
 	for (auto bitMap = fileBuffer.begin(); bitMap != dataStart; bitMap++) {
 		for (U16 bit = 1; bit < (1 << 8); bit <<= 1) {
 			if (*bitMap & bit) {
-				*boardIt = (int8_t)*bufferIt;
-				bufferIt++;
+				const auto& val = (int8_t)*bufferIt++;
+				wonBoards[boardComp] = val;
+				wonBoards[compress6Men(decompress6Men(boardComp/2).invert())*2 + (~boardComp & 1)] = -val;
 			}
-			boardIt++;
-		}
-	}
-
-	std::cout << "Filling in gaps.." << std::endl;
-
-	for (U32 boardComp = 0; boardComp < TABLESIZE; boardComp++) {
-		const auto val = wonEvenBoards[boardComp];
-		if (val) {
-			Board board = decompress6Men(boardComp);
-			wonBoards[boardComp*2] = val;
-			wonBoards[compress6Men(board)*2+1] = -val;
-			board.reverseMoves<*addToTables<false, true>>(gameCards, maxMen, maxMenPerSide);
+			boardComp++;
 		}
 	}
 	
