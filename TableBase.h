@@ -22,7 +22,7 @@ namespace TableBase {
 
 	extern std::vector<int8_t> wonBoards;
 
-	template<bool isMine>
+	template<bool doQueue, bool isMine>
 	void addToTables(const GameCards& gameCards, const Board& board, const bool finished = false);
 
 	void singleDepthThread(const GameCards& gameCards, const int threadNum, const int threadCount);
@@ -34,7 +34,7 @@ namespace TableBase {
 	void placePiecesDead(const GameCards& gameCards, const Board& board, const bool finished);
 	void init();
 	uint8_t generate(const GameCards& gameCards, const U32 maxMen);
-	void load(const std::string& fName);
+	void load(const GameCards& gameCards, const std::string& fName);
 
 	U32 compress6Men(const Board& board);
 	Board decompress6Men(U32 boardComp);
