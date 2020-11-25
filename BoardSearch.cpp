@@ -6,7 +6,7 @@
 #include "TableBase.h"
 
 
-SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, const U16 maxTB_DTW, Score alpha, const Score beta, const bool quiescent) const {
+SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha, const Score beta, const bool quiescent) const {
 	// negamax with alpha beta pruning
 	bool player = pieces & MASK_TURN;
 
@@ -73,19 +73,17 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, const U16 m
 						if (_popcnt32(board.pieces & MASK_PIECES) <= 3 && _popcnt64(board.pieces & (MASK_PIECES << 32)) <= 3) {
 							const int8_t result = TableBase::wonBoards[TableBase::compress6Men(board)*2+player];
 							if (result != 127) {
-								uint16_t depth = (((uint16_t)(result > 0 ? result : -result)) << 3);
-								if (depth < maxTB_DTW) {
-									Score score = (quiescent ? SCORE_WIN - SCORE_QUIESCENCE_WIN_OFFSET : SCORE_WIN) + maxDepth - depth;
-									if (result < 0 == player)
-										childScore = score;
-									else
-										childScore = -score;
-									TBHit = true;
-								}
+								uint16_t depth = result > 0 ? result : -result;
+								Score score = (quiescent ? SCORE_WIN - SCORE_QUIESCENCE_WIN_OFFSET : SCORE_WIN) + maxDepth - depth;
+								if (result < 0 == player)
+									childScore = score;
+								else
+									childScore = -score;
+								TBHit = true;
 							}
 						}
 						if (!TBHit) {
-							const auto& childSearch = board.search(gameCards, maxDepth, maxTB_DTW, -beta, -alpha, !maxDepth || quiescent);
+							const auto& childSearch = board.search(gameCards, maxDepth, -beta, -alpha, !maxDepth || quiescent);
 							childScore = -childSearch.score;
 							total += childSearch.total;
 						}
@@ -194,12 +192,11 @@ SearchResult Board::searchTime(const GameCards& cards, const U64 timeBudget, con
 	auto predictedTime = 1ULL;
 	S32 depth = startDepth;
 	S32 shortestEnd = std::numeric_limits<S32>::max();
-	U16	maxTB_DTW = std::numeric_limits<U16>::max();
 	SearchResult result;
 	while (true) {
 		const auto beginTime = std::chrono::steady_clock::now();
 		++depth;
-		result = search(cards, depth, maxTB_DTW);
+		result = search(cards, depth);
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 		predictedTime = time * time / lastTime;
 		lastTime = time;
@@ -216,15 +213,8 @@ SearchResult Board::searchTime(const GameCards& cards, const U64 timeBudget, con
 			}
 		}
 
-		bool lastIteration = ((predictedTime > timeBudget * 1000) && (depth >= minDepth)) || (depth >= 64) || ((shortestEnd - 1) <= depth);
 		bool TBWin = depth + 1 < end;
-		const bool unsureExactTBWin = maxTB_DTW == std::numeric_limits<U16>::max();
-		if (foundWin && TBWin) {
-			if (depth <= 2)
-				maxTB_DTW = end - depth;
-			else if (!unsureExactTBWin)
-				lastIteration = true;
-		}
+		bool lastIteration = ((predictedTime > timeBudget * 1000) && (depth >= minDepth)) || (depth >= 64) || ((shortestEnd - 1) <= depth) || (foundWin && TBWin && depth <= 2);
 
 		if ((verboseLevel >= 1 && lastIteration) || verboseLevel >= 2) {
 			if (timeBudget >= 1000)
@@ -235,11 +225,7 @@ SearchResult Board::searchTime(const GameCards& cards, const U64 timeBudget, con
 				printf("depth %2i in %.1fms (%2lluM/s, EBF=%5.2f): ", depth, (float)time / 1E3, result.total / time, std::pow(result.total, 1. / depth));
 			if (foundProbableWin) {
 				bool isLoss = result.score < 0;
-				std::cout << (isLoss ? "lose" : "win") << " in ";
-				if (TBWin && unsureExactTBWin)
-					std::cout << end-6-(end % 2 == isLoss) << '-' << end-(end % 2 == isLoss);
-				else
-					std::cout << end;
+				std::cout << (isLoss ? "lose" : "win") << " in " << end;
 				if (!foundWin)
 					std::cout << '?';
 				// else if (TBWin)

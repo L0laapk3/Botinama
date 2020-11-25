@@ -22,10 +22,10 @@ std::vector<Board> queue{};
 uint16_t currDepth;
 
 int8_t storeDepth() {
-	if ((currDepth >> 3) >= 126)
+	if (currDepth >= 126)
 		[[unlikely]]
 		std::cout << "depth overflow!! :(" << std::endl;
-	return (currDepth >> 3) + 1;
+	return std::min(currDepth + 1, 126);
 }
 
 template<bool isMine>
