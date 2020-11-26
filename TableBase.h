@@ -23,18 +23,20 @@ namespace TableBase {
 	extern std::vector<int8_t> wonBoards;
 
 	template<bool doQueue, bool isMine>
-	void addToTables(const GameCards& gameCards, const Board& board, const bool finished = false);
+	void addToTables(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal);
 
 	void singleDepthThread(const GameCards& gameCards, const int threadNum, const int threadCount);
 	bool singleDepth(const GameCards& gameCards);
 	
 	template<bool templeWin>
 	void placePieces(const GameCards& gameCards, U64 pieces, std::array<U32, 2> occupied, U32 beforeKing, U32 beforeOtherKing, U32 startAt, U32 spotsLeft, U32 minSpots0, U32 minSpotsAll, U32 myMaxPawns, U32 otherMaxPawns);
-	void placePiecesTemple(const GameCards& gameCards, const Board& board, const bool finished);
-	void placePiecesDead(const GameCards& gameCards, const Board& board, const bool finished);
+	void placePiecesTemple(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal);
+	void placePiecesDead(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal);
 	void init();
 	uint8_t generate(const GameCards& gameCards, const U32 maxMen);
 	void load(const GameCards& gameCards, const std::string& fName);
+
+	void threadWork(const GameCards& gameCards, const std::vector<int8_t>& unpacked, const int thread, const int maxthreads);
 
 	U32 compress6Men(const Board& board);
 	Board decompress6Men(U32 boardComp);

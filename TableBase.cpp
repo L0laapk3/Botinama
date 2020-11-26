@@ -24,14 +24,13 @@ std::vector<Board> queue{};
 uint16_t currDepth;
 
 int8_t storeDepth() {
-	if ((currDepth >> 1) >= 127)
-		[[unlikely]]
-		std::cout << "depth overflow!! :(" << std::endl;
+	// if ((depth >> 1) >= 127)
+	// 	std::cout << "depth overflow!! :(" << std::endl;
 	return std::min((currDepth >> 1) + 1, 127);
 }
 
 template<bool doQueue, bool isMine>
-void TableBase::addToTables(const GameCards& gameCards, const Board& board, const bool finished) {
+void TableBase::addToTables(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal) {
 	// this function assumed that it is called in the correct distanceToWin order
 	// also assumes that there are no duplicate starting boards
 	//board.print(gameCards, finished, true);
@@ -47,11 +46,9 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 	if (isMine) {
 		// you played this move, immediately add it to won boards
 		// only insert and iterate if it doesnt already exist (keeps lowest distance)
-
-		exploreChildren = wonBoards[compressedBoard*2+isMine] == 0;
+		
+		exploreChildren = wonBoards[compressedBoard*2+isMine] == 0 || wonBoards[compressedBoard*2+isMine] > depthVal;
 		if (exploreChildren) {
-			[[likely]]
-			const int8_t depthVal = storeDepth();
 			wonBoards[compressedBoard*2+isMine] = depthVal;
 			wonBoards[compress6Men(board.invert())*2+!isMine] = -depthVal;
 		}
@@ -61,15 +58,12 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 		// this function should only get called at most countForwardMoves times
 		//assert(wonBoards.end() == wonBoards.find(board));
 		if (pendingBoards[compressedBoard] == 0) {
-			[[unlikely]]
 			uint8_t actionCount = 255 - (board.countForwardMoves(gameCards) - 1);
 			pendingBoards[compressedBoard] = actionCount;
 			exploreChildren = actionCount == 255;
 		} else
 			exploreChildren = ++pendingBoards[compressedBoard] == 255;
 		if (exploreChildren) {
-			[[unlikely]]
-			const int8_t depthVal = storeDepth();
 			wonBoards[compressedBoard*2+isMine] = depthVal;
 			wonBoards[compress6Men(board.invert())*2+!isMine] = -depthVal;
 		}
@@ -99,9 +93,9 @@ bool TableBase::singleDepth(const GameCards& gameCards) {
 	std::swap(queue, currQueue);
 	for (const Board& board : currQueue)
 		if (currDepth % 2 == 0)
-			board.reverseMoves<*addToTables<true, true>>(gameCards, maxMen, maxMenPerSide);
+			board.reverseMoves<*addToTables<true, true>>(gameCards, maxMen, maxMenPerSide, storeDepth());
 		else
-			board.reverseMoves<*addToTables<true, false>>(gameCards, maxMen, maxMenPerSide);
+			board.reverseMoves<*addToTables<true, false>>(gameCards, maxMen, maxMenPerSide, storeDepth());
 	currQueue.clear();
 	return queue.size();
 }
@@ -119,7 +113,7 @@ void TableBase::placePieces(const GameCards& gameCards, U64 pieces, std::array<U
 			board.pieces |= _popcnt64(beforeKing & board.pieces) << INDEX_KINGS[0];
 			//if (board.pieces & (1ULL << 22))
 			//	board.print(gameCards);
-			addToTables<true, true>(gameCards, board);
+			addToTables<true, true>(gameCards, board, false, storeDepth());
 
 			board.pieces += 1ULL << INDEX_CARDS;
 		} else {
@@ -134,7 +128,7 @@ void TableBase::placePieces(const GameCards& gameCards, U64 pieces, std::array<U
 					break;
 				kingI <<= 1;
 				if (kingPos != MASK_END_POSITIONS[0])
-					addToTables<true, true>(gameCards, board);
+					addToTables<true, true>(gameCards, board, false, storeDepth());
 				board.pieces += 1ULL << INDEX_KINGS[0];
 			}
 		}
@@ -153,7 +147,7 @@ void TableBase::placePieces(const GameCards& gameCards, U64 pieces, std::array<U
 
 U32 myMaxPawns;
 U32 otherMaxPawns;
-void TableBase::placePiecesTemple(const GameCards& gameCards, const Board& board, const bool finished) {
+void TableBase::placePiecesTemple(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal) {
 	if (finished)
 		return;
 	U32 otherKing = 1ULL;
@@ -167,7 +161,7 @@ void TableBase::placePiecesTemple(const GameCards& gameCards, const Board& board
 	}
 }
 U32 takenKingPos;
-void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, const bool finished) {
+void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal) {
 	if (finished)
 		return;
 	U64 pieces = board.pieces | (((U64)takenKingPos) << 32);
@@ -178,13 +172,19 @@ void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, 
 
 void TableBase::init() {
 	currDepth = 0;
+	// queue.reserve(1E9);
+	// currQueue.reserve(1E9);
+	wonBoards.resize(TABLESIZE*2, 0);
+	// pendingBoards.resize(TABLESIZE);
+}
+
+uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
+
+
 	queue.reserve(1E9);
 	currQueue.reserve(1E9);
 	wonBoards.resize(TABLESIZE*2, 0);
 	pendingBoards.resize(TABLESIZE);
-}
-
-uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 
 	std::cout << "generating endgame.." << std::endl;
 
@@ -201,7 +201,7 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 				U32 king = MASK_END_POSITIONS[0];
 				Board board{ king | MASK_TURN };
 				for (int i = 0; i < 30; i++) {
-					board.reverseMoves<*placePiecesTemple>(gameCards, maxMen, 0);
+					board.reverseMoves<*placePiecesTemple>(gameCards, maxMen, 0, 0);
 					board.pieces += 1ULL << INDEX_CARDS;
 				}
 			}
@@ -213,7 +213,7 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 					Board board{ takenKingPos | MASK_TURN | (7ULL << INDEX_KINGS[0]) };
 					for (int i = 0; i < 30; i++) {
 						//std::cout << "alive" << ((board.pieces >> INDEX_KINGS[1]) & 7) << std::endl;
-						board.reverseMoves<*placePiecesDead>(gameCards, maxMen, 0);
+						board.reverseMoves<*placePiecesDead>(gameCards, maxMen, 0, 0);
 						board.pieces += 1ULL << INDEX_CARDS;
 					}
 					board.pieces &= ~(0x1FULL << INDEX_CARDS);
@@ -251,38 +251,6 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 	
 	time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 
-	if (false) {
-		std::cout << "write output" << std::endl;
-		std::ofstream f("0269c.bin", std::ios::binary | std::ios::out);
-		// // bxz::ofstream f("0269c.bin", bxz::lzma, 9);
-		// // f.write(reinterpret_cast<char*>(evenWins.data()), evenWins.size()*sizeof(BoardValue));
-		std::vector<char> allData{};
-		std::vector<char> bitmap{};
-		char c;
-		int bitCount = 0;
-		for (size_t i = 0; i < wonBoards.size(); i++) {
-			const int8_t val = wonBoards[i];
-			c <<= 1;
-			if (val != 0) {
-				c |= 1;
-				allData.push_back(val);
-			}
-			bitCount++;
-			if (bitCount == 8) {
-				bitmap.push_back(c);
-				bitCount = 0;
-				c = 0;
-			}
-			if (i % (1 << 28) == 0) {
-				std::cout << i << ' ' << allData.size() << std::endl;
-			}
-		}
-		f.write(bitmap.data(), bitmap.size()*sizeof(char));
-		f.write(allData.data(), allData.size()*sizeof(char));
-		f.close();
-		std::cout << "done output" << std::endl;
-	}
-
 	return currDepth;
 }
 
@@ -302,7 +270,15 @@ class ListCallBackOutput : SevenZip::ListCallback {
 	}
 };
 
+
 void TableBase::load(const GameCards& gameCards, const std::string& fName) {
+
+
+	wonBoards.resize(TABLESIZE*2, 0);
+	std::vector<int8_t> genWonBoards{};
+	std::swap(wonBoards, genWonBoards);
+
+
 	SevenZip::SevenZipLibrary lib;
 	if (!lib.Load("7z.dll"))
 		std::cerr << "Couldn't find 7z.dll" << std::endl;
@@ -326,23 +302,59 @@ void TableBase::load(const GameCards& gameCards, const std::string& fName) {
 	extractor.ExtractFileToMemory(zipIndex, fileBuffer);
 
 	std::cout << "Unpacking file.." << std::endl;
-	std::cout << TABLESIZE*2 << ' ' << fileBuffer.size() << std::endl;
 
-	const auto dataStart = fileBuffer.begin() + (TABLESIZE*2 + 7) / 8;
+	const auto dataStart = fileBuffer.begin() + (TABLESIZE + 7) / 8;
 	auto bufferIt = dataStart;
-	U32 boardComp = 0;
+	std::vector<int8_t> unpacked{};
+	unpacked.resize(TABLESIZE, 0);
+	auto unpackedIt = unpacked.begin();
 	for (auto bitMap = fileBuffer.begin(); bitMap != dataStart; bitMap++) {
 		for (U16 bit = 1; bit < (1 << 8); bit <<= 1) {
 			if (*bitMap & bit) {
-				const auto& val = (int8_t)*bufferIt++;
-				wonBoards[boardComp] = val;
-				wonBoards[compress6Men(decompress6Men(boardComp/2).invert())*2 + (~boardComp & 1)] = -val;
+				*unpackedIt = (int8_t)*bufferIt++;
 			}
-			boardComp++;
+			unpackedIt++;
 		}
 	}
+	fileBuffer.clear();
+	fileBuffer.shrink_to_fit();
+
+	std::cout << "Filling in gaps.." << std::endl;
+	
+	constexpr int MAXTHREADS = 1;
+	std::array<std::thread, MAXTHREADS> threads;
+	for (int i = 0; i < MAXTHREADS; i++)
+		threads[i] = std::thread(threadWork, gameCards, std::ref(unpacked), i, MAXTHREADS);
+	
+	for (int i = 0; i < MAXTHREADS; i++)
+		threads[i].join();
 	
 	std::cout << "Finished!" << std::endl;
+	
+	U64 wrongCount = 0;
+	for (U32 i = 0; i < TABLESIZE*2; i++) {
+		if (wonBoards[i] != genWonBoards[i]) {
+			wrongCount++;
+			// std::cout << i << " is wrong: " << wonBoards[i] << " vs " << genWonBoards[i] << std::endl;
+			// assert(wonBoards[i] == genWonBoards[i]);
+		}
+	}
+	std::cout << wrongCount << "wrong boards" << std::endl;
+}
+
+void TableBase::threadWork(const GameCards& gameCards, const std::vector<int8_t>& unpacked, const int thread, const int maxthreads) {
+	const U32 end = TABLESIZE * (thread + 1) / maxthreads;
+	U32 boardComp = TABLESIZE * thread / maxthreads;
+	auto unpackedIt = unpacked.begin() + boardComp;
+	for (; boardComp < end; boardComp++) {
+		const int8_t& val = *unpackedIt++;
+		if (val) {
+			Board board = decompress6Men(boardComp);
+			wonBoards[boardComp*2] = val;
+			wonBoards[compress6Men(board.invert())*2+1] = -val;
+			board.reverseMoves<*addToTables<false, true>>(gameCards, 6, 3, val + 1);
+		}
+	}
 }
 
 

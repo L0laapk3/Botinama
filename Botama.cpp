@@ -80,11 +80,11 @@ int main(int argc, char** argv) {
 	// std::cout << (U32)TableBase::wonEvenBoards[board] << std::endl;
 	// std::cout << (U32)TableBase::wonOddBoards[board] << std::endl;
 
-	// GameCards cards = CardBoard::fetchGameCards({ "boar", "cobra", "crab", "crane", "dragon" });
-	// TableBase::init();
-	// TableBase::load(cards, "01234");
-	// //TableBase::generate(perftCards, 6);
-	// return 0;
+	GameCards cards = CardBoard::fetchGameCards({ "boar", "cobra", "crab", "crane", "dragon" });
+	TableBase::init();
+	TableBase::generate(cards, 6);
+	TableBase::load(cards, "01234");
+	return 0;
 	// std::cout << board.eval(cards) << std::endl;
 
 
