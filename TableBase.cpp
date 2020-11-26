@@ -24,10 +24,10 @@ std::vector<Board> queue{};
 uint16_t currDepth;
 
 int8_t storeDepth() {
-	if (currDepth >= 127)
+	if ((currDepth >> 1) >= 127)
 		[[unlikely]]
 		std::cout << "depth overflow!! :(" << std::endl;
-	return std::min(currDepth + 1, 127);
+	return std::min((currDepth >> 1) + 1, 127);
 }
 
 template<bool doQueue, bool isMine>
@@ -178,10 +178,10 @@ void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, 
 
 void TableBase::init() {
 	currDepth = 0;
-	//queue.reserve(1E9);
-	//currQueue.reserve(1E9);
+	queue.reserve(1E9);
+	currQueue.reserve(1E9);
 	wonBoards.resize(TABLESIZE*2, 0);
-	//pendingBoards.resize(TABLESIZE);
+	pendingBoards.resize(TABLESIZE);
 }
 
 uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {

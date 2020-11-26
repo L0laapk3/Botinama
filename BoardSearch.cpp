@@ -72,8 +72,8 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 						bool TBHit = false;
 						if (_popcnt32(board.pieces & MASK_PIECES) <= 3 && _popcnt64(board.pieces & (MASK_PIECES << 32)) <= 3) {
 							const int8_t result = TableBase::wonBoards[TableBase::compress6Men(board)*2+player];
-							if (result != 127) {
-								uint16_t depth = result > 0 ? result : -result;
+							if (result != 0) {
+								uint16_t depth = (result > 0 ? result : -result) << 1;
 								Score score = (quiescent ? SCORE_WIN - SCORE_QUIESCENCE_WIN_OFFSET : SCORE_WIN) + maxDepth - depth;
 								if (result < 0 == player)
 									childScore = score;
