@@ -83,7 +83,6 @@ int main(int argc, char** argv) {
 	GameCards cards = CardBoard::fetchGameCards({ "boar", "cobra", "crab", "crane", "dragon" });
 	TableBase::init();
 	TableBase::generate(cards, 6);
-	TableBase::load(cards, "01234");
 	return 0;
 	// std::cout << board.eval(cards) << std::endl;
 

@@ -1,3 +1,0 @@
-[submodule "7zip-cpp"]
-	path = 7zip-cpp
-	url = git@github.com:getnamo/7zip-cpp.git

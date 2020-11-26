@@ -5,7 +5,6 @@
 #include "Botama.h"
 #include "Board.h"
 #include "CardBoard.h"
-#include "flat_hash_map/bytell_hash_map.hpp"
 
 
 // generating the tablebase is not thread safe!! for now
@@ -34,9 +33,6 @@ namespace TableBase {
 	void placePiecesDead(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal);
 	void init();
 	uint8_t generate(const GameCards& gameCards, const U32 maxMen);
-	void load(const GameCards& gameCards, const std::string& fName);
-
-	void threadWork(const GameCards& gameCards, const std::vector<int8_t>& unpacked, const int thread, const int maxthreads);
 
 	U32 compress6Men(const Board& board);
 	Board decompress6Men(U32 boardComp);

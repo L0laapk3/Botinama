@@ -8,9 +8,6 @@
 #include <mutex>
 
 #include "BitScan.h"
-#include <7zpp/7zpp.h>
-#undef max
-#undef min
 
 
 
@@ -47,7 +44,7 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 		// you played this move, immediately add it to won boards
 		// only insert and iterate if it doesnt already exist (keeps lowest distance)
 		
-		exploreChildren = wonBoards[compressedBoard*2+isMine] == 0 || wonBoards[compressedBoard*2+isMine] > depthVal;
+		exploreChildren = wonBoards[compressedBoard*2+isMine] == 0;
 		if (exploreChildren) {
 			wonBoards[compressedBoard*2+isMine] = depthVal;
 			wonBoards[compress6Men(board.invert())*2+!isMine] = -depthVal;
@@ -256,106 +253,7 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 
 
 
-std::string zipSearchName;
-bool zipFound = false;
-int zipIndex = 0;
-U64 decompressedSize = 0;
-class ListCallBackOutput : SevenZip::ListCallback {
-	virtual void OnFileFound(const SevenZip::FileInfo& fInfo) {
-		if (fInfo.FileName == zipSearchName) {
-			zipFound = true;
-			decompressedSize = fInfo.Size;
-		} else if (!zipFound)
-			zipIndex++;
-	}
-};
 
-
-void TableBase::load(const GameCards& gameCards, const std::string& fName) {
-
-
-	wonBoards.resize(TABLESIZE*2, 0);
-	std::vector<int8_t> genWonBoards{};
-	std::swap(wonBoards, genWonBoards);
-
-
-	SevenZip::SevenZipLibrary lib;
-	if (!lib.Load("7z.dll"))
-		std::cerr << "Couldn't find 7z.dll" << std::endl;
-	wonBoards.resize(TABLESIZE*2);
-	std::wcout << "loaded 7z" << std::endl;
-	
-	zipSearchName = fName;
-	SevenZip::SevenZipLister lister(lib, "6men.7z");
-	ListCallBackOutput myListCallBack;
-	if (!lister.ListArchive("", (SevenZip::ListCallback*)&myListCallBack))
-		std::cerr << "Couldn't find 6men.7z" << std::endl;
-
-	if (!zipFound)
-		std::cerr << "Couldn't find '" << fName << "' inside 6men.7z" << std::endl;
-
-	std::cout << "Unzipping file.." << std::endl;
-
-	SevenZip::SevenZipExtractor extractor(lib, "6men.7z");
-	std::vector<BYTE> fileBuffer;
-	fileBuffer.reserve(decompressedSize);
-	extractor.ExtractFileToMemory(zipIndex, fileBuffer);
-
-	std::cout << "Unpacking file.." << std::endl;
-
-	const auto dataStart = fileBuffer.begin() + (TABLESIZE + 7) / 8;
-	auto bufferIt = dataStart;
-	std::vector<int8_t> unpacked{};
-	unpacked.resize(TABLESIZE, 0);
-	auto unpackedIt = unpacked.begin();
-	for (auto bitMap = fileBuffer.begin(); bitMap != dataStart; bitMap++) {
-		for (U16 bit = 1; bit < (1 << 8); bit <<= 1) {
-			if (*bitMap & bit) {
-				*unpackedIt = (int8_t)*bufferIt++;
-			}
-			unpackedIt++;
-		}
-	}
-	fileBuffer.clear();
-	fileBuffer.shrink_to_fit();
-
-	std::cout << "Filling in gaps.." << std::endl;
-	
-	constexpr int MAXTHREADS = 1;
-	std::array<std::thread, MAXTHREADS> threads;
-	for (int i = 0; i < MAXTHREADS; i++)
-		threads[i] = std::thread(threadWork, gameCards, std::ref(unpacked), i, MAXTHREADS);
-	
-	for (int i = 0; i < MAXTHREADS; i++)
-		threads[i].join();
-	
-	std::cout << "Finished!" << std::endl;
-	
-	U64 wrongCount = 0;
-	for (U32 i = 0; i < TABLESIZE*2; i++) {
-		if (wonBoards[i] != genWonBoards[i]) {
-			wrongCount++;
-			// std::cout << i << " is wrong: " << wonBoards[i] << " vs " << genWonBoards[i] << std::endl;
-			// assert(wonBoards[i] == genWonBoards[i]);
-		}
-	}
-	std::cout << wrongCount << "wrong boards" << std::endl;
-}
-
-void TableBase::threadWork(const GameCards& gameCards, const std::vector<int8_t>& unpacked, const int thread, const int maxthreads) {
-	const U32 end = TABLESIZE * (thread + 1) / maxthreads;
-	U32 boardComp = TABLESIZE * thread / maxthreads;
-	auto unpackedIt = unpacked.begin() + boardComp;
-	for (; boardComp < end; boardComp++) {
-		const int8_t& val = *unpackedIt++;
-		if (val) {
-			Board board = decompress6Men(boardComp);
-			wonBoards[boardComp*2] = val;
-			wonBoards[compress6Men(board.invert())*2+1] = -val;
-			board.reverseMoves<*addToTables<false, true>>(gameCards, 6, 3, val + 1);
-		}
-	}
-}
 
 
 
