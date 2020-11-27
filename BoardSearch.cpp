@@ -6,7 +6,8 @@
 #include "TableBase.h"
 
 
-SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha, const Score beta, const bool quiescent) const {
+template<bool quiescent>
+SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha, const Score beta) const {
 	// negamax with alpha beta pruning
 	bool player = pieces & MASK_TURN;
 
@@ -74,15 +75,16 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 
 					Score childScore = SCORE_MIN;
 					if (finished) {
-						childScore = (maxDepth >= -1 ? SCORE_WIN : SCORE_WIN) + maxDepth;
+						childScore = SCORE_WIN + maxDepth;
 						total++;
 					} else {
 						bool TBHit = false;
 						if (_popcnt32(board.pieces & MASK_PIECES) <= 3 && _popcnt64(board.pieces & (MASK_PIECES << 32)) <= 3) {
-							const int8_t result = TableBase::wonBoards[TableBase::compress6Men(board)*2+player];
+							const U32 boardComp = TableBase::compress6Men(board)*2+player;
+							const int8_t result = TableBase::wonBoards[boardComp];
 							if (result != 0) {
 								uint16_t depth = (result > 0 ? result : -result) << 1;
-								Score score = (quiescent ? SCORE_WIN - SCORE_QUIESCENCE_WIN_OFFSET : SCORE_WIN) + maxDepth - depth;
+								Score score = SCORE_WIN + maxDepth - depth;
 								if (result < 0 == player)
 									childScore = score;
 								else
@@ -91,7 +93,7 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 							}
 						}
 						if (!TBHit) {
-							const auto& childSearch = board.search(gameCards, maxDepth, -beta, -alpha, !maxDepth || quiescent);
+							const auto& childSearch = !maxDepth || quiescent ? board.search<true>(gameCards, maxDepth, -beta, -alpha) : board.search<false>(gameCards, maxDepth, -beta, -alpha);
 							childScore = -childSearch.score;
 							total += childSearch.total;
 						}
@@ -211,7 +213,7 @@ SearchResult Board::searchTime(const GameCards& cards, const U64 timeBudget, con
 	while (true) {
 		const auto beginTime = std::chrono::steady_clock::now();
 		++depth;
-		result = search(cards, depth);
+		result = search<false>(cards, depth);
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 		predictedTime = time * time / lastTime;
 		lastTime = time;

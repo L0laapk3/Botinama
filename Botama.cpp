@@ -50,7 +50,7 @@
 
 int main(int argc, char** argv) {
 
-	GameCards shitCards = CardBoard::fetchGameCards({"horse", "eel", "boar", "ox", "crane"});
+	//GameCards shitCards = CardBoard::fetchGameCards({"horse", "eel", "boar", "ox", "crane"});
 	// TableBase::generate(shitCards, 4);
 	// Board board = Board::fromString("0002001000000300400000000", false);
 	// board.print(shitCards);
@@ -114,14 +114,14 @@ int main(int argc, char** argv) {
 	TableBase::init();
 	
 	Game game = conn.waitGame();
-	std::thread TBThread(TableBase::generate, game.cards, 4);
+	std::thread TBThread(TableBase::generate, game.cards, 6);
 	TBThread.join();
 
 	while (true) {
 		// game.board.print(game.cards);
 		// std::cout << game.board.eval(game.cards) << std::endl;
 		if (!game.board.currentPlayer()) {
-			auto bestMove = game.board.searchTime(game.cards, TableBase::done ? 1000 : 20000, 1);
+			auto bestMove = game.board.searchTime(game.cards, TableBase::done ? 5000 : 20000, 1);
 			conn.submitMove(game, bestMove.board);
 		}
 

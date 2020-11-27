@@ -75,11 +75,11 @@ void Connection::handleJoinGame() {
 }
 
 void Connection::createGame() {
-	ws->send("create Botama-TB-alt");
+	ws->send("create Botama");
 	handleJoinGame();
 }
 void Connection::joinGame(const std::string& matchId) {
-	ws->send("join " + matchId + " Botama-TB-alt");
+	ws->send("join " + matchId + " Botama");
 	handleJoinGame();
 }
 
