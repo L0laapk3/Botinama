@@ -18,7 +18,7 @@ bool TableBase::done = false;
 std::vector<int8_t> TableBase::wonBoards{};
 std::vector<uint8_t> pendingBoards{};
 
-constexpr int MAXTHREADS = 12;
+constexpr int MAXTHREADS = 1;
 std::array<std::vector<Board>, MAXTHREADS> queue{};
 std::array<std::vector<Board>, MAXTHREADS> currQueue{};
 

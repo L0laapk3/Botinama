@@ -12,10 +12,18 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 
 	maxDepth--;
 
-	U64 total = 0;
+	U64 total = 1;
 
 	Board bestBoard;
 	Score bestScore = SCORE_MIN;
+
+	if (quiescent) {
+		Score standingPat = (player ? -1 : 1) * eval(gameCards);
+		if (standingPat >= beta)
+			return { beta, 0, total };
+		if (alpha < standingPat)
+			alpha = standingPat;
+	}
 
 	bool foundAny = false;
 	
@@ -66,7 +74,7 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 
 					Score childScore = SCORE_MIN;
 					if (finished) {
-						childScore = (maxDepth >= -1 ? SCORE_WIN : SCORE_WIN - SCORE_QUIESCENCE_WIN_OFFSET) + maxDepth;
+						childScore = (maxDepth >= -1 ? SCORE_WIN : SCORE_WIN) + maxDepth;
 						total++;
 					} else {
 						bool TBHit = false;
@@ -89,13 +97,20 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 						}
 					}
 
-					if (childScore > bestScore) {
-						bestScore = childScore;
-						bestBoard = board;
-						if (childScore > alpha) {
-							alpha = bestScore;
-							if (alpha > beta)
-								goto pruneLoop;
+					if (quiescent) {
+						if (childScore >= beta)
+							return { beta, board, total };
+						if (childScore > alpha)
+							alpha = childScore;
+					} else {
+						if (childScore > bestScore) {
+							bestScore = childScore;
+							bestBoard = board;
+							if (childScore > alpha) {
+								alpha = bestScore;
+								if (alpha > beta)
+									goto pruneLoop;
+							}
 						}
 					}
 					// end of negamax
@@ -107,10 +122,10 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 	}
 	pruneLoop:
 
-	if (!foundAny && quiescent)
-		return { (player ? -1 : 1) * eval(gameCards), 0, 1 };
-
-	return { bestScore, bestBoard, total };
+	if (quiescent)
+		return { alpha, 0, total };
+	else
+		return { bestScore, bestBoard, total };
 }
 
 

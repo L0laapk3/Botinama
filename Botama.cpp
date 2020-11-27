@@ -50,7 +50,7 @@
 
 int main(int argc, char** argv) {
 
-	// GameCards shitCards = CardBoard::fetchGameCards({"horse", "eel", "boar", "ox", "crane"});
+	GameCards shitCards = CardBoard::fetchGameCards({"horse", "eel", "boar", "ox", "crane"});
 	// TableBase::generate(shitCards, 4);
 	// Board board = Board::fromString("0002001000000300400000000", false);
 	// board.print(shitCards);
@@ -81,9 +81,9 @@ int main(int argc, char** argv) {
 	// std::cout << (U32)TableBase::wonOddBoards[board] << std::endl;
 
 	//GameCards cards = CardBoard::fetchGameCards({ "boar", "cobra", "crab", "crane", "dragon" });
-	//TableBase::init();
-	//TableBase::generate(perftCards, 6);
-	//return 0;
+	TableBase::init();
+	TableBase::generate(shitCards, 5);
+	return 0;
 	// std::cout << board.eval(cards) << std::endl;
 
 
