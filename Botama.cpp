@@ -114,14 +114,14 @@ int main(int argc, char** argv) {
 	TableBase::init();
 	
 	Game game = conn.waitGame();
-	std::thread TBThread(TableBase::generate, game.cards, 6);
+	std::thread TBThread(TableBase::generate, game.cards, 4);
 	TBThread.join();
 
 	while (true) {
 		// game.board.print(game.cards);
 		// std::cout << game.board.eval(game.cards) << std::endl;
 		if (!game.board.currentPlayer()) {
-			auto bestMove = game.board.searchTime(game.cards, 1000, 1);
+			auto bestMove = game.board.searchTime(game.cards, TableBase::done ? 1000 : 20000, 1);
 			conn.submitMove(game, bestMove.board);
 		}
 

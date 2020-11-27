@@ -19,6 +19,8 @@ namespace TableBase {
 	};
 #pragma pack (pop)
 
+	extern bool done;
+
 	extern std::vector<int8_t> wonBoards;
 
 	template<bool isFirst, bool isMine>

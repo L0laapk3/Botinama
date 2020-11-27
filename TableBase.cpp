@@ -14,6 +14,7 @@
 
 constexpr U32 TABLESIZE = 25*25*26*26/2*26*26/2*30;
 
+bool TableBase::done = false;
 std::vector<int8_t> TableBase::wonBoards{};
 std::vector<uint8_t> pendingBoards{};
 
@@ -304,6 +305,8 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 	//}
 	
 	time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
+
+	done = true;
 
 	return currDepth;
 }

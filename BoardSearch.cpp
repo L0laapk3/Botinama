@@ -225,7 +225,7 @@ SearchResult Board::searchTime(const GameCards& cards, const U64 timeBudget, con
 				printf("depth %2i in %.1fms (%9llu, %2lluM/s, EBF=%5.2f): ", depth, (float)time / 1E3, result.total, result.total / time, std::pow(result.total, 1. / depth));
 			if (foundProbableWin) {
 				bool isLoss = result.score < 0;
-				std::cout << (isLoss ? "lose" : "win") << " in " << end;
+				std::cout << (isLoss ? "lose" : "win") << " in " << ((end & ~1) | !isLoss);
 				if (!foundWin)
 					std::cout << '?';
 				// else if (TBWin)
