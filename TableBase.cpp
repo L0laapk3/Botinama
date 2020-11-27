@@ -6,6 +6,7 @@
 #include <vector>
 #include <fstream>
 #include <mutex>
+#include <atomic>
 
 #include "BitScan.h"
 
@@ -26,6 +27,8 @@ int8_t storeDepth() {
 	return std::min((currDepth >> 1) + 1, 127);
 }
 
+std::mutex mtx;
+
 template<bool doQueue, bool isMine>
 void TableBase::addToTables(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal) {
 	// this function assumed that it is called in the correct distanceToWin order
@@ -33,6 +36,7 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 	//board.print(gameCards, finished, true);
 
 	//lookups++;
+	int8_t zero = 0;
 
 	if (finished)
 		return;
@@ -43,30 +47,28 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 	if (isMine) {
 		// you played this move, immediately add it to won boards
 		// only insert and iterate if it doesnt already exist (keeps lowest distance)
-		
-		exploreChildren = wonBoards[compressedBoard*2+isMine] == 0;
-		if (exploreChildren) {
-			wonBoards[compressedBoard*2+isMine] = depthVal;
+		exploreChildren = reinterpret_cast<std::atomic<int8_t>&>(wonBoards[compressedBoard*2+isMine]).compare_exchange_weak(zero, depthVal);
+		if (exploreChildren)
 			wonBoards[compress6Men(board.invert())*2+!isMine] = -depthVal;
-		}
 
 	} else {
 		// opponents move. All forward moves must lead to a loss first
 		// this function should only get called at most countForwardMoves times
 		//assert(wonBoards.end() == wonBoards.find(board));
-		if (pendingBoards[compressedBoard] == 0) {
-			uint8_t actionCount = 255 - (board.countForwardMoves(gameCards) - 1);
-			pendingBoards[compressedBoard] = actionCount;
-			exploreChildren = actionCount == 255;
+		int8_t moveCount = board.countForwardMoves(gameCards);
+		if (reinterpret_cast<std::atomic<int8_t>&>(pendingBoards[compressedBoard]).compare_exchange_weak(zero, moveCount)) {
+			exploreChildren = moveCount == 1;
 		} else
-			exploreChildren = ++pendingBoards[compressedBoard] == 255;
+			exploreChildren = reinterpret_cast<std::atomic<int8_t>&>(pendingBoards[compressedBoard]).fetch_sub(1) == 2;
 		if (exploreChildren) {
 			wonBoards[compressedBoard*2+isMine] = depthVal;
 			wonBoards[compress6Men(board.invert())*2+!isMine] = -depthVal;
 		}
 	}
 	if (doQueue && exploreChildren) {
+		//mtx.lock();
 		queue.push_back(board);
+		//mtx.unlock();
 		// board.searchTime(gameCards, 1000, 0, currDepth + 1);
 		// board.invert().searchTime(gameCards, 1000, 0, currDepth + 1);
 		//if (currDepth > 1 || true) {
@@ -81,18 +83,32 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 	}
 };
 
-
 U32 maxMen;
 U32 maxMenPerSide;
 std::vector<Board> currQueue{};
-bool TableBase::singleDepth(const GameCards& gameCards) {
-	currDepth++;
-	std::swap(queue, currQueue);
-	for (const Board& board : currQueue)
+
+void TableBase::singleDepthThread(const GameCards& gameCards, const int threadNum, const int threadCount) {
+	for (int index = currQueue.size() * threadNum / threadCount; index < currQueue.size() * (threadNum + 1) / threadCount; index++) {
+		const auto& board = currQueue[index];
 		if (currDepth % 2 == 0)
 			board.reverseMoves<*addToTables<true, true>>(gameCards, maxMen, maxMenPerSide, storeDepth());
 		else
 			board.reverseMoves<*addToTables<true, false>>(gameCards, maxMen, maxMenPerSide, storeDepth());
+	}
+}
+
+
+bool TableBase::singleDepth(const GameCards& gameCards) {
+	currDepth++;
+	std::swap(queue, currQueue);
+
+	constexpr int MAXTHREADS = 12;
+	std::array<std::thread, MAXTHREADS> threads;
+	for (int i = 0; i < MAXTHREADS; i++)
+		threads[i] = std::thread(singleDepthThread, std::ref(gameCards), i, MAXTHREADS);
+	for (auto& th : threads)
+		th.join();
+
 	currQueue.clear();
 	return queue.size();
 }
@@ -169,19 +185,13 @@ void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, 
 
 void TableBase::init() {
 	currDepth = 0;
-	// queue.reserve(1E9);
-	// currQueue.reserve(1E9);
+	queue.reserve(5E8);
+	currQueue.reserve(5E8);
 	wonBoards.resize(TABLESIZE*2, 0);
-	// pendingBoards.resize(TABLESIZE);
+	pendingBoards.resize(TABLESIZE);
 }
 
 uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
-
-
-	queue.reserve(1E9);
-	currQueue.reserve(1E9);
-	wonBoards.resize(TABLESIZE*2, 0);
-	pendingBoards.resize(TABLESIZE);
 
 	std::cout << "generating endgame.." << std::endl;
 
