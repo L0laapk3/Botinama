@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
 
 
 	// PERFT CARDS - 0269C
-	//GameCards perftCards = CardBoard::fetchGameCards({ "boar", "ox", "elephant", "horse", "crab" });
+	GameCards perftCards = CardBoard::fetchGameCards({ "boar", "ox", "elephant", "horse", "crab" });
 
 	//GameCards bugCards = CardBoard::fetchGameCards({ "crab", "ox", "frog", "boar", "rabbit" });
 	//Board board = Board::fromString("4000000000000000000020000", true);
@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
 
 	//GameCards cards = CardBoard::fetchGameCards({ "boar", "cobra", "crab", "crane", "dragon" });
 	TableBase::init();
-	TableBase::generate(shitCards, 5);
+	TableBase::generate(perftCards, 5);
 	return 0;
 	// std::cout << board.eval(cards) << std::endl;
 

@@ -18,7 +18,7 @@ bool TableBase::done = false;
 std::vector<int8_t> TableBase::wonBoards{};
 std::vector<uint8_t> pendingBoards{};
 
-constexpr int MAXTHREADS = 1;
+constexpr int MAXTHREADS = 12;
 std::array<std::vector<Board>, MAXTHREADS> queue{};
 std::array<std::vector<Board>, MAXTHREADS> currQueue{};
 
@@ -31,8 +31,7 @@ int8_t storeDepth() {
 }
 
 
-int currThread = 0;
-int countOnThisThread = 0;
+size_t currThread = 0;
 template<bool isFirst, bool isMine>
 void TableBase::addToTables(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal, const int threadNum) {
 	// this function assumed that it is called in the correct distanceToWin order
@@ -79,11 +78,10 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 	}
 	if (exploreChildren) {
 		//mtx.lock();
-		int index;
+		size_t index;
 		if (isFirst) {
 			index = currThread;
-			if (countOnThisThread++ > (1 << 20))
-				currThread = (currThread + 1) % MAXTHREADS;
+			currThread = (currThread + 1) % MAXTHREADS;
 		} else
 			index = threadNum;
 		queue[index].push_back(board);
@@ -114,6 +112,8 @@ void TableBase::singleDepthThread(const GameCards& gameCards, const int threadNu
 	const int8_t depth = storeDepth();
 	while (true) {
 		const auto jobI = jobIndex++;
+		// if (threadNum == 1)
+		// 	std::cout << jobI << ' ' << jobs.size() << std::endl;
 		if (jobI >= jobs.size())
 			break;
 		const auto& job = jobs[jobI];
@@ -146,8 +146,9 @@ U64 TableBase::singleDepth(const GameCards& gameCards) {
 	for (int i = 0; i < MAXTHREADS; i++)
 		threads[i] = std::thread(singleDepthThread, std::ref(gameCards), i);
 	U64 total = 0;
-	for (int i = 0; i < MAXTHREADS; i++) {
+	for (int i = 0; i < MAXTHREADS; i++)
 		threads[i].join();
+	for (int i = 0; i < MAXTHREADS; i++) {
 		currQueue[i].clear();
 		total += queue[i].size();
 	}
