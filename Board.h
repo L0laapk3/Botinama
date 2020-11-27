@@ -15,7 +15,7 @@
 
 
 class Board;
-typedef void (*MoveFunc)(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal);
+typedef void (*MoveFunc)(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal, const int threadNum);
 
 struct SearchResult;
 
@@ -52,12 +52,12 @@ private:
 	//BoardIter
 private:
 	template<MoveFunc cb, bool reverse>
-	void iterateMoves(const GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, const bool createPiece, const int8_t depthVal) const;
+	void iterateMoves(const GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, const bool createPiece, const int8_t depthVal, const int threadNum) const;
 public:
 	template<MoveFunc cb>
-	void forwardMoves(const GameCards& gameCards, const int8_t depthVal) const;
+	void forwardMoves(const GameCards& gameCards, const int8_t depthVal, const int threadNum) const;
 	template<MoveFunc cb>
-	void reverseMoves(const GameCards& gameCards, const U32 maxMen, const U32 maxMenPerSide, const int8_t depthVal) const;
+	void reverseMoves(const GameCards& gameCards, const U32 maxMen, const U32 maxMenPerSide, const int8_t depthVal, const int threadNum) const;
 
 
 	//BoardSearch

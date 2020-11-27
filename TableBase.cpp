@@ -17,7 +17,9 @@ constexpr U32 TABLESIZE = 25*25*26*26/2*26*26/2*30;
 std::vector<int8_t> TableBase::wonBoards{};
 std::vector<uint8_t> pendingBoards{};
 
-std::vector<Board> queue{};
+constexpr int MAXTHREADS = 12;
+std::array<std::vector<Board>, MAXTHREADS> queue{};
+std::array<std::vector<Board>, MAXTHREADS> currQueue{};
 
 uint16_t currDepth;
 
@@ -27,10 +29,11 @@ int8_t storeDepth() {
 	return std::min((currDepth >> 1) + 1, 127);
 }
 
-std::mutex mtx;
 
-template<bool doQueue, bool isMine>
-void TableBase::addToTables(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal) {
+int currThread = 0;
+int countOnThisThread = 0;
+template<bool isFirst, bool isMine>
+void TableBase::addToTables(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal, const int threadNum) {
 	// this function assumed that it is called in the correct distanceToWin order
 	// also assumes that there are no duplicate starting boards
 	//board.print(gameCards, finished, true);
@@ -47,9 +50,17 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 	if (isMine) {
 		// you played this move, immediately add it to won boards
 		// only insert and iterate if it doesnt already exist (keeps lowest distance)
-		exploreChildren = reinterpret_cast<std::atomic<int8_t>&>(wonBoards[compressedBoard*2+isMine]).compare_exchange_weak(zero, depthVal);
-		if (exploreChildren)
-			wonBoards[compress6Men(board.invert())*2+!isMine] = -depthVal;
+		if (isFirst) {
+			exploreChildren = wonBoards[compressedBoard*2+isMine] == 0;
+			if (exploreChildren) {
+				wonBoards[compressedBoard*2+isMine] = depthVal;
+				wonBoards[compress6Men(board.invert())*2+!isMine] = -depthVal;
+				}
+		} else {
+			exploreChildren = reinterpret_cast<std::atomic<int8_t>&>(wonBoards[compressedBoard*2+isMine]).compare_exchange_weak(zero, depthVal);
+			if (exploreChildren)
+				wonBoards[compress6Men(board.invert())*2+!isMine] = -depthVal;
+		}
 
 	} else {
 		// opponents move. All forward moves must lead to a loss first
@@ -65,9 +76,16 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 			wonBoards[compress6Men(board.invert())*2+!isMine] = -depthVal;
 		}
 	}
-	if (doQueue && exploreChildren) {
+	if (exploreChildren) {
 		//mtx.lock();
-		queue.push_back(board);
+		int index;
+		if (isFirst) {
+			index = currThread;
+			if (countOnThisThread++ > (1 << 20))
+				currThread = (currThread + 1) % MAXTHREADS;
+		} else
+			index = threadNum;
+		queue[index].push_back(board);
 		//mtx.unlock();
 		// board.searchTime(gameCards, 1000, 0, currDepth + 1);
 		// board.invert().searchTime(gameCards, 1000, 0, currDepth + 1);
@@ -85,32 +103,54 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 
 U32 maxMen;
 U32 maxMenPerSide;
-std::vector<Board> currQueue{};
 
-void TableBase::singleDepthThread(const GameCards& gameCards, const int threadNum, const int threadCount) {
-	for (int index = currQueue.size() * threadNum / threadCount; index < currQueue.size() * (threadNum + 1) / threadCount; index++) {
-		const auto& board = currQueue[index];
-		if (currDepth % 2 == 0)
-			board.reverseMoves<*addToTables<true, true>>(gameCards, maxMen, maxMenPerSide, storeDepth());
-		else
-			board.reverseMoves<*addToTables<true, false>>(gameCards, maxMen, maxMenPerSide, storeDepth());
+constexpr size_t BLOCKSIZE = 1 << 10;
+struct Job { size_t index; size_t start; };
+std::vector<Job> jobs{};
+std::atomic<size_t> jobIndex;
+
+void TableBase::singleDepthThread(const GameCards& gameCards, const int threadNum) {
+	const int8_t depth = storeDepth();
+	while (true) {
+		const auto jobI = jobIndex++;
+		if (jobI >= jobs.size())
+			break;
+		const auto& job = jobs[jobI];
+		for (int index = job.start; index < std::min(job.start + BLOCKSIZE, currQueue[job.index].size()); index++) {
+			const auto& board = currQueue[job.index][index];
+			if (currDepth % 2 == 0)
+				board.reverseMoves<*addToTables<false, true>>(gameCards, maxMen, maxMenPerSide, depth, threadNum);
+			else
+				board.reverseMoves<*addToTables<false, false>>(gameCards, maxMen, maxMenPerSide, depth, threadNum);
+		}
 	}
 }
 
 
-bool TableBase::singleDepth(const GameCards& gameCards) {
+U64 TableBase::singleDepth(const GameCards& gameCards) {
 	currDepth++;
 	std::swap(queue, currQueue);
 
-	constexpr int MAXTHREADS = 12;
+	jobs.clear();
+	jobIndex = 0;
+	for (size_t i = 0; i < MAXTHREADS; i++) {
+		size_t start = 0;
+		while (start + 1 < currQueue[i].size()) {
+			jobs.push_back({ i, start });
+			start += BLOCKSIZE;
+		}
+	}
+
 	std::array<std::thread, MAXTHREADS> threads;
 	for (int i = 0; i < MAXTHREADS; i++)
-		threads[i] = std::thread(singleDepthThread, std::ref(gameCards), i, MAXTHREADS);
-	for (auto& th : threads)
-		th.join();
-
-	currQueue.clear();
-	return queue.size();
+		threads[i] = std::thread(singleDepthThread, std::ref(gameCards), i);
+	U64 total = 0;
+	for (int i = 0; i < MAXTHREADS; i++) {
+		threads[i].join();
+		currQueue[i].clear();
+		total += queue[i].size();
+	}
+	return total;
 }
 
 
@@ -126,7 +166,7 @@ void TableBase::placePieces(const GameCards& gameCards, U64 pieces, std::array<U
 			board.pieces |= _popcnt64(beforeKing & board.pieces) << INDEX_KINGS[0];
 			//if (board.pieces & (1ULL << 22))
 			//	board.print(gameCards);
-			addToTables<true, true>(gameCards, board, false, storeDepth());
+			addToTables<true, true>(gameCards, board, false, storeDepth(), 0);
 
 			board.pieces += 1ULL << INDEX_CARDS;
 		} else {
@@ -141,7 +181,7 @@ void TableBase::placePieces(const GameCards& gameCards, U64 pieces, std::array<U
 					break;
 				kingI <<= 1;
 				if (kingPos != MASK_END_POSITIONS[0])
-					addToTables<true, true>(gameCards, board, false, storeDepth());
+					addToTables<true, true>(gameCards, board, false, storeDepth(), 0);
 				board.pieces += 1ULL << INDEX_KINGS[0];
 			}
 		}
@@ -160,7 +200,7 @@ void TableBase::placePieces(const GameCards& gameCards, U64 pieces, std::array<U
 
 U32 myMaxPawns;
 U32 otherMaxPawns;
-void TableBase::placePiecesTemple(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal) {
+void TableBase::placePiecesTemple(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal, const int threadNum) {
 	if (finished)
 		return;
 	U32 otherKing = 1ULL;
@@ -174,7 +214,7 @@ void TableBase::placePiecesTemple(const GameCards& gameCards, const Board& board
 	}
 }
 U32 takenKingPos;
-void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal) {
+void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal, const int threadNum) {
 	if (finished)
 		return;
 	U64 pieces = board.pieces | (((U64)takenKingPos) << 32);
@@ -185,8 +225,10 @@ void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, 
 
 void TableBase::init() {
 	currDepth = 0;
-	queue.reserve(5E8);
-	currQueue.reserve(5E8);
+	for (int i = 0; i < MAXTHREADS; i++) {
+		queue[i].reserve(4E8 / MAXTHREADS);
+		currQueue[i].reserve(4E8 / MAXTHREADS);
+	}
 	wonBoards.resize(TABLESIZE*2, 0);
 	pendingBoards.resize(TABLESIZE);
 }
@@ -208,7 +250,7 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 				U32 king = MASK_END_POSITIONS[0];
 				Board board{ king | MASK_TURN };
 				for (int i = 0; i < 30; i++) {
-					board.reverseMoves<*placePiecesTemple>(gameCards, maxMen, 0, 0);
+					board.reverseMoves<*placePiecesTemple>(gameCards, maxMen, 0, 0, 0);
 					board.pieces += 1ULL << INDEX_CARDS;
 				}
 			}
@@ -220,7 +262,7 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 					Board board{ takenKingPos | MASK_TURN | (7ULL << INDEX_KINGS[0]) };
 					for (int i = 0; i < 30; i++) {
 						//std::cout << "alive" << ((board.pieces >> INDEX_KINGS[1]) & 7) << std::endl;
-						board.reverseMoves<*placePiecesDead>(gameCards, maxMen, 0, 0);
+						board.reverseMoves<*placePiecesDead>(gameCards, maxMen, 0, 0, 0);
 						board.pieces += 1ULL << INDEX_CARDS;
 					}
 					board.pieces &= ~(0x1FULL << INDEX_CARDS);
@@ -229,22 +271,27 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 			}
 		}
 	U64 wonCount = 0;
+	U64 total = 0;
+	for (int i = 0; i < MAXTHREADS; i++)
+		total += queue[i].size();
 	do {
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime2).count());
 		//printf("%9llu winning depth %2u boards in %6.2fs using %10llu lookups (%5.1fM lookups/s)\n", queue.size(), currDepth + 1, (float)time / 1000000, lookups, (float)lookups / time);
-		printf("%9llu winning depth %3u boards in %6.2fs\n", queue.size(), currDepth + 1, (float)time / 1000000);
-		wonCount += queue.size();
+		printf("%9llu winning depth %3u boards in %6.2fs\n", total, currDepth + 1, (float)time / 1000000);
+		wonCount += total;
 		beginTime2 = std::chrono::steady_clock::now();
-	} while (singleDepth(gameCards));
+	} while (total = singleDepth(gameCards));
 	
 	auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 	//std::cout << wonb (float)time / 1000 << "ms" << std::endl;
 	printf("%9llu winning boards in %.3fs (%.0fk/s)\n", wonCount, (float)time / 1000000, (float)wonCount * 1000 / time);
 
-	queue.clear();
-	queue.shrink_to_fit();
-	currQueue.clear();
-	currQueue.shrink_to_fit();
+	for (int i = 0; i < MAXTHREADS; i++) {
+		queue[i].clear();
+		queue[i].shrink_to_fit();
+		currQueue[i].clear();
+		currQueue[i].shrink_to_fit();
+	}
 	pendingBoards.clear();
 	pendingBoards.shrink_to_fit();
 
