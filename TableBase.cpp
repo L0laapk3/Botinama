@@ -18,9 +18,8 @@ bool TableBase::done = false;
 std::vector<int8_t> TableBase::wonBoards{};
 std::vector<uint8_t> pendingBoards{};
 
-constexpr int MAXTHREADS = 12;
-std::array<std::vector<Board>, MAXTHREADS> queue{};
-std::array<std::vector<Board>, MAXTHREADS> currQueue{};
+std::vector<std::vector<Board>> queue{};
+std::vector<std::vector<Board>> currQueue{};
 
 uint16_t currDepth;
 
@@ -81,7 +80,7 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 		size_t index;
 		if (isFirst) {
 			index = currThread;
-			currThread = (currThread + 1) % MAXTHREADS;
+			currThread = (currThread + 1) % queue.size();
 		} else
 			index = threadNum;
 		queue[index].push_back(board);
@@ -134,7 +133,7 @@ U64 TableBase::singleDepth(const GameCards& gameCards) {
 
 	jobs.clear();
 	jobIndex = 0;
-	for (size_t i = 0; i < MAXTHREADS; i++) {
+	for (size_t i = 0; i < queue.size(); i++) {
 		size_t start = 0;
 		while (start + 1 < currQueue[i].size()) {
 			jobs.push_back({ i, start });
@@ -142,13 +141,13 @@ U64 TableBase::singleDepth(const GameCards& gameCards) {
 		}
 	}
 
-	std::array<std::thread, MAXTHREADS> threads;
-	for (int i = 0; i < MAXTHREADS; i++)
-		threads[i] = std::thread(singleDepthThread, std::ref(gameCards), i);
+	std::vector<std::thread> threads;
+	for (int i = 0; i < queue.size(); i++)
+		threads.push_back(std::thread(singleDepthThread, std::ref(gameCards), i));
 	U64 total = 0;
-	for (int i = 0; i < MAXTHREADS; i++)
+	for (int i = 0; i < queue.size(); i++)
 		threads[i].join();
-	for (int i = 0; i < MAXTHREADS; i++) {
+	for (int i = 0; i < queue.size(); i++) {
 		currQueue[i].clear();
 		total += queue[i].size();
 	}
@@ -227,9 +226,12 @@ void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, 
 
 void TableBase::init() {
 	currDepth = 0;
-	for (int i = 0; i < MAXTHREADS; i++) {
-		queue[i].reserve(4E8 / MAXTHREADS);
-		currQueue[i].reserve(4E8 / MAXTHREADS);
+	const U32 numThreads = std::max<U32>(1, std::thread::hardware_concurrency());
+	queue.resize(numThreads);
+	currQueue.resize(numThreads);
+	for (int i = 0; i < numThreads; i++) {
+		queue[i].reserve(1E8 / numThreads);
+		currQueue[i].reserve(1E8 / numThreads);
 	}
 	wonBoards.resize(TABLESIZE*2, 0);
 	pendingBoards.resize(TABLESIZE);
@@ -237,7 +239,7 @@ void TableBase::init() {
 
 uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 
-	std::cout << "generating endgame.." << std::endl;
+	std::cout << "generating endgame tablebases using " << queue.size() << " threads..." << std::endl;
 
 	U32 menPerSide = (men + 1) / 2;
 	maxMen = men;
@@ -274,7 +276,7 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 		}
 	U64 wonCount = 0;
 	U64 total = 0;
-	for (int i = 0; i < MAXTHREADS; i++)
+	for (int i = 0; i < queue.size(); i++)
 		total += queue[i].size();
 	do {
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime2).count());
@@ -288,12 +290,9 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 	//std::cout << wonb (float)time / 1000 << "ms" << std::endl;
 	printf("%9llu winning boards in %.3fs (%.0fk/s)\n", wonCount, (float)time / 1000000, (float)wonCount * 1000 / time);
 
-	for (int i = 0; i < MAXTHREADS; i++) {
-		queue[i].clear();
-		queue[i].shrink_to_fit();
-		currQueue[i].clear();
-		currQueue[i].shrink_to_fit();
-	}
+
+	queue.~vector();
+	currQueue.~vector();	
 	pendingBoards.clear();
 	pendingBoards.shrink_to_fit();
 
