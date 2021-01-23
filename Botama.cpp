@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
 	// std::cout << (U32)TableBase::wonOddBoards[board] << std::endl;
 
 	//GameCards cards = CardBoard::fetchGameCards({ "boar", "cobra", "crab", "crane", "dragon" });
-	//TableBase::init();
+	// TableBase::init();
 	//TableBase::generate(perftCards, 2);
 	//return 0;
 	// std::cout << board.eval(cards) << std::endl;
@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
 	TableBase::init();
 	
 	Game game = conn.waitGame();
-	std::thread TBThread(TableBase::generate, game.cards, 4);
+	std::thread TBThread(TableBase::generate, game.cards, 5);
 	TBThread.join();
 	
 	while (true) {
