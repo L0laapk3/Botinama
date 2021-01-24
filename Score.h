@@ -11,3 +11,5 @@ constexpr Score SCORE_WIN = 1 << 29;
 constexpr Score SCORE_QUIESCENCE_WIN_OFFSET = 1 << 27;
 
 constexpr Score SCORE_PIECE = (1 << 4);
+
+Score ScoreHalf(uint32_t bitboard, uint32_t kingBit);

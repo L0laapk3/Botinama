@@ -11,6 +11,7 @@
 #include "Card.h"
 #include "CardBoard.h"
 #include "TableBase.h"
+#include "MoveTable.h"
 #include "Connection.h"
 
 
@@ -50,16 +51,10 @@
 
 int main(int argc, char** argv) {
 
-	//GameCards shitCards = CardBoard::fetchGameCards({"horse", "eel", "boar", "ox", "crane"});
-	// TableBase::generate(shitCards, 4);
-	// Board board = Board::fromString("0002001000000300400000000", false);
-	// board.print(shitCards);
-	// std::cout << (int)TableBase::wonBoards[TableBase::compress6Men(board)*2+1] << std::endl;
-	// return 0;
-
 
 	// PERFT CARDS - 0269C
-	// GameCards perftCards = CardBoard::fetchGameCards({ "boar", "ox", "elephant", "horse", "crab" });
+	GameCards perftCards = CardBoard::fetchGameCards({ "boar", "ox", "elephant", "horse", "crab" });
+	
 
 	//GameCards bugCards = CardBoard::fetchGameCards({ "crab", "ox", "frog", "boar", "rabbit" });
 	//Board board = Board::fromString("4000000000000000000020000", true);
@@ -107,14 +102,16 @@ int main(int argc, char** argv) {
 
 	auto conn = Connection();
 	if (argc > 1)
-		conn.joinGame(argv[1]);
+		conn.sendJoin(argv[1]);
 	else
-		conn.createGame();
+		conn.sendCreate();
+
+	Game game = conn.loadGame();
 
 	TableBase::init();
-	
-	Game game = conn.waitGame();
-	std::thread TBThread(TableBase::generate, game.cards, 5);
+
+	std::thread TBThread(TableBase::generate, game.cards, 4);
+	game.moveTable = MoveTable::build(game.cards);
 	TBThread.join();
 	
 	while (true) {

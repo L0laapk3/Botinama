@@ -74,16 +74,16 @@ void Connection::handleJoinGame() {
 	std::cout << "https://git.io/onitama#spectate-" << matchId << std::endl;
 }
 
-void Connection::createGame() {
+void Connection::sendCreate() {
 	ws->send("create Botama");
 	handleJoinGame();
 }
-void Connection::joinGame(const std::string& matchId) {
+void Connection::sendJoin(const std::string& matchId) {
 	ws->send("join " + matchId + " Botama");
 	handleJoinGame();
 }
 
-Game Connection::waitGame() {
+Game Connection::loadGame() {
 	assert(ws->getReadyState() != easywsclient::WebSocket::CLOSED);
 
 	std::string boardStr = "";
@@ -103,13 +103,16 @@ Game Connection::waitGame() {
 				currentTurn = getString(message, "currentTurn") == (player ? "red" : "blue");
 			}
 		});
-		if (boardStr.size())
-			return {
+		if (boardStr.size()) {
+			return Game{
 				CardBoard::fetchGameCards(cards, player),
-				Board::fromString(boardStr, !currentTurn, player)
+				Board::fromString(boardStr, !currentTurn, player),
 			};
+		}
 	}
 }
+
+Game::Game(const GameCards cards, Board board) : cards(cards), board(board) { }
 
 void Connection::waitTurn(Game& game) {
 	std::string boardStr = "";

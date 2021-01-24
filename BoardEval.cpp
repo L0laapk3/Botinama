@@ -22,3 +22,12 @@ Score Board::eval(const GameCards& gameCards) const {
 
 	return score;
 }
+
+
+Score ScoreHalf(uint32_t bitboard, uint32_t kingBit) {
+	Score score = _popcnt32(bitboard) * SCORE_PIECE;
+	score += _popcnt32(bitboard & SCOREBITS[0]);
+	score += _popcnt32(bitboard & SCOREBITS[1]) * 2;
+	score += _popcnt32(bitboard & SCOREBITS[2]) * 4;
+	return score;
+}

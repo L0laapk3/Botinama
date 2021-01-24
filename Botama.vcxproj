@@ -99,6 +99,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="MoveTable.cpp" />
     <ClCompile Include="TableBase.cpp" />
     <ClCompile Include="Board.cpp" />
     <ClCompile Include="BoardEval.cpp" />
@@ -112,6 +113,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AtomicArray.h" />
+    <ClInclude Include="MoveTable.h" />
     <ClInclude Include="TableBase.h" />
     <ClInclude Include="BitScan.h" />
     <ClInclude Include="Board.h" />
