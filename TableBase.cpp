@@ -14,7 +14,7 @@
 
 constexpr U32 TABLESIZE = 25*25*26*26/2*26*26/2*30;
 
-bool TableBase::done = false;
+bool TableBase::done = true;
 std::vector<int8_t> TableBase::wonBoards{};
 std::vector<uint8_t> pendingBoards{};
 
@@ -254,6 +254,9 @@ void TableBase::init() {
 
 uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 
+	TableBase::init();
+
+	done = false;
 	std::cout << "generating " << men << " men endgame tablebases using " << queue.size() << " threads..." << std::endl;
 
 	U32 menPerSide = (men + 1) / 2;
@@ -361,7 +364,49 @@ U32 TableBase::compress6Men(const Board& board) {
 	return boardComp;
 }
 
-Board TableBase::decompress6Men(U32 boardComp) { // still bugged lol
+U32 TableBase::invertCompress6Men(const Board& board) {
+	U32 boardComp = 0;
+	U32 bluePieces = board.pieces & MASK_PIECES;
+	U32 redPieces = (board.pieces >> 32) & MASK_PIECES;
+	const U32 king = _pdep_u32(1 << ((board.pieces >> INDEX_KINGS[1]) & 7), redPieces);
+	const U32 otherKing = _pdep_u32(1 << ((board.pieces >> INDEX_KINGS[0]) & 7), bluePieces);
+	unsigned long kingI, otherKingI;
+	_BitScanForward(&kingI, king);
+	_BitScanForward(&otherKingI, otherKing);
+	boardComp = boardComp * 25 + otherKingI;
+	boardComp = boardComp * 25 + kingI;
+	bluePieces &= ~king;
+	redPieces &= ~otherKing;
+
+	unsigned long piece1I = 25, otherPiece1I = 25;
+	_BitScanReverse(&piece1I, bluePieces);
+	_BitScanReverse(&otherPiece1I, redPieces);
+	bluePieces &= ~(1 << piece1I);
+	redPieces &= ~(1 << otherPiece1I);
+	
+	unsigned long piece2I = 25, otherPiece2I = 25;
+	_BitScanReverse(&piece2I, bluePieces);
+	_BitScanReverse(&otherPiece2I, redPieces);
+	const U32 pieceValue = piece1I * 26 + piece2I;
+	const U32 otherPieceValue = otherPiece1I * 26 + otherPiece2I;
+	boardComp = boardComp * 26 * 13 + std::min(otherPieceValue, 26*26-1 - otherPieceValue);
+	boardComp = boardComp * 26 * 13 + std::min(pieceValue, 26*26-1 - pieceValue);
+
+
+	//boardComp = boardComp * 2  + ((pieces & MASK_TURN) >> INDEX_TURN);
+	boardComp = boardComp * 30 + CARDS_INVERT[((board.pieces & MASK_CARDS) >> INDEX_CARDS)];
+
+	//U64 decomp = decompress6Men(boardComp).pieces;
+	//if (decomp != (board.pieces & ~(U64)MASK_TURN)) {
+	//	std::cout << std::bitset<64>(board.pieces) << std::endl;
+	//	std::cout << std::bitset<64>(decomp) << std::endl;
+	//	assert(decomp == (board.pieces & ~(U64)MASK_TURN));
+	//}
+
+	return boardComp;
+}
+
+Board TableBase::decompress6Men(U32 boardComp) {
 	U64 pieces = 0;
 	pieces |= ((U64)boardComp % 30) << INDEX_CARDS;
 	boardComp /= 30;

@@ -38,6 +38,7 @@ namespace TableBase {
 	uint8_t generate(const GameCards& gameCards, const U32 maxMen);
 
 	U32 compress6Men(const Board& board);
+	U32 invertCompress6Men(const Board& board);
 	Board decompress6Men(U32 boardComp);
 
 }
