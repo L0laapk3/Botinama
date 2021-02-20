@@ -112,7 +112,6 @@
     <ClCompile Include="Connection.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AtomicArray.h" />
     <ClInclude Include="MoveTable.h" />
     <ClInclude Include="TableBase.h" />
     <ClInclude Include="BitScan.h" />

@@ -83,9 +83,6 @@
     <ClInclude Include="TableBase.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="AtomicArray.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="MoveTable.h">
       <Filter>Source Files</Filter>
     </ClInclude>

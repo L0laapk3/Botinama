@@ -55,12 +55,25 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 		// opponents move. All forward moves must lead to a loss first
 		// this function should only get called at most countForwardMoves times
 		//assert(wonBoards.end() == wonBoards.find(board));
+		// U32 invCompressedBoard = invertCompress6Men(board);
+		// int8_t moveCount = board.countForwardMoves(gameCards);
+		// if (reinterpret_cast<std::atomic<int8_t>&>(pendingBoards[invCompressedBoard]).compare_exchange_weak(zero, moveCount)) {
+		// 	exploreChildren = moveCount == 1;
+		// } else
+		// 	exploreChildren = reinterpret_cast<std::atomic<int8_t>&>(pendingBoards[invCompressedBoard]).fetch_sub(1) == 2;
+		// if (exploreChildren) {
+		// 	table[invCompressedBoard] = -depthVal;
+		// }
+
+		
 		U32 invCompressedBoard = invertCompress6Men(board);
-		int8_t moveCount = board.countForwardMoves(gameCards);
-		if (reinterpret_cast<std::atomic<int8_t>&>(pendingBoards[invCompressedBoard]).compare_exchange_weak(zero, moveCount)) {
-			exploreChildren = moveCount == 1;
+		auto& pending = reinterpret_cast<std::atomic<int8_t>&>(pendingBoards[invCompressedBoard]);
+		if (pending.compare_exchange_weak(zero, -1)) {
+			const int8_t moveCount = board.countForwardMoves(gameCards);
+			const int8_t hitCount = pending.fetch_add(moveCount + 1);
+			exploreChildren = -hitCount == moveCount;
 		} else
-			exploreChildren = reinterpret_cast<std::atomic<int8_t>&>(pendingBoards[invCompressedBoard]).fetch_sub(1) == 2;
+			exploreChildren = pending.fetch_sub(1) == 2;
 		if (exploreChildren) {
 			table[invCompressedBoard] = -depthVal;
 		}
@@ -248,7 +261,7 @@ void TableBase::init() {
 		currQueue[i].reserve(2E8 / numThreads);
 	}
 	table.resize(TABLESIZE, 0);
-	pendingBoards.resize(TABLESIZE, 0);
+	pendingBoards.resize(TABLESIZE);
 }
 
 uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
@@ -283,8 +296,7 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 	do {
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime2).count());
 		//printf("%9llu winning depth %2u boards in %6.2fs using %10llu lookups (%5.1fM lookups/s)\n", queue.size(), currDepth + 1, (float)time / 1000000, lookups, (float)lookups / time);
-		if ((float)time / 1000000 > 0.1)
-			printf("%9llu winning depth %3u boards in %6.2fs\n", total, currDepth + 1, (float)time / 1000000);
+		printf("%9llu winning depth %3u boards in %6.2fs\n", total, currDepth + 1, (float)time / 1000000);
 		wonCount += total;
 		beginTime2 = std::chrono::steady_clock::now();
 	} while ((total = singleDepth(gameCards)));
@@ -351,23 +363,12 @@ U32 TableBase::compress6Men(const Board& board) {
 	boardComp = boardComp * 26 * 13 + std::min(pieceValue, 26*26-1 - pieceValue);
 	boardComp = boardComp * 26 * 13 + std::min(otherPieceValue, 26*26-1 - otherPieceValue);
 
-
-	//boardComp = boardComp * 2  + ((pieces & MASK_TURN) >> INDEX_TURN);
 	boardComp = boardComp * 30 + ((board.pieces & MASK_CARDS) >> INDEX_CARDS);
-
-	//U64 decomp = decompress6Men(boardComp).pieces;
-	//if (decomp != (board.pieces & ~(U64)MASK_TURN)) {
-	//	std::cout << std::bitset<64>(board.pieces) << std::endl;
-	//	std::cout << std::bitset<64>(decomp) << std::endl;
-	//	assert(decomp == (board.pieces & ~(U64)MASK_TURN));
-	//}
 
 	return boardComp;
 }
 
 U32 TableBase::invertCompress6Men(const Board& board) {
-	return compress6Men(board.invert());
-
 	U32 boardComp = 0;
 	U32 bluePieces = board.pieces & MASK_PIECES;
 	U32 redPieces = (board.pieces >> 32) & MASK_PIECES;
@@ -376,35 +377,31 @@ U32 TableBase::invertCompress6Men(const Board& board) {
 	unsigned long kingI, otherKingI;
 	_BitScanForward(&kingI, king);
 	_BitScanForward(&otherKingI, otherKing);
-	boardComp = boardComp * 25 + otherKingI;
-	boardComp = boardComp * 25 + kingI;
+	boardComp = boardComp * 25 + 24 - otherKingI;
+	boardComp = boardComp * 25 + 24 - kingI;
 	bluePieces &= ~king;
 	redPieces &= ~otherKing;
 
-	unsigned long piece1I = 25, otherPiece1I = 25;
-	_BitScanForward(&piece1I, bluePieces);
-	_BitScanForward(&otherPiece1I, redPieces);
-	bluePieces &= ~(1 << piece1I);
-	redPieces &= ~(1 << otherPiece1I);
+	unsigned long piece1I = 0, otherPiece1I = 0;
+	_BitScanReverse(&piece1I, bluePieces << 1);
+	_BitScanReverse(&otherPiece1I, redPieces << 1);
+	bluePieces &= ~(1 << (piece1I - 1));
+	redPieces &= ~(1 << (otherPiece1I - 1));
+	piece1I = 25 - piece1I;
+	otherPiece1I = 25 - otherPiece1I;
 	
-	unsigned long piece2I = 25, otherPiece2I = 25;
-	_BitScanForward(&piece2I, bluePieces);
-	_BitScanForward(&otherPiece2I, redPieces);
+	unsigned long piece2I = 0, otherPiece2I = 0;
+	_BitScanReverse(&piece2I, bluePieces << 1);
+	_BitScanReverse(&otherPiece2I, redPieces << 1);
+	piece2I = 25 - piece2I;
+	otherPiece2I = 25 - otherPiece2I;
+
 	const U32 pieceValue = piece1I * 26 + piece2I;
 	const U32 otherPieceValue = otherPiece1I * 26 + otherPiece2I;
 	boardComp = boardComp * 26 * 13 + std::min(otherPieceValue, 26*26-1 - otherPieceValue);
 	boardComp = boardComp * 26 * 13 + std::min(pieceValue, 26*26-1 - pieceValue);
 
-
-	//boardComp = boardComp * 2  + ((pieces & MASK_TURN) >> INDEX_TURN);
 	boardComp = boardComp * 30 + CARDS_INVERT[(board.pieces & MASK_CARDS) >> INDEX_CARDS];
-
-	//U64 decomp = decompress6Men(boardComp).pieces;
-	//if (decomp != (board.pieces & ~(U64)MASK_TURN)) {
-	//	std::cout << std::bitset<64>(board.pieces) << std::endl;
-	//	std::cout << std::bitset<64>(decomp) << std::endl;
-	//	assert(decomp == (board.pieces & ~(U64)MASK_TURN));
-	//}
 
 	return boardComp;
 }
