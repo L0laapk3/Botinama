@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
 	// PERFT CARDS - 0269C
 	GameCards perftCards = CardBoard::fetchGameCards({ "boar", "ox", "elephant", "horse", "crab" });
 	
-	if (0) {
+	if (1) {
 		TableBase::init();
 		TableBase::generate(perftCards, 4);
 		return 0;

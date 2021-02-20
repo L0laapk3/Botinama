@@ -55,12 +55,12 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 		//assert(wonBoards.end() == wonBoards.find(board));
 		// U32 invCompressedBoard = invertCompress6Men(board);
 		// int8_t moveCount = board.countForwardMoves(gameCards);
-		// if (reinterpret_cast<std::atomic<int8_t>&>(pendingBoards[invCompressedBoard]).compare_exchange_weak(zero, moveCount)) {
+		// if ((*pendingBoards)[invCompressedBoard].compare_exchange_weak(zero, moveCount)) {
 		// 	exploreChildren = moveCount == 1;
 		// } else
-		// 	exploreChildren = reinterpret_cast<std::atomic<int8_t>&>(pendingBoards[invCompressedBoard]).fetch_sub(1) == 2;
+		// 	exploreChildren = (*pendingBoards)[invCompressedBoard].fetch_sub(1) == 2;
 		// if (exploreChildren) {
-		// 	table[invCompressedBoard] = -depthVal;
+		// 	(*table)[invCompressedBoard] = -depthVal;
 		// }
 
 		
@@ -107,7 +107,7 @@ void TableBase::firstDepthThread(const GameCards& gameCards, const int maxMen, c
 	{ // all temple wins
 		U32 king = MASK_END_POSITIONS[0];
 		Board board{ king | MASK_TURN };
-		int i = 30 * threadNum / queue.size();
+		int i = threadNum / queue.size();
 		board.pieces += i << INDEX_CARDS;
 		for (; i < 30 * (threadNum + 1) / queue.size(); i++) {
 			board.reverseMoves<*placePiecesTemple>(gameCards, maxMen, 0, threadNum, 0);
@@ -277,6 +277,7 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 
 	for (myMaxPawns = 0; myMaxPawns <= maxMenPerSide - 1; myMaxPawns++)
 		for (otherMaxPawns = 0; otherMaxPawns <= std::min(maxMenPerSide - 1, maxMen - myMaxPawns - 2); otherMaxPawns++) {
+			
 			std::vector<std::thread> threads;
 			for (int i = 0; i < queue.size(); i++)
 				threads.push_back(std::thread(firstDepthThread, std::ref(gameCards), maxMen, i));
