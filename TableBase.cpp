@@ -12,11 +12,9 @@
 
 
 
-constexpr U32 TABLESIZE = 25*25*26*26/2*26*26/2*30;
-
 bool TableBase::done = true;
-std::vector<int8_t> TableBase::table{};
-std::vector<uint8_t> pendingBoards{};
+std::unique_ptr<std::array<std::atomic<int8_t>, TableBase::TABLESIZE>> TableBase::table = std::make_unique<std::array<std::atomic<int8_t>, TableBase::TABLESIZE>>();
+std::unique_ptr<std::array<std::atomic<int8_t>, TableBase::TABLESIZE>> pendingBoards;
 
 std::vector<std::vector<Board>> queue{};
 std::vector<std::vector<Board>> currQueue{};
@@ -49,7 +47,7 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 		// you played this move, immediately add it to won boards
 		// only insert and iterate if it doesnt already exist (keeps lowest distance)
 		U32 compressedBoard = compress6Men(board);
-		exploreChildren = reinterpret_cast<std::atomic<int8_t>&>(table[compressedBoard]).compare_exchange_weak(zero, depthVal);
+		exploreChildren = (*table)[compressedBoard].compare_exchange_weak(zero, depthVal);
 
 	} else {
 		// opponents move. All forward moves must lead to a loss first
@@ -67,16 +65,15 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 
 		
 		U32 invCompressedBoard = invertCompress6Men(board);
-		auto& pending = reinterpret_cast<std::atomic<int8_t>&>(pendingBoards[invCompressedBoard]);
+		auto& pending = (*pendingBoards)[invCompressedBoard];
 		if (pending.compare_exchange_weak(zero, -1)) {
 			const int8_t moveCount = board.countForwardMoves(gameCards);
 			const int8_t hitCount = pending.fetch_add(moveCount + 1);
 			exploreChildren = -hitCount == moveCount;
 		} else
 			exploreChildren = pending.fetch_sub(1) == 2;
-		if (exploreChildren) {
-			table[invCompressedBoard] = -depthVal;
-		}
+		if (exploreChildren)
+			(*table)[invCompressedBoard] = -depthVal;
 	}
 	if (exploreChildren) {
 		//mtx.lock();
@@ -253,15 +250,14 @@ void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, 
 
 void TableBase::init() {
 	currDepth = 0;
-	const U32 numThreads = 1;//std::max<U32>(1, std::thread::hardware_concurrency());
+	const U32 numThreads = std::max<U32>(1, std::thread::hardware_concurrency());
 	queue.resize(numThreads);
 	currQueue.resize(numThreads);
 	for (int i = 0; i < numThreads; i++) {
 		queue[i].reserve(2E8 / numThreads);
 		currQueue[i].reserve(2E8 / numThreads);
 	}
-	table.resize(TABLESIZE, 0);
-	pendingBoards.resize(TABLESIZE);
+	pendingBoards = std::make_unique<std::array<std::atomic<int8_t>, TableBase::TABLESIZE>>();
 }
 
 uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
@@ -303,13 +299,12 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 	
 	auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 	//std::cout << wonb (float)time / 1000 << "ms" << std::endl;
-	printf("%9llu winning boards in %.3fs (%.0fk/s)\n", wonCount, (float)time / 1000000, (float)wonCount * 1000 / time);
+	printf("%9llu winning boards in %.3fs (%.2fM/s)\n", wonCount, (float)time / 1000000, (float)wonCount / time);
 
 
 	queue.~vector();
 	currQueue.~vector();	
-	pendingBoards.clear();
-	pendingBoards.shrink_to_fit();
+	pendingBoards.~unique_ptr();
 
 	beginTime = std::chrono::steady_clock::now();
 	//U32 last = 0;
