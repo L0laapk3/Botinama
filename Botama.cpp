@@ -6,6 +6,7 @@
 #include <chrono>
 #include <algorithm>
 #include <thread>
+#include <atomic>
 
 #include "Board.h"
 #include "Card.h"

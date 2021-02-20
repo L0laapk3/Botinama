@@ -43,33 +43,29 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 	if (finished)
 		return;
 
-	U32 compressedBoard = compress6Men(board);
-	U32 invCompressedBoard = invertCompress6Men(board);
 	//board.print(gameCards);
 	bool exploreChildren = false;
 	if (isMine) {
 		// you played this move, immediately add it to won boards
 		// only insert and iterate if it doesnt already exist (keeps lowest distance)
-		exploreChildren = reinterpret_cast<std::atomic<int8_t>&>(table[compressedBoard*2+isMine]).compare_exchange_weak(zero, depthVal);
-		if (exploreChildren)
-			table[invCompressedBoard*2+!isMine] = -depthVal;
+		U32 compressedBoard = compress6Men(board);
+		exploreChildren = reinterpret_cast<std::atomic<int8_t>&>(table[compressedBoard]).compare_exchange_weak(zero, depthVal);
 
 	} else {
 		// opponents move. All forward moves must lead to a loss first
 		// this function should only get called at most countForwardMoves times
 		//assert(wonBoards.end() == wonBoards.find(board));
+		U32 invCompressedBoard = invertCompress6Men(board);
 		int8_t moveCount = board.countForwardMoves(gameCards);
-		if (reinterpret_cast<std::atomic<int8_t>&>(pendingBoards[compressedBoard]).compare_exchange_weak(zero, moveCount)) {
+		if (reinterpret_cast<std::atomic<int8_t>&>(pendingBoards[invCompressedBoard]).compare_exchange_weak(zero, moveCount)) {
 			exploreChildren = moveCount == 1;
 		} else
-			exploreChildren = reinterpret_cast<std::atomic<int8_t>&>(pendingBoards[compressedBoard]).fetch_sub(1) == 2;
+			exploreChildren = reinterpret_cast<std::atomic<int8_t>&>(pendingBoards[invCompressedBoard]).fetch_sub(1) == 2;
 		if (exploreChildren) {
-			table[compressedBoard*2+isMine] = depthVal;
-			table[invCompressedBoard*2+!isMine] = -depthVal;
+			table[invCompressedBoard] = -depthVal;
 		}
 	}
 	if (exploreChildren) {
-		assert(table[compress6Men(board)*2+isMine] == -table[invertCompress6Men(board)*2+!isMine]);
 		//mtx.lock();
 		queue[threadNum].push_back(board);
 		//mtx.unlock();
@@ -167,6 +163,7 @@ U64 TableBase::singleDepth(const GameCards& gameCards) {
 	U64 total = 0;
 	for (int i = 0; i < queue.size(); i++)
 		threads[i].join();
+	atomic_thread_fence(std::memory_order_acq_rel);
 	for (int i = 0; i < queue.size(); i++) {
 		currQueue[i].clear();
 		total += queue[i].size();
@@ -243,15 +240,15 @@ void TableBase::placePiecesDead(const GameCards& gameCards, const Board& board, 
 
 void TableBase::init() {
 	currDepth = 0;
-	const U32 numThreads = std::max<U32>(1, std::thread::hardware_concurrency());
+	const U32 numThreads = 1;//std::max<U32>(1, std::thread::hardware_concurrency());
 	queue.resize(numThreads);
 	currQueue.resize(numThreads);
 	for (int i = 0; i < numThreads; i++) {
 		queue[i].reserve(2E8 / numThreads);
 		currQueue[i].reserve(2E8 / numThreads);
 	}
-	table.resize(TABLESIZE*2, 0);
-	pendingBoards.resize(TABLESIZE);
+	table.resize(TABLESIZE, 0);
+	pendingBoards.resize(TABLESIZE, 0);
 }
 
 uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
@@ -276,6 +273,7 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 				threads.push_back(std::thread(firstDepthThread, std::ref(gameCards), maxMen, i));
 			for (int i = 0; i < queue.size(); i++)
 				threads[i].join();
+			atomic_thread_fence(std::memory_order_acq_rel);
 		}
 
 	U64 wonCount = 0;
@@ -285,7 +283,8 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 	do {
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime2).count());
 		//printf("%9llu winning depth %2u boards in %6.2fs using %10llu lookups (%5.1fM lookups/s)\n", queue.size(), currDepth + 1, (float)time / 1000000, lookups, (float)lookups / time);
-		printf("%9llu winning depth %3u boards in %6.2fs\n", total, currDepth + 1, (float)time / 1000000);
+		if ((float)time / 1000000 > 0.1)
+			printf("%9llu winning depth %3u boards in %6.2fs\n", total, currDepth + 1, (float)time / 1000000);
 		wonCount += total;
 		beginTime2 = std::chrono::steady_clock::now();
 	} while ((total = singleDepth(gameCards)));

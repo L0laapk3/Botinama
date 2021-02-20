@@ -81,15 +81,15 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 						bool TBHit = false;
 						if (_popcnt32(board.pieces & MASK_PIECES) <= 3 && _popcnt64(board.pieces & (MASK_PIECES << 32)) <= 3) {
 
-							const int8_t result1 = TableBase::table[TableBase::compress6Men(board)*2+player];
-							const int8_t result2 = -TableBase::table[TableBase::invertCompress6Men(board)*2+!player];
-							if (result1 != result2)
-								std::cout << "wrong! " << (S32)result1 << ' ' << (S32)result2 << std::endl;
-							const int8_t resulta = player ? result1 : result2;
-							const int8_t resultb = !player ? result1 : result2;
-							if (resulta != resultb)
-								std::cout << "wrong2! " << (S32)resulta << ' ' << (S32)resultb << std::endl;
-							const int8_t result = resulta;
+							// const int8_t result1 = TableBase::table[TableBase::compress6Men(board)*2+player];
+							// const int8_t result2 = -TableBase::table[TableBase::invertCompress6Men(board)*2+!player];
+							// if (result1 != result2)
+							// 	std::cout << "wrong! " << (S32)result1 << ' ' << (S32)result2 << std::endl;
+							// const int8_t resulta = player ? result1 : result2;
+							// const int8_t resultb = !player ? result1 : result2;
+							// if (resulta != resultb)
+							// 	std::cout << "wrong2! " << (S32)resulta << ' ' << (S32)resultb << std::endl;
+							const int8_t result = player ? TableBase::table[TableBase::compress6Men(board)] : -TableBase::table[TableBase::invertCompress6Men(board)];
 							if (result != 0) {
 								uint16_t depth = (result > 0 ? result : -result) << 1;
 								Score score = SCORE_WIN + maxDepth - depth;
