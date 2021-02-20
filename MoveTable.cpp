@@ -83,6 +83,8 @@ void generateCombinations(const GameCards& gameCards, TranslationTable& tt, std:
 
 
 std::unique_ptr<MoveTable::MoveTable> MoveTable::build(const GameCards& gameCards) {
+
+    return std::make_unique<MoveTable>();
     
     std::cout << "building movetables" << std::endl;
 

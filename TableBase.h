@@ -21,7 +21,7 @@ namespace TableBase {
 
 	extern bool done;
 
-	extern std::vector<int8_t> wonBoards;
+	extern std::vector<int8_t> table;
 
 	template<bool isMine>
 	void addToTables(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal, const int threadNum);

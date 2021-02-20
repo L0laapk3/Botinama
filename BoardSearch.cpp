@@ -80,8 +80,16 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 					} else {
 						bool TBHit = false;
 						if (_popcnt32(board.pieces & MASK_PIECES) <= 3 && _popcnt64(board.pieces & (MASK_PIECES << 32)) <= 3) {
-							const U32 boardComp = TableBase::compress6Men(board)*2+player;
-							const int8_t result = TableBase::wonBoards[boardComp];
+
+							const int8_t result1 = TableBase::table[TableBase::compress6Men(board)*2+player];
+							const int8_t result2 = -TableBase::table[TableBase::invertCompress6Men(board)*2+!player];
+							if (result1 != result2)
+								std::cout << "wrong! " << (S32)result1 << ' ' << (S32)result2 << std::endl;
+							const int8_t resulta = player ? result1 : result2;
+							const int8_t resultb = !player ? result1 : result2;
+							if (resulta != resultb)
+								std::cout << "wrong2! " << (S32)resulta << ' ' << (S32)resultb << std::endl;
+							const int8_t result = resulta;
 							if (result != 0) {
 								uint16_t depth = (result > 0 ? result : -result) << 1;
 								Score score = SCORE_WIN + maxDepth - depth;
@@ -202,7 +210,7 @@ bool Board::searchWinIn(const GameCards& gameCards, const U16 depth) const {
 
 constexpr U32 startDepth = 0;
 constexpr U32 minDepth = 4;
-SearchResult Board::searchTime(const GameCards& cards, const U64 timeBudget, const int verboseLevel, const int expectedDepth) const {
+SearchResult Board::searchTime(const GameCards& cards, const U32 turn, const U64 timeBudget, const int verboseLevel, const int expectedDepth) const {
 	if (verboseLevel >= 2)
 		print(cards);
 	auto lastTime = 1ULL;
@@ -235,11 +243,11 @@ SearchResult Board::searchTime(const GameCards& cards, const U64 timeBudget, con
 
 		if ((verboseLevel >= 1 && lastIteration) || verboseLevel >= 2) {
 			if (timeBudget >= 1000)
-				printf("depth %2i in %.2fs (%9llu, %2lluM/s, EBF=%5.2f): ", depth, (float)time / 1E6, result.total, result.total / time, std::pow(result.total, 1. / depth));
+				printf("%2i. depth %2i in %.2fs (%9llu, %2lluM/s, EBF=%5.2f): ", turn, depth, (float)time / 1E6, result.total, result.total / time, std::pow(result.total, 1. / depth));
 			else if (timeBudget >= 10)
-				printf("depth %2i in %3.0fms (%9llu, %2lluM/s, EBF=%5.2f): ", depth, (float)time / 1E3, result.total, result.total / time, std::pow(result.total, 1. / depth));
+				printf("%2i. depth %2i in %3.0fms (%9llu, %2lluM/s, EBF=%5.2f): ", turn, depth, (float)time / 1E3, result.total, result.total / time, std::pow(result.total, 1. / depth));
 			else
-				printf("depth %2i in %.1fms (%9llu, %2lluM/s, EBF=%5.2f): ", depth, (float)time / 1E3, result.total, result.total / time, std::pow(result.total, 1. / depth));
+				printf("%2i. depth %2i in %.1fms (%9llu, %2lluM/s, EBF=%5.2f): ", turn, depth, (float)time / 1E3, result.total, result.total / time, std::pow(result.total, 1. / depth));
 			if (foundProbableWin) {
 				bool isLoss = result.score < 0;
 				std::cout << (isLoss ? "lose" : "win") << " in " << ((end & ~1) | !isLoss);

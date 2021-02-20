@@ -55,6 +55,11 @@ int main(int argc, char** argv) {
 	// PERFT CARDS - 0269C
 	GameCards perftCards = CardBoard::fetchGameCards({ "boar", "ox", "elephant", "horse", "crab" });
 	
+	if (0) {
+		TableBase::init();
+		TableBase::generate(perftCards, 4);
+		return 0;
+	}
 
 	//GameCards bugCards = CardBoard::fetchGameCards({ "crab", "ox", "frog", "boar", "rabbit" });
 	//Board board = Board::fromString("4000000000000000000020000", true);
@@ -114,11 +119,12 @@ int main(int argc, char** argv) {
 	game.moveTable = MoveTable::build(game.cards);
 	TBThread.join();
 	
+	U32 turn = 0;
 	while (true) {
 		// game.board.print(game.cards);
 		// std::cout << game.board.eval(game.cards) << std::endl;
 		if (!game.board.currentPlayer()) {
-			auto bestMove = game.board.searchTime(game.cards, TableBase::done ? 1000 : 25000, 1);
+			auto bestMove = game.board.searchTime(game.cards, ++turn, TableBase::done ? 1000 : 25000, 1);
 			conn.submitMove(game, bestMove.board);
 		}
 
