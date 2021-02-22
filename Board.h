@@ -17,8 +17,6 @@
 class Board;
 typedef void (*MoveFunc)(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal, const int threadNum);
 
-struct SearchResult;
-
 
 class Board {
 public:
@@ -42,7 +40,6 @@ public:
 
 	uint8_t countForwardMoves(const GameCards& gameCards) const;
 	bool winInOne(const GameCards& gameCards) const;
-	bool searchWinIn(const GameCards& gameCards, const U16 depth) const;
 	uint8_t winInTwo(const GameCards& gameCards) const;
 
 	Score eval(const GameCards& gameCards) const;
@@ -59,14 +56,6 @@ public:
 	template<MoveFunc cb>
 	void reverseMoves(const GameCards& gameCards, const U32 maxMen, const U32 maxMenPerSide, const int8_t depthVal, const int threadNum) const;
 
-
-	//BoardSearch
-	template<bool quiescent>
-	SearchResult search(const GameCards& gameCards, S32 maxDepth, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX) const;
-	SearchResult searchTime(const GameCards& cards, U32 turn, const U64 timeBudget, const int verboseLevel = 1, const int expectedDepth = -1) const;
-private:
-	SearchResult search(const bool quiescent, const GameCards& gameCards, S32 maxDepth, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX) const;
-
 };
 
 struct BoardHash {
@@ -81,13 +70,6 @@ struct BoardHash {
 	// size_t operator()(const Board& b) const {
 	// 	return std::hash<U64>()(b.pieces);
 	// }
-};
-
-
-struct SearchResult {
-	Score score;
-	Board board;
-	U64 total;
 };
 
 

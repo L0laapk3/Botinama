@@ -13,8 +13,8 @@
 
 
 bool TableBase::done = true;
-std::unique_ptr<std::array<std::atomic<int8_t>, TableBase::TABLESIZE>> TableBase::table = std::make_unique<std::array<std::atomic<int8_t>, TableBase::TABLESIZE>>();
-std::unique_ptr<std::array<std::atomic<int8_t>, TableBase::TABLESIZE>> pendingBoards;
+std::unique_ptr<std::array<std::atomic<int8_t>, TableBase::TBSIZE>> TableBase::table = std::make_unique<std::array<std::atomic<int8_t>, TableBase::TBSIZE>>();
+std::unique_ptr<std::array<std::atomic<int8_t>, TableBase::TBSIZE>> pendingBoards = nullptr;
 
 std::vector<std::vector<Board>> queue{};
 std::vector<std::vector<Board>> currQueue{};
@@ -231,7 +231,7 @@ void TableBase::init() {
 		queue[i].reserve(2E8 / numThreads);
 		currQueue[i].reserve(2E8 / numThreads);
 	}
-	pendingBoards = std::make_unique<std::array<std::atomic<int8_t>, TableBase::TABLESIZE>>();
+	pendingBoards = std::make_unique<std::array<std::atomic<int8_t>, TableBase::TBSIZE>>();
 }
 
 uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {

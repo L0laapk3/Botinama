@@ -1,7 +1,4 @@
 #include "Game.h"
-
-#include "TableBase.h"
-
 #include <bitset>
 
 

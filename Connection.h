@@ -4,16 +4,17 @@
 #include <memory>
 #include <array>
 
+#include "Game.h"
 #include "Board.h"
 #include "CardBoard.h"
 #include "MoveTable.h"
 
-struct Game {
-	Game(const GameCards cards, Board board);
-	const GameCards cards;
-	std::unique_ptr<MoveTable::MoveTable> moveTable;
-	Board board;
-};
+// struct Game {
+// 	Game(const GameCards cards, Board board);
+// 	const GameCards cards;
+// 	std::unique_ptr<MoveTable::MoveTable> moveTable;
+// 	Board board;
+// };
 
 class Connection {
 public:

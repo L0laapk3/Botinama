@@ -8,6 +8,7 @@
 #include <thread>
 #include <atomic>
 
+#include "Game.h"
 #include "Board.h"
 #include "Card.h"
 #include "CardBoard.h"
@@ -119,13 +120,14 @@ int main(int argc, char** argv) {
 	TableBase::init();
 	std::thread TBThread(TableBase::generate, game.cards, 4);
 	TBThread.join();
+	game.transpositionTable.init();
 	
 	U32 turn = 0;
 	while (true) {
 		// game.board.print(game.cards);
 		// std::cout << game.board.eval(game.cards) << std::endl;
 		if (!game.board.currentPlayer()) {
-			auto bestMove = game.board.searchTime(game.cards, ++turn, TableBase::done ? 1000 : 45000, 1);
+			auto bestMove = game.searchTime(game.board, ++turn, TableBase::done ? 1000 : 45000, 1);
 			conn.submitMove(game, bestMove.board);
 		}
 

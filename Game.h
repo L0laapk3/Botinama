@@ -3,15 +3,16 @@
 #include "Card.h"
 #include "CardBoard.h"
 #include "Board.h"
-#include "MoveTable.h"
+// #include "MoveTable.h"
+#include "TranspositionTable.h"
 
 #include <thread>
 
 
+
 struct SearchResult {
 	Score score;
-	uint32_t bitboard;
-	uint32_t cardI;
+	Board board;
 	U64 total;
 };
 
@@ -22,16 +23,20 @@ public:
 	Game(const GameCards cards, Board board);
 	const GameCards cards;
 	Board board;
+	TranspositionTable transpositionTable;
 private:
     std::thread TBThread;
 public:
-    MoveTable moveTable;
+    // MoveTable moveTable;
+
+public:
+	U64 perft (S32 maxDepth) const;	
+
 
 private:
-	template<bool quiescent>
-	SearchResult search(S32 maxDepth, HalfInfo* currHalfBoard, HalfInfo* otherHalfBoard, const CardsPos& cardsPos, Score alpha, const Score beta) const;
+	SearchResult search(const bool quiescent, const Board& board, S32 maxDepth, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX) const;
 public:
-	U64 perft (S32 maxDepth) const;
-	SearchResult search(S32 maxDepth) const;
-	SearchResult searchTime(const U64 timeBudget, const int verboseLevel = 1, const int expectedDepth = -1) const;
+	template<bool quiescent>
+	SearchResult search(const Board& board, S32 maxDepth, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX) const;
+	SearchResult searchTime(const Board& board, U32 turn, const U64 timeBudget, const int verboseLevel = 1, const int expectedDepth = -1) const;
 };

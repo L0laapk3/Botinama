@@ -1,19 +1,19 @@
 
-#include "Board.h"
+#include "Game.h"
 #include <algorithm>
 #include <chrono>
 
 #include "TableBase.h"
 
 
-SearchResult Board::search(const bool quiescent, const GameCards& gameCards, S32 maxDepth, Score alpha, const Score beta) const {
-	return quiescent ? Board::search<true>(gameCards, maxDepth, alpha, beta) : Board::search<false>(gameCards, maxDepth, alpha, beta);
+SearchResult Game::search(const bool quiescent, const Board& board, S32 maxDepth, Score alpha, const Score beta) const {
+	return quiescent ? search<true>(board, maxDepth, alpha, beta) : search<false>(board, maxDepth, alpha, beta);
 }
 
 template<bool quiescent>
-SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha, const Score beta) const {
+SearchResult Game::search(const Board& board, S32 maxDepth, Score alpha, const Score beta) const {
 	// negamax with alpha beta pruning
-	bool player = pieces & MASK_TURN;
+	bool player = board.pieces & MASK_TURN;
 
 	maxDepth--;
 
@@ -23,7 +23,7 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 	Score bestScore = SCORE_MIN;
 
 	if (quiescent) {
-		Score standingPat = (player ? -1 : 1) * eval(gameCards);		
+		Score standingPat = (player ? -1 : 1) * board.eval(cards);
 		if (standingPat >= beta)
 			return { beta, 0, total };
 		if (alpha < standingPat)
@@ -34,18 +34,18 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 	
 	// Ive spent too many hours trying to get generator functions to compile since i want lazy move generation
 	// fuck it, just copy pasting the movegen in here
-	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
-	U64 piecesWithoutCards = pieces & ~MASK_CARDS;
+	const CardsPos& cardsPos = CARDS_LUT[(board.pieces & MASK_CARDS) >> INDEX_CARDS];
+	U64 piecesWithoutCards = board.pieces & ~MASK_CARDS;
 	piecesWithoutCards ^= MASK_TURN; // invert player bit
 	for (int taking = 1; taking >= (quiescent ? 1 : 0); taking--) {
 		U32 cardStuff = cardsPos.players[player];
-		const U32 takeMask = ~(pieces >> (player ? 32 : 0)) & (pieces >> (player ? 0 : 32) ^ (taking ? 0 : ~0));
-		const U32 kingMask = ~(pieces >> (player ? 32 : 0)) & ((pieces >> (player ? 0 : 32) | MASK_END_POSITIONS[player]) ^ (taking ? 0 : ~0));
+		const U32 takeMask = ~(board.pieces >> (player ? 32 : 0)) & (board.pieces >> (player ? 0 : 32) ^ (taking ? 0 : ~0));
+		const U32 kingMask = ~(board.pieces >> (player ? 32 : 0)) & ((board.pieces >> (player ? 0 : 32) | MASK_END_POSITIONS[player]) ^ (taking ? 0 : ~0));
 		for (int i = 0; i < 2; i++) {
 			unsigned long cardI = cardStuff & 0xff;
 			U64 piecesWithNewCards = piecesWithoutCards | (((U64)cardStuff & 0xff00) << (INDEX_CARDS - 8ULL));
 			cardStuff >>= 16;
-			const auto& moveBoard = gameCards[cardI].moveBoards[player];
+			const auto& moveBoard = cards[cardI].moveBoards[player];
 			U32 bitScan = (piecesWithNewCards >> (player ? 32 : 0)) & MASK_PIECES;
 			U32 kingPieceNum = (piecesWithNewCards >> INDEX_KINGS[player]) & 7;
 			const U32 opponentKingPieceNum = (piecesWithNewCards >> INDEX_KINGS[!player]) & 7;
@@ -66,12 +66,12 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 				while (scan) {
 					const U32 landBit = scan & -scan;
 					scan -= landBit;
-					Board board = Board{ newPiecesWithoutLandPiece };
-					board.pieces |= ((U64)landBit) << (player ? 32 : 0);	 // add arrival piece
-					board.pieces &= ~(((U64)landBit) << (player ? 0 : 32)); // possible take piece
-					const U32 beforeKingPieces = (board.pieces >> (player ? 32 : 0)) & (isKingMove ? landBit - 1 : beforeKingMask);
-					board.pieces |= ((U64)_popcnt32(beforeKingPieces)) << INDEX_KINGS[player];
-					board.pieces |= ((U64)_popcnt32(opponentBeforeKingPieces & ~landBit)) << INDEX_KINGS[!player];
+					Board newBoard = Board{ newPiecesWithoutLandPiece };
+					newBoard.pieces |= ((U64)landBit) << (player ? 32 : 0);	 // add arrival piece
+					newBoard.pieces &= ~(((U64)landBit) << (player ? 0 : 32)); // possible take piece
+					const U32 beforeKingPieces = (newBoard.pieces >> (player ? 32 : 0)) & (isKingMove ? landBit - 1 : beforeKingMask);
+					newBoard.pieces |= ((U64)_popcnt32(beforeKingPieces)) << INDEX_KINGS[player];
+					newBoard.pieces |= ((U64)_popcnt32(opponentBeforeKingPieces & ~landBit)) << INDEX_KINGS[!player];
 					const bool finished = landBit & endMask;
 					// end of movegen
 					// beginning of negamax
@@ -82,8 +82,9 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 						total++;
 					} else {
 						bool TBHit = false;
-						if (_popcnt32(board.pieces & MASK_PIECES) <= 3 && _popcnt64(board.pieces & (MASK_PIECES << 32)) <= 3) {
-							const int8_t result = player ? (int8_t)(*TableBase::table)[TableBase::compress6Men(board)] : -(int8_t)(*TableBase::table)[TableBase::invertCompress6Men(board)];
+							
+						if (_popcnt32(newBoard.pieces & MASK_PIECES) <= 3 && _popcnt64(newBoard.pieces & (MASK_PIECES << 32)) <= 3) {
+							const int8_t result = player ? (int8_t)(*TableBase::table)[TableBase::compress6Men(newBoard)] : -(int8_t)(*TableBase::table)[TableBase::invertCompress6Men(newBoard)];
 							if (result != 0) {
 								uint16_t depth = (result > 0 ? result : -result) << 1;
 								Score score = SCORE_WIN + maxDepth - depth;
@@ -95,13 +96,15 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 							}
 						}
 						if (!TBHit) {
+							// const auto& history = 
+
 							SearchResult childSearch;
 							if (!foundAny) { // PVS
-								childSearch = board.search(!maxDepth || quiescent, gameCards, maxDepth, -beta, -alpha);
+								childSearch = search(!maxDepth || quiescent, newBoard, maxDepth, -beta, -alpha);
 							} else {
-								childSearch = board.search(!maxDepth || quiescent, gameCards, maxDepth, -alpha - 1, -alpha);
+								childSearch = search(!maxDepth || quiescent, newBoard, maxDepth, -alpha - 1, -alpha);
 								if (alpha < -childSearch.score && -childSearch.score < beta) // PVS failed
-									childSearch = board.search(!maxDepth || quiescent, gameCards, maxDepth, -beta, childSearch.score);
+									childSearch = search(!maxDepth || quiescent, newBoard, maxDepth, -beta, childSearch.score);
 							}
 							childScore = -childSearch.score;
 							total += childSearch.total;
@@ -112,13 +115,13 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 
 					if (quiescent) {
 						if (childScore >= beta)
-							return { beta, board, total };
+							return { beta, newBoard, total };
 						if (childScore > alpha)
 							alpha = childScore;
 					} else {
 						if (childScore > bestScore) {
 							bestScore = childScore;
-							bestBoard = board;
+							bestBoard = newBoard;
 							if (childScore > alpha) {
 								alpha = childScore;
 								if (alpha >= beta)
@@ -143,69 +146,69 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 
 
 
-// only works at finding wins for blue, made for TB gen
-bool Board::searchWinIn(const GameCards& gameCards, const U16 depth) const {
-	bool player = pieces & MASK_TURN;
-	if (depth == 1)
-		return winInOne(gameCards);
+// // only works at finding wins for blue, made for TB gen
+// bool Board::searchWinIn(const GameCards& gameCards, const U16 depth) const {
+// 	bool player = pieces & MASK_TURN;
+// 	if (depth == 1)
+// 		return winInOne(gameCards);
 
 
-	// same story as before, just copied from there..
-	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
-	U64 piecesWithoutCards = pieces & ~MASK_CARDS;
-	piecesWithoutCards ^= MASK_TURN; // invert player bit
-	for (int taking = 1; taking >= 0; taking--) {
-		U32 cardStuff = cardsPos.players[player];
-		const U32 takeMask = ~(pieces >> (player ? 32 : 0)) & (pieces >> (player ? 0 : 32) ^ (taking ? 0 : ~0));
-		const U32 kingMask = MASK_END_POSITIONS[player] ^ (taking ? 0 : ~0);
-		for (int i = 0; i < 2; i++) {
-			unsigned long cardI = cardStuff & 0xff;
-			U64 piecesWithNewCards = piecesWithoutCards | (((U64)cardStuff & 0xff00) << (INDEX_CARDS - 8ULL));
-			cardStuff >>= 16;
-			const auto& moveBoard = gameCards[cardI].moveBoards[player];
-			U32 bitScan = (piecesWithNewCards >> (player ? 32 : 0)) & MASK_PIECES;
-			U32 kingPieceNum = (piecesWithNewCards >> INDEX_KINGS[player]) & 7;
-			const U32 opponentKingPieceNum = (piecesWithNewCards >> INDEX_KINGS[!player]) & 7;
-			const U32 beforeKingMask = _pdep_u32(1ULL << kingPieceNum, piecesWithNewCards >> (player ? 32 : 0)) - 1;
-			const U32 opponentKing = _pdep_u32(1ULL << opponentKingPieceNum, piecesWithNewCards >> (player ? 0 : 32));
-			const U32 opponentBeforeKingPieces = (piecesWithNewCards >> (player ? 0 : 32)) & (opponentKing - 1);
-			piecesWithNewCards &= ~(((U64)0b1111111) << INDEX_KINGS[0]);
+// 	// same story as before, just copied from there..
+// 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
+// 	U64 piecesWithoutCards = pieces & ~MASK_CARDS;
+// 	piecesWithoutCards ^= MASK_TURN; // invert player bit
+// 	for (int taking = 1; taking >= 0; taking--) {
+// 		U32 cardStuff = cardsPos.players[player];
+// 		const U32 takeMask = ~(pieces >> (player ? 32 : 0)) & (pieces >> (player ? 0 : 32) ^ (taking ? 0 : ~0));
+// 		const U32 kingMask = MASK_END_POSITIONS[player] ^ (taking ? 0 : ~0);
+// 		for (int i = 0; i < 2; i++) {
+// 			unsigned long cardI = cardStuff & 0xff;
+// 			U64 piecesWithNewCards = piecesWithoutCards | (((U64)cardStuff & 0xff00) << (INDEX_CARDS - 8ULL));
+// 			cardStuff >>= 16;
+// 			const auto& moveBoard = gameCards[cardI].moveBoards[player];
+// 			U32 bitScan = (piecesWithNewCards >> (player ? 32 : 0)) & MASK_PIECES;
+// 			U32 kingPieceNum = (piecesWithNewCards >> INDEX_KINGS[player]) & 7;
+// 			const U32 opponentKingPieceNum = (piecesWithNewCards >> INDEX_KINGS[!player]) & 7;
+// 			const U32 beforeKingMask = _pdep_u32(1ULL << kingPieceNum, piecesWithNewCards >> (player ? 32 : 0)) - 1;
+// 			const U32 opponentKing = _pdep_u32(1ULL << opponentKingPieceNum, piecesWithNewCards >> (player ? 0 : 32));
+// 			const U32 opponentBeforeKingPieces = (piecesWithNewCards >> (player ? 0 : 32)) & (opponentKing - 1);
+// 			piecesWithNewCards &= ~(((U64)0b1111111) << INDEX_KINGS[0]);
 
-			unsigned long fromI;
-			while (_BitScanForward(&fromI, bitScan)) {
-				bool isKingMove = !kingPieceNum;
-				U32 scan = moveBoard[fromI] & (isKingMove ? kingMask : takeMask);
-				const U32 fromBit = (1ULL << fromI);
-				bitScan -= fromBit;
-				U64 newPiecesWithoutLandPiece = piecesWithNewCards & ~(((U64)fromBit) << (player ? 32 : 0));
+// 			unsigned long fromI;
+// 			while (_BitScanForward(&fromI, bitScan)) {
+// 				bool isKingMove = !kingPieceNum;
+// 				U32 scan = moveBoard[fromI] & (isKingMove ? kingMask : takeMask);
+// 				const U32 fromBit = (1ULL << fromI);
+// 				bitScan -= fromBit;
+// 				U64 newPiecesWithoutLandPiece = piecesWithNewCards & ~(((U64)fromBit) << (player ? 32 : 0));
 
-				const U32 endMask = opponentKing | (isKingMove ? MASK_END_POSITIONS[player] : 0);
-				while (scan) {
-					const U32 landBit = scan & -scan;
-					scan -= landBit;
-					Board board = Board{ newPiecesWithoutLandPiece };
-					board.pieces |= ((U64)landBit) << (player ? 32 : 0);	 // add arrival piece
-					board.pieces &= ~(((U64)landBit) << (player ? 0 : 32)); // possible take piece
-					const U32 beforeKingPieces = (board.pieces >> (player ? 32 : 0)) & (isKingMove ? landBit - 1 : beforeKingMask);
-					board.pieces |= ((U64)_popcnt32(beforeKingPieces)) << INDEX_KINGS[player];
-					board.pieces |= ((U64)_popcnt32(opponentBeforeKingPieces & ~landBit)) << INDEX_KINGS[!player];
-					const bool finished = landBit & endMask;
-					// end of movegen
-					// beginning of recursive searchWinIn
-					if (finished)
-						return true;
-					if (board.searchWinIn(gameCards, depth - 1) != player)
-						return !player;
+// 				const U32 endMask = opponentKing | (isKingMove ? MASK_END_POSITIONS[player] : 0);
+// 				while (scan) {
+// 					const U32 landBit = scan & -scan;
+// 					scan -= landBit;
+// 					Board board = Board{ newPiecesWithoutLandPiece };
+// 					board.pieces |= ((U64)landBit) << (player ? 32 : 0);	 // add arrival piece
+// 					board.pieces &= ~(((U64)landBit) << (player ? 0 : 32)); // possible take piece
+// 					const U32 beforeKingPieces = (board.pieces >> (player ? 32 : 0)) & (isKingMove ? landBit - 1 : beforeKingMask);
+// 					board.pieces |= ((U64)_popcnt32(beforeKingPieces)) << INDEX_KINGS[player];
+// 					board.pieces |= ((U64)_popcnt32(opponentBeforeKingPieces & ~landBit)) << INDEX_KINGS[!player];
+// 					const bool finished = landBit & endMask;
+// 					// end of movegen
+// 					// beginning of recursive searchWinIn
+// 					if (finished)
+// 						return true;
+// 					if (board.searchWinIn(gameCards, depth - 1) != player)
+// 						return !player;
 
-					// end of recursive searchWinIn
-					// continue movegen
-				}
-				kingPieceNum--;
-			}
-		}
-	}
-	return player;
-}
+// 					// end of recursive searchWinIn
+// 					// continue movegen
+// 				}
+// 				kingPieceNum--;
+// 			}
+// 		}
+// 	}
+// 	return player;
+// }
 
 
 
@@ -213,9 +216,9 @@ bool Board::searchWinIn(const GameCards& gameCards, const U16 depth) const {
 
 constexpr U32 startDepth = 0;
 constexpr U32 minDepth = 4;
-SearchResult Board::searchTime(const GameCards& cards, const U32 turn, const U64 timeBudget, const int verboseLevel, const int expectedDepth) const {
+SearchResult Game::searchTime(const Board& board, const U32 turn, const U64 timeBudget, const int verboseLevel, const int expectedDepth) const {
 	if (verboseLevel >= 2)
-		print(cards);
+		board.print(cards);
 	auto lastTime = 1ULL;
 	auto predictedTime = 1ULL;
 	S32 depth = startDepth;
@@ -224,7 +227,7 @@ SearchResult Board::searchTime(const GameCards& cards, const U32 turn, const U64
 	while (true) {
 		const auto beginTime = std::chrono::steady_clock::now();
 		++depth;
-		result = search<false>(cards, depth);
+		result = search<false>(board, depth);
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 		predictedTime = time * time / lastTime;
 		lastTime = time;
@@ -236,7 +239,7 @@ SearchResult Board::searchTime(const GameCards& cards, const U32 turn, const U64
 		if (foundWin) {
 			shortestEnd = std::min(end, shortestEnd);
 			if (expectedDepth >= 0 && end != expectedDepth) {
-				print(cards);
+				board.print(cards);
 				wrongWinDepth = true;
 			}
 		}

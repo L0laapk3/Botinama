@@ -22,8 +22,8 @@ namespace TableBase {
 	extern bool done;
 
 
-	constexpr U32 TABLESIZE = 25*25*26*26/2*26*26/2*30;
-	extern std::unique_ptr<std::array<std::atomic<int8_t>, TABLESIZE>> table;
+	constexpr U32 TBSIZE = 25*25*26*26/2*26*26/2*30;
+	extern std::unique_ptr<std::array<std::atomic<int8_t>, TBSIZE>> table;
 
 	template<bool isMine>
 	void addToTables(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal, const int threadNum);
