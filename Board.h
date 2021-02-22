@@ -64,6 +64,8 @@ public:
 	template<bool quiescent>
 	SearchResult search(const GameCards& gameCards, S32 maxDepth, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX) const;
 	SearchResult searchTime(const GameCards& cards, U32 turn, const U64 timeBudget, const int verboseLevel = 1, const int expectedDepth = -1) const;
+private:
+	SearchResult search(const bool quiescent, const GameCards& gameCards, S32 maxDepth, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX) const;
 
 };
 

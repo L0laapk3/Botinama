@@ -52,18 +52,6 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 	} else {
 		// opponents move. All forward moves must lead to a loss first
 		// this function should only get called at most countForwardMoves times
-		//assert(wonBoards.end() == wonBoards.find(board));
-		// U32 invCompressedBoard = invertCompress6Men(board);
-		// int8_t moveCount = board.countForwardMoves(gameCards);
-		// if ((*pendingBoards)[invCompressedBoard].compare_exchange_weak(zero, moveCount)) {
-		// 	exploreChildren = moveCount == 1;
-		// } else
-		// 	exploreChildren = (*pendingBoards)[invCompressedBoard].fetch_sub(1) == 2;
-		// if (exploreChildren) {
-		// 	(*table)[invCompressedBoard] = -depthVal;
-		// }
-
-		
 		U32 invCompressedBoard = invertCompress6Men(board);
 		auto& pending = (*pendingBoards)[invCompressedBoard];
 		if (pending.compare_exchange_weak(zero, -1)) {
@@ -75,22 +63,8 @@ void TableBase::addToTables(const GameCards& gameCards, const Board& board, cons
 		if (exploreChildren)
 			(*table)[invCompressedBoard] = -depthVal;
 	}
-	if (exploreChildren) {
-		//mtx.lock();
+	if (exploreChildren)
 		queue[threadNum].push_back(board);
-		//mtx.unlock();
-		// board.searchTime(gameCards, 1000, 0, currDepth + 1);
-		// board.invert().searchTime(gameCards, 1000, 0, currDepth + 1);
-		//if (currDepth > 1 || true) {
-		//	//std::cout << std::endl << "START THE SEARCH" << std::endl << std::endl;
-		//	if (!board.searchWinIn(gameCards, currDepth + 1)) {
-		//		std::cout << "win not found" << std::endl;
-		//		board.print(gameCards);
-		//		board.searchWinIn(gameCards, currDepth + 1);
-		//		assert(0);
-		//	}
-		//}(
-	}
 };
 
 U32 maxMen;
@@ -277,7 +251,6 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 
 	for (myMaxPawns = 0; myMaxPawns <= maxMenPerSide - 1; myMaxPawns++)
 		for (otherMaxPawns = 0; otherMaxPawns <= std::min(maxMenPerSide - 1, maxMen - myMaxPawns - 2); otherMaxPawns++) {
-			
 			std::vector<std::thread> threads;
 			for (int i = 0; i < queue.size(); i++)
 				threads.push_back(std::thread(firstDepthThread, std::ref(gameCards), maxMen, i));
@@ -293,19 +266,21 @@ uint8_t TableBase::generate(const GameCards& gameCards, const U32 men) {
 	do {
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime2).count());
 		//printf("%9llu winning depth %2u boards in %6.2fs using %10llu lookups (%5.1fM lookups/s)\n", queue.size(), currDepth + 1, (float)time / 1000000, lookups, (float)lookups / time);
-		printf("%9llu winning depth %3u boards in %6.2fs\n", total, currDepth + 1, (float)time / 1000000);
+		printf("%10llu winning depth %3u boards in %6.2fs\n", total, currDepth + 1, (float)time / 1000000);
 		wonCount += total;
 		beginTime2 = std::chrono::steady_clock::now();
 	} while ((total = singleDepth(gameCards)));
 	
 	auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 	//std::cout << wonb (float)time / 1000 << "ms" << std::endl;
-	printf("%9llu winning boards in %.3fs (%.2fM/s)\n", wonCount, (float)time / 1000000, (float)wonCount / time);
+	printf("%10llu winning boards in %.3fs (%.2fM/s)\n", wonCount, (float)time / 1000000, (float)wonCount / time);
 
 
-	queue.~vector();
-	currQueue.~vector();	
-	pendingBoards.~unique_ptr();
+	queue.clear();
+	queue.shrink_to_fit();
+	currQueue.clear();	
+	currQueue.shrink_to_fit();
+	pendingBoards.reset();
 
 	beginTime = std::chrono::steady_clock::now();
 	//U32 last = 0;
