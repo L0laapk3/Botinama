@@ -95,7 +95,14 @@ SearchResult Board::search(const GameCards& gameCards, S32 maxDepth, Score alpha
 							}
 						}
 						if (!TBHit) {
-							const auto& childSearch = board.search(!maxDepth || quiescent, gameCards, maxDepth, -beta, -alpha);
+							SearchResult childSearch;
+							if (!foundAny) { // PVS
+								childSearch = board.search(!maxDepth || quiescent, gameCards, maxDepth, -beta, -alpha);
+							} else {
+								childSearch = board.search(!maxDepth || quiescent, gameCards, maxDepth, -alpha - 1, -alpha);
+								if (alpha < -childSearch.score && -childSearch.score < beta) // PVS failed
+									childSearch = board.search(!maxDepth || quiescent, gameCards, maxDepth, -beta, childSearch.score);
+							}
 							childScore = -childSearch.score;
 							total += childSearch.total;
 						}
