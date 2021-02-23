@@ -13,9 +13,9 @@
 #include "Score.h"
 
 
-
+class Game;
 class Board;
-typedef void (*MoveFunc)(const GameCards& gameCards, const Board& board, const bool finished, const int8_t depthVal, const int threadNum);
+typedef void (*MoveFunc)(Game& game, const Board& board, const bool finished, const int8_t depthVal, const int threadNum);
 
 
 class Board {
@@ -49,12 +49,12 @@ private:
 	//BoardIter
 private:
 	template<MoveFunc cb, bool reverse>
-	void iterateMoves(const GameCards& gameCards, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, const bool createPiece, const int8_t depthVal, const int threadNum) const;
+	void iterateMoves(Game& game, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, const bool createPiece, const int8_t depthVal, const int threadNum) const;
 public:
 	template<MoveFunc cb>
-	void forwardMoves(const GameCards& gameCards, const int8_t depthVal, const int threadNum) const;
+	void forwardMoves(Game& game, const int8_t depthVal, const int threadNum) const;
 	template<MoveFunc cb>
-	void reverseMoves(const GameCards& gameCards, const U32 maxMen, const U32 maxMenPerSide, const int8_t depthVal, const int threadNum) const;
+	void reverseMoves(Game& game, const U32 maxMen, const U32 maxMenPerSide, const int8_t depthVal, const int threadNum) const;
 
 };
 

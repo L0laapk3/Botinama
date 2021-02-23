@@ -16,6 +16,10 @@
 // 	Board board;
 // };
 
+struct loadReturn {
+
+};
+
 class Connection {
 public:
 	Connection();
@@ -24,7 +28,8 @@ public:
 
 	void sendCreate();
 	void sendJoin(const std::string& matchId);
-	Game loadGame();
+	GameCards load();
+	Board loadedBoard;
 	void waitTurn(Game& game);
 	void submitMove(Game& game, const Board& board);
 

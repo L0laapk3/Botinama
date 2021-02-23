@@ -83,7 +83,7 @@ void Connection::sendJoin(const std::string& matchId) {
 	handleJoinGame();
 }
 
-Game Connection::loadGame() {
+GameCards Connection::load() {
 	assert(ws->getReadyState() != easywsclient::WebSocket::CLOSED);
 
 	std::string boardStr = "";
@@ -104,15 +104,11 @@ Game Connection::loadGame() {
 			}
 		});
 		if (boardStr.size()) {
-			return Game{
-				CardBoard::fetchGameCards(cards, player),
-				Board::fromString(boardStr, !currentTurn, player),
-			};
+			loadedBoard = Board::fromString(boardStr, !currentTurn, player);
+			return CardBoard::fetchGameCards(cards, player);
 		}
 	}
 }
-
-Game::Game(const GameCards cards, Board board) : cards(cards), board(board) { }
 
 void Connection::waitTurn(Game& game) {
 	std::string boardStr = "";

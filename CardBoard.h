@@ -6,7 +6,7 @@
 #include "Botama.h"
 
 class CardBoard;
-typedef std::array<const CardBoard, 5> GameCards;
+typedef std::array<CardBoard, 5> GameCards;
 typedef std::array<uint32_t, 26> MoveBoard;
 
 class CardBoard : public Card {

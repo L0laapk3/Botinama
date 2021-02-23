@@ -5,6 +5,7 @@
 #include "Board.h"
 // #include "MoveTable.h"
 #include "TranspositionTable.h"
+#include "TableBase.h"
 
 #include <thread>
 
@@ -16,20 +17,28 @@ struct SearchResult {
 	U64 total;
 };
 
-
+class Connection;
 class Game {
 public:
 	Game(std::array<std::string, 5> cardNames, std::string boardString, bool player, bool flipped = false);
-	Game(const GameCards cards, Board board);
-	const GameCards cards;
-	Board board;
-	TranspositionTable transpositionTable;
+	Game(const GameCards& cards, const Board& board);
+	Game(Connection& connection);
 private:
-    std::thread TBThread;
+	void init();
 public:
+
+	U32 turn = 0;
+	GameCards cards;
+	Board board;
+
+#ifdef USE_TB
+    TableBase tableBase;
+#endif
+#ifdef USE_TT
+	TranspositionTable transpositionTable;
+#endif
     // MoveTable moveTable;
 
-public:
 	U64 perft (S32 maxDepth) const;	
 
 
@@ -38,5 +47,5 @@ private:
 	SearchResult search(const Board& board, S32 maxDepth, Score alpha, const Score beta);
 public:
 	SearchResult search(const Board& board, S32 maxDepth, const bool quiescent = false, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX);
-	SearchResult searchTime(const Board& board, U32 turn, const U64 timeBudget, const int verboseLevel = 1, const int expectedDepth = -1);
+	SearchResult searchTime(const Board& board, const U64 timeBudget, const int verboseLevel = 1, const int expectedDepth = -1);
 };

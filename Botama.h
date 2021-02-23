@@ -4,6 +4,10 @@
 
 // project wide definitions
 
+
+// #define USE_TT
+#define USE_TB
+
 typedef uint_fast64_t U64;
 typedef uint_fast32_t U32;
 typedef uint_fast16_t U16;

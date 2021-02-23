@@ -8,6 +8,8 @@
 #include "Score.h"
 
 
+// #define TT_STATS
+
 constexpr U64 TTSIZE = (1ULL << 29) - 1;
 // https://web.archive.org/web/20071031100051/http://www.brucemo.com/compchess/programming/hashing.htm
 
@@ -37,13 +39,14 @@ public:
 #pragma pack (pop)
 
 	TranspositionTable();
-
 	void init();
 
+#ifdef TT_STATS
 	U64 reads = 0;
 	U64 hits = 0;
 	U64 writes = 0;
 	U64 collisions = 0;
+#endif
 	std::unique_ptr<std::array<Entry, TTSIZE>> table = nullptr;
 
 	Entry* get(const Board& board);

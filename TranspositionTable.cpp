@@ -14,9 +14,9 @@ void TranspositionTable::init() {
 
 U64 TranspositionTable::doHash(const Board& board) const {
 	U64 key = board.pieces;
-	key ^= key >> 33;
+	key ^= key >> 32;
 	key *= 0xff51afd7ed558ccd;
-	key ^= key >> 33;
+	key ^= key >> 32;
 	// key *= 0xc4ceb9fe1a85ec53;
 	// key ^= key >> 33;
 	return key;
@@ -26,14 +26,19 @@ U64 TranspositionTable::doHash(const Board& board) const {
 TranspositionTable::Entry* TranspositionTable::get(const Board& board) {
 	const U64 hash = doHash(board);
 	auto* entry = &(*table)[hash % TTSIZE];
+#ifdef TT_STATS
 	reads++;
+#endif
 	if (entry->type != EntryType::Empty) {
+#ifdef TT_STATS
 		hits++;
+#endif
 		if (entry->pieces == board.pieces)
 			return entry;
 		else {
-			// std::cout << std::bitset<64>(board.pieces) << ' ' << (hash % TTSIZE) << std::endl << std::bitset<64>(entry->pieces) << std::endl;
+#ifdef TT_STATS
 			collisions++;
+#endif
 		}
 	}
 	return nullptr;
@@ -42,7 +47,9 @@ TranspositionTable::Entry* TranspositionTable::get(const Board& board) {
 void TranspositionTable::add(const Board& board, const Board& best, const Score& score, const uint8_t depth, const EntryType type) {
 	const U64 hash = doHash(board);
 	auto& entry = (*table)[hash % TTSIZE];
+#ifdef TT_STATS
 	writes++;
+#endif
 	if (entry.type != EntryType::Empty && entry.depth >= depth) {
 		if (0) // condition for not replacing
 			return;
@@ -56,9 +63,11 @@ void TranspositionTable::add(const Board& board, const Board& best, const Score&
 }
 
 void TranspositionTable::report() {
+#ifdef TT_STATS
 	printf("TT %4llu reads, %4.1f%% hit, %3.1f%% collisions\n", reads, 100.f*hits/std::max<U64>(reads, 1), 100.f*collisions/std::max<U64>(hits, 1));
 	writes = 0;
 	reads = 0;
 	hits = 0;
 	collisions = 0;
+#endif
 }

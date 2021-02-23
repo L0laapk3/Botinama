@@ -12,6 +12,7 @@ ${PROJECT_SOURCE_DIR}/Search.cpp
 # ${PROJECT_SOURCE_DIR}/MoveTable.cpp
 ${PROJECT_SOURCE_DIR}/TableBase.cpp
 ${PROJECT_SOURCE_DIR}/TranspositionTable.cpp
+${PROJECT_SOURCE_DIR}/Game.cpp
 ${PROJECT_SOURCE_DIR}/easywsclient.cpp
 ${PROJECT_SOURCE_DIR}/Connection.cpp
 ${PROJECT_SOURCE_DIR}/Botama.cpp

@@ -23,20 +23,22 @@ SearchResult Game::search(const Board& board, S32 maxDepth, Score alpha, const S
 	const auto iterateBoard = [&](const Board& newBoard) {
 		Score childScore = SCORE_MIN;
 		if (newBoard.pieces & (1 << INDEX_FINISHED)) {
-			childScore = SCORE_WIN + maxDepth;
-			total++;
+			childScore = SCORE_WIN + maxDepth / 2;
+			// total++;
 		} else {
 			bool TBHit = false;
 				
+#ifdef USE_TB
 			if (_popcnt32(newBoard.pieces & MASK_PIECES) <= 3 && _popcnt64(newBoard.pieces & (MASK_PIECES << 32)) <= 3) {
-				const int8_t result = player ? (int8_t)(*TableBase::table)[TableBase::compress6Men(newBoard)] : -(int8_t)(*TableBase::table)[TableBase::invertCompress6Men(newBoard)];
+				const int8_t result = player ? (int8_t)(*tableBase.table)[TableBase::compress6Men(newBoard)] : -(int8_t)(*tableBase.table)[TableBase::invertCompress6Men(newBoard)];
 				if (result != 0) {
-					childScore = SCORE_WIN + maxDepth - std::abs(result);
+					childScore = SCORE_WIN + maxDepth / 2 - std::abs(result);
 					if (result < 0 != player)
 						childScore *= -1;
 					TBHit = true;
 				}
 			}
+#endif
 			if (!TBHit) {
 
 				SearchResult childSearch;
@@ -48,7 +50,7 @@ SearchResult Game::search(const Board& board, S32 maxDepth, Score alpha, const S
 						childSearch = search(newBoard, maxDepth, !maxDepth || quiescent, -beta, childSearch.score);
 				}
 				childScore = -childSearch.score;
-				total += childSearch.total;
+				// total += childSearch.total;
 			}
 		}
 		first = false;
@@ -77,9 +79,12 @@ SearchResult Game::search(const Board& board, S32 maxDepth, Score alpha, const S
 		if (alpha < standingPat)
 			alpha = standingPat;
 	} else {
+#ifdef USE_TT
 		history = transpositionTable.get(board);
 		if (history != nullptr && history->depth >= maxDepth && history->bestMove) { // tt hit
-			const Score historyScore = std::abs(history->score) > SCORE_WINNING_TRESHOLD ? history->score + std::copysign(maxDepth, history->score) : history->score;
+			Score historyScore = history->score;
+			if (std::abs(historyScore) > SCORE_WINNING_TRESHOLD)
+				history->score += std::copysign(maxDepth / 2, history->score);
 			if (history->type == TranspositionTable::EntryType::Exact)
 				return { historyScore, history->bestMove, total };
 			if (history->type == TranspositionTable::EntryType::Alpha && historyScore <= alpha)
@@ -92,6 +97,7 @@ SearchResult Game::search(const Board& board, S32 maxDepth, Score alpha, const S
 				#pragma clang diagnostic ignored "-Wmicrosoft-goto"
 				goto prune;
 		}
+#endif
 	}
 
 	
@@ -135,8 +141,10 @@ SearchResult Game::search(const Board& board, S32 maxDepth, Score alpha, const S
 					newBoard.pieces |= ((U64)_popcnt32(beforeKingPieces)) << INDEX_KINGS[player];
 					newBoard.pieces |= ((U64)_popcnt32(opponentBeforeKingPieces & ~landBit)) << INDEX_KINGS[!player];
 					newBoard.pieces |= landBit & endMask ? 1 << INDEX_FINISHED : 0;
+#ifdef USE_TT
 					if (newBoard.pieces == historyBest)
 						continue;
+#endif
 					
 					if (iterateBoard(newBoard))
 						goto prune;
@@ -147,8 +155,10 @@ SearchResult Game::search(const Board& board, S32 maxDepth, Score alpha, const S
 	}
 	prune:
 
+#ifdef USE_TT
 	if (!quiescent)
-		transpositionTable.add(board, bestBoard, alpha > SCORE_WINNING_TRESHOLD ? alpha - maxDepth : alpha, maxDepth, type);
+		transpositionTable.add(board, bestBoard, std::abs(alpha) > SCORE_WINNING_TRESHOLD ? alpha - std::copysign(maxDepth / 2, alpha) : alpha, maxDepth, type);
+#endif
 	return { alpha, bestBoard, total };
 }
 
@@ -158,7 +168,7 @@ SearchResult Game::search(const Board& board, S32 maxDepth, Score alpha, const S
 
 constexpr U32 startDepth = 0;
 constexpr U32 minDepth = 4;
-SearchResult Game::searchTime(const Board& board, const U32 turn, const U64 timeBudget, const int verboseLevel, const int expectedDepth) {
+SearchResult Game::searchTime(const Board& board, const U64 timeBudget, const int verboseLevel, const int expectedDepth) {
 	if (verboseLevel >= 2)
 		board.print(cards);
 	auto lastTime = 1ULL;
@@ -201,7 +211,9 @@ SearchResult Game::searchTime(const Board& board, const U32 turn, const U64 time
 	}
 	if (verboseLevel >= 2)
 		std::cout << std::endl;
+#if USE_TT
 	transpositionTable.report();
+#endif
 	return result;
 }
 
