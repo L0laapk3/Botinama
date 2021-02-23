@@ -69,7 +69,7 @@ void Connection::handleJoinGame() {
 
 	ws->send("spectate " + matchId);
 
-	std::string webUrl = "https://git.io/onitama#spectate-" + matchId;
+	std::string webUrl = "https://l0laapk3.github.io/Onitama-client/#spectate-" + matchId;
 	ShellExecuteA(NULL, "open", webUrl.c_str(), NULL, NULL, SW_SHOWNORMAL);
 	std::cout << "https://git.io/onitama#spectate-" << matchId << std::endl;
 }

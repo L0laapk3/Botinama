@@ -8,7 +8,7 @@ constexpr Score SCORE_MAX = (std::numeric_limits<Score>::max)();
 constexpr Score SCORE_MIN = -SCORE_MAX;
 
 constexpr Score SCORE_WIN = 1 << 13;
-constexpr Score SCORE_QUIESCENCE_WIN_OFFSET = 1 << 11;
+constexpr Score SCORE_WINNING_TRESHOLD = 1 << 11;
 
 constexpr Score SCORE_PIECE = (1 << 4);
 

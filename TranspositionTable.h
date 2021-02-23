@@ -11,22 +11,28 @@
 constexpr U64 TTSIZE = (1ULL << 29) - 1;
 // https://web.archive.org/web/20071031100051/http://www.brucemo.com/compchess/programming/hashing.htm
 
+constexpr uint8_t ENTRYTYPEBITS = 0b11000000;
 class TranspositionTable {
 public:
 	enum EntryType : uint8_t {
 		Empty = 0,
-		Exact,
-		Alpha,
-		Beta
+		Exact = 1,
+		Alpha = 2,
+		Beta  = 3,
 	};
 #pragma pack (push)
 #pragma pack (1)
 	struct Entry {
-		uint64_t hash;
-		uint8_t depth : 6;
-		EntryType type : 2;
+		uint64_t pieces;
+		// union {
+		// 	uint8_t depthType;
+		// 	struct {
+				uint8_t depth : 6;
+				EntryType type : 2;
+		// 	};
+		// };
 		Score score;
-		Board bestMove;
+		uint64_t bestMove;
 	};
 #pragma pack (pop)
 
@@ -37,7 +43,7 @@ public:
 	U64 reads = 0;
 	U64 hits = 0;
 	U64 writes = 0;
-	U64 mismatches = 0;
+	U64 collisions = 0;
 	std::unique_ptr<std::array<Entry, TTSIZE>> table = nullptr;
 
 	Entry* get(const Board& board);

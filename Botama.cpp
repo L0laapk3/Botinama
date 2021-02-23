@@ -56,12 +56,12 @@ int main(int argc, char** argv) {
 
 	// PERFT CARDS - 0269C
 	//GameCards perftCards = CardBoard::fetchGameCards({"mantis","cobra","goose","rooster","monkey"});
-	if (0) {
-		GameCards perftCards = CardBoard::fetchGameCards({ "boar", "ox", "elephant", "horse", "crab" });
-		TableBase::init();
-		TableBase::generate(perftCards, 6);
-		return 0;
-	}
+	// if (0) {
+	// 	GameCards perftCards = CardBoard::fetchGameCards({ "boar", "ox", "elephant", "horse", "crab" });
+	// 	TableBase::init();
+	// 	TableBase::generate(perftCards, 6);
+	// 	return 0;
+	// }
 
 	//GameCards bugCards = CardBoard::fetchGameCards({ "crab", "ox", "frog", "boar", "rabbit" });
 	//Board board = Board::fromString("4000000000000000000020000", true);
