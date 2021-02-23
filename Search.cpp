@@ -23,8 +23,8 @@ SearchResult Game::search(const Board& board, U8 maxDepth, Score alpha, const Sc
 	const auto iterateBoard = [&](const Board& newBoard) {
 		Score childScore = SCORE_MIN;
 		if (newBoard.pieces & (1 << INDEX_FINISHED)) {
-			childScore = SCORE_WIN + maxDepth / 2;
-			// total++;
+			childScore = SCORE_WIN + maxDepth;
+			total++;
 		} else {
 			bool TBHit = false;
 				
@@ -32,7 +32,7 @@ SearchResult Game::search(const Board& board, U8 maxDepth, Score alpha, const Sc
 			if (_popcnt32(newBoard.pieces & MASK_PIECES) <= 3 && _popcnt64(newBoard.pieces & (MASK_PIECES << 32)) <= 3) {
 				const int8_t result = player ? (int8_t)(*tableBase.table)[TableBase::compress6Men(newBoard)] : -(int8_t)(*tableBase.table)[TableBase::invertCompress6Men(newBoard)];
 				if (result != 0) {
-					childScore = SCORE_WIN + (player ? maxDepth - 1 : maxDepth) / 2 - std::abs(result);
+					childScore = SCORE_WIN + maxDepth - std::abs(result) * 2 + (player != result < 0);
 					if (result < 0 != player)
 						childScore *= -1;
 					TBHit = true;
@@ -50,7 +50,7 @@ SearchResult Game::search(const Board& board, U8 maxDepth, Score alpha, const Sc
 						childSearch = search(newBoard, maxDepth, !maxDepth || quiescent, -beta, childSearch.score);
 				}
 				childScore = -childSearch.score;
-				// total += childSearch.total;
+				total += childSearch.total;
 			}
 		}
 		first = false;
@@ -167,7 +167,7 @@ SearchResult Game::search(const Board& board, U8 maxDepth, Score alpha, const Sc
 
 
 constexpr U32 minDepth = 4;
-SearchResult Game::searchTime(const Board& board, const U64 timeBudget, const int verboseLevel, const U8 expectedDepth) {
+SearchResult Game::searchTime(const Board& board, const U64 timeBudget, const float panicScale, const int verboseLevel, const U8 expectedDepth) {
 	++turn;
 	if (verboseLevel >= 3)
 		board.print(cards);
@@ -176,6 +176,7 @@ SearchResult Game::searchTime(const Board& board, const U64 timeBudget, const in
 	const U8 startDepth = std::max(0, lastDepth - 4);
 	U8 depth = startDepth;
 	SearchResult result;
+	U64 lastTotal = 1;
 	while (true) {
 		const auto beginTime = std::chrono::steady_clock::now();
 		++depth;
@@ -186,10 +187,11 @@ SearchResult Game::searchTime(const Board& board, const U64 timeBudget, const in
 		bool foundWin = std::abs(result.score) >= SCORE_WINNING_TRESHOLD;
 		bool isLoss = result.score < 0;
 
-		U8 end = (SCORE_WIN - std::abs(result.score) + (depth - 1) / 2) * 2 + !isLoss;
-		bool exhaustedSearch = foundWin && depth >= end - 1;
+		U8 end = SCORE_WIN - std::abs(result.score) + depth;
+		bool exhaustedSearch = lastTotal == result.total;
+		lastTotal = result.total;
 
-		bool lastIteration = ((predictedTime > timeBudget * 1000) && (depth > startDepth + 1)) || (depth >= 63) || exhaustedSearch;
+		bool lastIteration = ((predictedTime > timeBudget * 1000 * (std::abs(result.score - lastScore) >= SCORE_PIECE / 4 && !foundWin ? 5 : 1)) && (depth > startDepth + 1)) || (depth >= 63) || exhaustedSearch;
 
 		if ((verboseLevel >= 1 && lastIteration) || verboseLevel >= 2) {
 			if (result.score == SCORE_MIN) {
@@ -207,16 +209,18 @@ SearchResult Game::searchTime(const Board& board, const U64 timeBudget, const in
 			} else if (verboseLevel >= 1)
 				printf("%+.2f\n", (float)result.score / SCORE_PIECE);
 		}
-		if (lastIteration) {
+		if (predictedTime <= timeBudget * 1000)
 			lastDepth = exhaustedSearch ? 0 : depth;
+		if (lastIteration) {
+			lastScore = result.score;
 			break;
 		}
 	}
-	if (verboseLevel >= 2)
-		std::cout << std::endl;
-#if USE_TT
+#ifdef USE_TT
 	transpositionTable.report();
 #endif
+	if (verboseLevel >= 2)
+		std::cout << std::endl;
 	return result;
 }
 

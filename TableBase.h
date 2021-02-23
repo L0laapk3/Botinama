@@ -8,7 +8,7 @@
 
 
 
-constexpr U32 TBSIZE = 25*25*26*26/2*26*26/2*30;
+constexpr U32 TBSIZE = 25*25*30*(TB_MEN <= 4 ? 26*26 : 26*26/2*26*26/2);
 
 
 class Game;
@@ -27,7 +27,7 @@ private:
 	static void addToTables(Game& game, const Board& board, const bool finished, const int8_t depthVal, const int threadNum);
 
 	static void singleDepthThread(Game& game, const int threadNum);
-	static void firstDepthThread(Game& game, const int maxMen, const int threadNum);
+	static void firstDepthThread(Game& game, const int threadNum);
 	U64 singleDepth(Game& game);
 	
 	template<bool templeWin>
@@ -37,7 +37,7 @@ private:
 
 public:
 	TableBase();
-	void generate(Game& game, const U32 maxMen);
+	void generate(Game& game);
 
 	static U32 compress6Men(const Board& board);
 	static U32 invertCompress6Men(const Board& board);

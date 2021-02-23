@@ -17,10 +17,10 @@ Game::Game(const GameCards& cards, const Board& board) : cards(cards), board(boa
 
 void Game::init() {
 #ifdef USE_TB
-	tableBase.generate(*this, 4);
+	tableBase.generate(*this);
 #endif
 #ifdef USE_TT
-	transpositionTable.init()
+	transpositionTable.init();
 #endif
 }
 
