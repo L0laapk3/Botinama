@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
 		// game.board.print(game.cards);
 		// std::cout << game.board.eval(game.cards) << std::endl;
 		if (!game.board.currentPlayer()) {
-			auto bestMove = game.searchTime(game.board, 1000, 1);
+			auto bestMove = game.searchTime(game.board, 1000, 2);
 			conn.submitMove(game, bestMove.board);
 		}
 

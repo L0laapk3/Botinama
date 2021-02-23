@@ -12,7 +12,7 @@ void TranspositionTable::init() {
 }
 
 
-U64 TranspositionTable::doHash(const Board& board) const {
+U64 TranspositionTable::getKey(const Board& board) const {
 	U64 key = board.pieces;
 	key ^= key >> 32;
 	key *= 0xff51afd7ed558ccd;
@@ -24,7 +24,7 @@ U64 TranspositionTable::doHash(const Board& board) const {
 
 
 TranspositionTable::Entry* TranspositionTable::get(const Board& board) {
-	const U64 hash = doHash(board);
+	const U64 hash = getKey(board);
 	auto* entry = &(*table)[hash % TTSIZE];
 #ifdef TT_STATS
 	reads++;
@@ -45,7 +45,7 @@ TranspositionTable::Entry* TranspositionTable::get(const Board& board) {
 }
 
 void TranspositionTable::add(const Board& board, const Board& best, const Score& score, const uint8_t depth, const EntryType type) {
-	const U64 hash = doHash(board);
+	const U64 hash = getKey(board);
 	auto& entry = (*table)[hash % TTSIZE];
 #ifdef TT_STATS
 	writes++;

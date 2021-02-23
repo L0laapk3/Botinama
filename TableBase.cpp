@@ -1,4 +1,4 @@
-
+#include "Botama.h"
 #include "TableBase.h"
 
 #include <bitset>
@@ -10,7 +10,7 @@
 
 #include "BitScan.h"
 #include "Game.h"
-
+#ifdef USE_TB
 
 
 uint16_t currDepth;
@@ -18,7 +18,7 @@ uint16_t currDepth;
 int8_t storeDepth() {
 	// if ((depth >> 1) >= 127)
 	// 	std::cout << "depth overflow!! :(" << std::endl;
-	return std::min((currDepth >> 1) + 1, 127);
+	return std::min((currDepth / 2) + 1, 127);
 }
 
 
@@ -404,3 +404,4 @@ Board TableBase::decompress6Men(U32 boardComp) {
 
 	return Board{ pieces };
 }
+#endif

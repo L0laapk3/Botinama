@@ -28,6 +28,7 @@ private:
 public:
 
 	U32 turn = 0;
+	U8 lastDepth = 0;
 	GameCards cards;
 	Board board;
 
@@ -44,8 +45,8 @@ public:
 
 private:
 	template<bool quiescent>
-	SearchResult search(const Board& board, S32 maxDepth, Score alpha, const Score beta);
+	SearchResult search(const Board& board, U8 maxDepth, Score alpha, const Score beta);
 public:
-	SearchResult search(const Board& board, S32 maxDepth, const bool quiescent = false, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX);
-	SearchResult searchTime(const Board& board, const U64 timeBudget, const int verboseLevel = 1, const int expectedDepth = -1);
+	SearchResult search(const Board& board, U8 maxDepth, const bool quiescent = false, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX);
+	SearchResult searchTime(const Board& board, const U64 timeBudget, const int verboseLevel = 1, const U8 expectedDepth = -1);
 };

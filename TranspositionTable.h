@@ -8,7 +8,7 @@
 #include "Score.h"
 
 
-// #define TT_STATS
+#define TT_STATS
 
 constexpr U64 TTSIZE = (1ULL << 29) - 1;
 // https://web.archive.org/web/20071031100051/http://www.brucemo.com/compchess/programming/hashing.htm
@@ -56,5 +56,5 @@ public:
 	void report();
 
 private:
-	U64 doHash(const Board& board) const;
+	U64 getKey(const Board& board) const;
 };

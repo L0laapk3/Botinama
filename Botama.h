@@ -11,9 +11,11 @@
 typedef uint_fast64_t U64;
 typedef uint_fast32_t U32;
 typedef uint_fast16_t U16;
+typedef uint_fast8_t U8;
 typedef int_fast64_t S64;
 typedef int_fast32_t S32;
 typedef int_fast16_t S16;
+typedef int_fast8_t S8;
 
 constexpr U64 INDEX_TURN = 25;
 constexpr U64 INDEX_FINISHED = 26;
