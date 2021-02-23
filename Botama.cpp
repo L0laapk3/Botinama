@@ -115,11 +115,10 @@ int main(int argc, char** argv) {
 
 	Game game = conn.loadGame();
 
-	// game.moveTable = MoveTable::build(game.cards);
-
 	TableBase::init();
 	std::thread TBThread(TableBase::generate, game.cards, 4);
 	TBThread.join();
+	// game.moveTable = MoveTable::build(game.cards);
 	game.transpositionTable.init();
 	
 	U32 turn = 0;
@@ -127,7 +126,7 @@ int main(int argc, char** argv) {
 		// game.board.print(game.cards);
 		// std::cout << game.board.eval(game.cards) << std::endl;
 		if (!game.board.currentPlayer()) {
-			auto bestMove = game.searchTime(game.board, ++turn, TableBase::done ? 1000 : 45000, 1);
+			auto bestMove = game.searchTime(game.board, ++turn, TableBase::done ? 1000 : 30000, 1);
 			conn.submitMove(game, bestMove.board);
 		}
 

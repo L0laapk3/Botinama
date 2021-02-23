@@ -8,36 +8,44 @@
 #include "Score.h"
 
 
-constexpr uint32_t TTSIZE = (1ULL << 29) - 1;
-
+constexpr U64 TTSIZE = (1ULL << 29) - 1;
+// https://web.archive.org/web/20071031100051/http://www.brucemo.com/compchess/programming/hashing.htm
 
 class TranspositionTable {
 public:
-    enum EntryType : uint64_t {
-        Exact,
-        Upper,
-        Lower
-    };
+	enum EntryType : uint8_t {
+		Empty = 0,
+		Exact,
+		Alpha,
+		Beta
+	};
 #pragma pack (push)
 #pragma pack (1)
-    struct Entry {
-        uint64_t keyHalf : 40;
-        uint64_t depth : 6;
-        EntryType type : 2;
-        uint64_t score : 16;
-        Board bestMove;
-    };
+	struct Entry {
+		uint64_t hash;
+		uint8_t depth : 6;
+		EntryType type : 2;
+		Score score;
+		Board bestMove;
+	};
 #pragma pack (pop)
 
-    TranspositionTable();
+	TranspositionTable();
 
-    void init();
+	void init();
 
-    U64 collisions = 0;
+	U64 reads = 0;
+	U64 hits = 0;
+	U64 writes = 0;
+	U64 mismatches = 0;
 	std::unique_ptr<std::array<Entry, TTSIZE>> table = nullptr;
 
-    Entry& get(const Board& board);
+	Entry* get(const Board& board);
 
-    void add(const Board& board, const Board& best, const Score& score, const uint8_t depth, const EntryType type);
+	void add(const Board& board, const Board& best, const Score& score, const uint8_t depth, const EntryType type);
 
+	void report();
+
+private:
+	U64 doHash(const Board& board) const;
 };

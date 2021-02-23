@@ -12,6 +12,7 @@ typedef int_fast32_t S32;
 typedef int_fast16_t S16;
 
 constexpr U64 INDEX_TURN = 25;
+constexpr U64 INDEX_FINISHED = 26;
 constexpr U64 MASK_TURN = 1ULL << INDEX_TURN;
 constexpr U64 INDEX_CARDS = 27;
 constexpr U64 MASK_CARDS = 0x1fULL << INDEX_CARDS;

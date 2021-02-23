@@ -33,9 +33,6 @@
     <ClCompile Include="BoardEval.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BoardSearch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="easywsclient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -46,6 +43,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MoveTable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Search.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TranspositionTable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -84,6 +87,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="MoveTable.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TranspositionTable.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

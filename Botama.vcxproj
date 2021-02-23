@@ -100,6 +100,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="MoveTable.cpp" />
+    <ClCompile Include="Search.cpp" />
     <ClCompile Include="TableBase.cpp" />
     <ClCompile Include="Board.cpp" />
     <ClCompile Include="BoardEval.cpp" />
@@ -107,9 +108,9 @@
     <ClCompile Include="Card.cpp" />
     <ClCompile Include="CardBoard.cpp" />
     <ClCompile Include="Botama.cpp" />
-    <ClCompile Include="BoardSearch.cpp" />
     <ClCompile Include="easywsclient.cpp" />
     <ClCompile Include="Connection.cpp" />
+    <ClCompile Include="TranspositionTable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MoveTable.h" />
@@ -124,6 +125,7 @@
     <ClInclude Include="easywsclient.hpp" />
     <ClInclude Include="Score.h" />
     <ClInclude Include="Solve.h" />
+    <ClInclude Include="TranspositionTable.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

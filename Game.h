@@ -34,9 +34,9 @@ public:
 
 
 private:
-	SearchResult search(const bool quiescent, const Board& board, S32 maxDepth, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX) const;
-public:
 	template<bool quiescent>
-	SearchResult search(const Board& board, S32 maxDepth, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX) const;
-	SearchResult searchTime(const Board& board, U32 turn, const U64 timeBudget, const int verboseLevel = 1, const int expectedDepth = -1) const;
+	SearchResult search(const Board& board, S32 maxDepth, Score alpha, const Score beta);
+public:
+	SearchResult search(const Board& board, S32 maxDepth, const bool quiescent = false, Score alpha = SCORE_MIN, const Score beta = SCORE_MAX);
+	SearchResult searchTime(const Board& board, U32 turn, const U64 timeBudget, const int verboseLevel = 1, const int expectedDepth = -1);
 };
