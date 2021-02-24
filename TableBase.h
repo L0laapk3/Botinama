@@ -12,7 +12,6 @@ constexpr U32 TBSIZE = 25*25*30*(TB_MEN <= 4 ? 26*26 : 26*26/2*26*26/2);
 
 
 class Game;
-// generating the tablebase is not thread safe!! for now
 class TableBase {
 public:
 	bool done = false;

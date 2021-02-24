@@ -27,20 +27,21 @@ SearchResult Game::search(const Board& board, U8 maxDepth, Score alpha, const Sc
 			total++;
 		} else {
 			bool TBHit = false;
-				
 #ifdef USE_TB
-			if (_popcnt32(newBoard.pieces & MASK_PIECES) <= 3 && _popcnt64(newBoard.pieces & (MASK_PIECES << 32)) <= 3) {
-				const int8_t result = player ? (int8_t)(*tableBase.table)[TableBase::compress6Men(newBoard)] : -(int8_t)(*tableBase.table)[TableBase::invertCompress6Men(newBoard)];
-				if (result != 0) {
-					childScore = SCORE_WIN + maxDepth - std::abs(result) * 2 + (player != result < 0);
-					if (result < 0 != player)
-						childScore *= -1;
-					TBHit = true;
+			U32 myCount = _popcnt32(newBoard.pieces & MASK_PIECES), otherCount = _popcnt64(newBoard.pieces & (MASK_PIECES << 32));
+			if (myCount <= (TB_MEN + 1) / 2 && otherCount <= (TB_MEN + 1) / 2) {
+				if (TB_MEN % 1 == 0 || myCount + otherCount <= TB_MEN) {
+					const int8_t result = player ? (int8_t)(*tableBase.table)[TableBase::compress6Men(newBoard)] : -(int8_t)(*tableBase.table)[TableBase::invertCompress6Men(newBoard)];
+					if (result != 0) {
+						childScore = SCORE_WIN + maxDepth - std::abs(result) * 2 + (player != result < 0);
+						if (result < 0 != player)
+							childScore *= -1;
+						TBHit = true;
+					}
 				}
 			}
 #endif
 			if (!TBHit) {
-
 				SearchResult childSearch;
 				if (first) // PVS
 					childSearch = search(newBoard, maxDepth, !maxDepth || quiescent, -beta, -alpha);

@@ -54,9 +54,9 @@
 int main(int argc, char** argv) {
 
 
-	if (1) {
+	if (0) {
 		// PERFT CARDS - 0269C
-		Game game({"mantis","cobra","goose","rooster","monkey"});
+		Game game({ "boar", "ox", "elephant", "horse", "crab" });
 		return 0;
 	}
 

@@ -99,6 +99,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Game.cpp" />
     <ClCompile Include="MoveTable.cpp" />
     <ClCompile Include="Search.cpp" />
     <ClCompile Include="TableBase.cpp" />
@@ -113,6 +114,7 @@
     <ClCompile Include="TranspositionTable.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Game.h" />
     <ClInclude Include="MoveTable.h" />
     <ClInclude Include="TableBase.h" />
     <ClInclude Include="BitScan.h" />
