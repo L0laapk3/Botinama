@@ -9,7 +9,7 @@ ${PROJECT_SOURCE_DIR}/BoardUtil.cpp
 ${PROJECT_SOURCE_DIR}/Board.cpp
 ${PROJECT_SOURCE_DIR}/BoardEval.cpp
 ${PROJECT_SOURCE_DIR}/Search.cpp
-# ${PROJECT_SOURCE_DIR}/MoveTable.cpp
+${PROJECT_SOURCE_DIR}/MoveTable.cpp
 ${PROJECT_SOURCE_DIR}/TableBase.cpp
 ${PROJECT_SOURCE_DIR}/TranspositionTable.cpp
 ${PROJECT_SOURCE_DIR}/Game.cpp

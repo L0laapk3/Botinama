@@ -57,6 +57,7 @@ int main(int argc, char** argv) {
 	if (0) {
 		// PERFT CARDS - 0269C
 		Game game({ "boar", "ox", "elephant", "horse", "crab" });
+		game.bench(11);
 		return 0;
 	}
 
@@ -116,8 +117,8 @@ int main(int argc, char** argv) {
 		// game.board.print(game.cards);
 		// std::cout << game.board.eval(game.cards) << std::endl;
 		if (!game.board.currentPlayer()) {
-			auto bestMove = game.searchTime(game.board, 1000, 2);
-			conn.submitMove(game, bestMove.board);
+			auto bestMove = game.searchTime(1000, 1);
+			conn.submitMove(bestMove);
 		}
 
 		conn.waitTurn(game);

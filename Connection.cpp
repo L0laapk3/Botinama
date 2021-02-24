@@ -133,19 +133,13 @@ void Connection::waitTurn(Game& game) {
 	game.board.pieces |= ((U64)CardBoard::getCardIndex(game.cards, cards, player)) << INDEX_CARDS;
 }
 
+
 std::string indexToPos(U32 i, bool flipped) {
 	assert(i < 25);
 	return (flipped ? "edcba" : "abcde")[i % 5] + std::to_string((flipped ? 24 - i : i) / 5 + 1);
 }
-
-void Connection::submitMove(Game& game, const Board& board) {
-	assert(board.pieces);
-	unsigned long from = 25;
-	unsigned long to = 25;
-	_BitScanForward(&from, game.board.pieces & ~board.pieces);
-	_BitScanForward(&to, board.pieces & ~game.board.pieces);
-	const Card& card = game.cards[CARDS_LUT[(board.pieces & MASK_CARDS) >> INDEX_CARDS].side];
-	const std::string moveStr = card.name + ' ' + indexToPos(from, player) + indexToPos(to, player);
-	//std::cout << moveStr << std::endl;
-	ws->send("move " + matchId + ' ' + token + ' ' + moveStr);
+void Connection::submitMove(const SearchResult& result) {
+	std::string moveString = result.cardName + ' ' + indexToPos(result.fromIndex, player) + indexToPos(result.toIndex, player);
+	std::cout << "move " + matchId + ' ' + token + ' ' + moveString << std::endl;
+	ws->send("move " + matchId + ' ' + token + ' ' + moveString);
 }

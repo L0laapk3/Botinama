@@ -6,7 +6,8 @@
 
 
 // #define USE_TT
-#define USE_TB
+// #define USE_TB
+// #define USE_PVS
 
 constexpr uint_fast32_t TB_MEN = 4;
 

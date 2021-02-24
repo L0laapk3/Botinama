@@ -19,6 +19,7 @@ void Game::init() {
 #ifdef USE_TB
 	tableBase.generate(*this);
 #endif
+	moveTable.build(cards);
 #ifdef USE_TT
 	transpositionTable.init();
 #endif

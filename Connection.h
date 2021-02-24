@@ -31,7 +31,7 @@ public:
 	GameCards load();
 	Board loadedBoard;
 	void waitTurn(Game& game);
-	void submitMove(Game& game, const Board& board);
+	void submitMove(const SearchResult& result);
 
 	std::string matchId;
 	std::string token;
