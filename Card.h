@@ -35,6 +35,7 @@ struct CardsPos {
 		};
 	};
 };
+
 const std::array<CardsPos, 30> CARDS_LUT = { {
 	CardsPos::construct(1, 2, 3, 4, 5,	26,	20,	12,	6),
 	CardsPos::construct(1, 3, 2, 4, 5,	28,	14,	18,	7),
@@ -67,4 +68,41 @@ const std::array<CardsPos, 30> CARDS_LUT = { {
 	CardsPos::construct(3, 5, 2, 4, 1,	14,	1,	22,	11),
 	CardsPos::construct(4, 5, 2, 3, 1,	8,	2,	23,	17),
 } };
-const std::array<U32, 30> CARDS_INVERT = { 5, 4, 3, 2, 1, 0, 11, 10, 9, 8, 7, 6, 17, 16, 15, 14, 13, 12, 23, 22, 21, 20, 19, 18, 29, 28, 27, 26, 25, 24 };
+const std::array<CardsPos, 30> CARDS_LUT_FLIP = { {
+	CardsPos::construct(1, 2, 3, 4, 5, 27, 21, 17, 11),
+	CardsPos::construct(1, 3, 2, 4, 5, 25, 15, 23, 10),
+	CardsPos::construct(1, 4, 2, 3, 5, 24, 9, 22, 16),
+	CardsPos::construct(2, 3, 1, 4, 5, 19, 13, 29, 8),
+	CardsPos::construct(2, 4, 1, 3, 5, 18, 7, 28, 14),
+	CardsPos::construct(3, 4, 1, 2, 5, 12, 6, 26, 20),
+	CardsPos::construct(1, 2, 3, 5, 4, 28, 22, 17, 5),
+	CardsPos::construct(1, 3, 2, 5, 4, 26, 16, 23, 4),
+	CardsPos::construct(1, 5, 2, 3, 4, 24, 3, 21, 15),
+	CardsPos::construct(2, 3, 1, 5, 4, 20, 14, 29, 2),
+	CardsPos::construct(2, 5, 1, 3, 4, 18, 1, 27, 13),
+	CardsPos::construct(3, 5, 1, 2, 4, 12, 0, 25, 19),
+	CardsPos::construct(1, 2, 4, 5, 3, 29, 23, 11, 5),
+	CardsPos::construct(1, 4, 2, 5, 3, 26, 10, 22, 3),
+	CardsPos::construct(1, 5, 2, 4, 3, 25, 4, 21, 9),
+	CardsPos::construct(2, 4, 1, 5, 3, 20, 8, 28, 1),
+	CardsPos::construct(2, 5, 1, 4, 3, 19, 2, 27, 7),
+	CardsPos::construct(4, 5, 1, 2, 3, 6, 0, 24, 18),
+	CardsPos::construct(1, 3, 4, 5, 2, 29, 17, 10, 4),
+	CardsPos::construct(1, 4, 3, 5, 2, 28, 11, 16, 3),
+	CardsPos::construct(1, 5, 3, 4, 2, 27, 5, 15, 9),
+	CardsPos::construct(3, 4, 1, 5, 2, 14, 8, 26, 0),
+	CardsPos::construct(3, 5, 1, 4, 2, 13, 2, 25, 6),
+	CardsPos::construct(4, 5, 1, 3, 2, 7, 1, 24, 12),
+	CardsPos::construct(2, 3, 4, 5, 1, 23, 17, 8, 2),
+	CardsPos::construct(2, 4, 3, 5, 1, 22, 11, 14, 1),
+	CardsPos::construct(2, 5, 3, 4, 1, 21, 5, 13, 7),
+	CardsPos::construct(3, 4, 2, 5, 1, 16, 10, 20, 0),
+	CardsPos::construct(3, 5, 2, 4, 1, 15, 4, 19, 6),
+	CardsPos::construct(4, 5, 2, 3, 1, 9, 3, 18, 12),
+} };
+constexpr std::array<std::array<uint8_t, 30>, 2> CARDS_ONE_SIDE = {{
+	{0, 1, 2, 4, 5, 7, 0, 1, 3, 4, 6, 8, 0, 2, 3, 5, 6, 9, 1, 2, 3, 7, 8, 9, 4, 5, 6, 7, 8, 9},
+	{7, 5, 4, 2, 1, 0, 8, 6, 4, 3, 1, 0, 9, 6, 5, 3, 2, 0, 9, 8, 7, 3, 2, 1, 9, 8, 7, 6, 5, 4}
+}};
+
+constexpr std::array<U32, 30> CARDS_INVERT = { 5, 4, 3, 2, 1, 0, 11, 10, 9, 8, 7, 6, 17, 16, 15, 14, 13, 12, 23, 22, 21, 20, 19, 18, 29, 28, 27, 26, 25, 24 };

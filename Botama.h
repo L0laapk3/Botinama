@@ -4,14 +4,24 @@
 
 // project wide definitions
 
+
+// #define USE_TT
+// #define USE_TB
+// #define USE_PVS
+
+constexpr uint_fast32_t TB_MEN = 4;
+
 typedef uint_fast64_t U64;
 typedef uint_fast32_t U32;
 typedef uint_fast16_t U16;
+typedef uint_fast8_t U8;
 typedef int_fast64_t S64;
 typedef int_fast32_t S32;
 typedef int_fast16_t S16;
+typedef int_fast8_t S8;
 
 constexpr U64 INDEX_TURN = 25;
+constexpr U64 INDEX_FINISHED = 26;
 constexpr U64 MASK_TURN = 1ULL << INDEX_TURN;
 constexpr U64 INDEX_CARDS = 27;
 constexpr U64 MASK_CARDS = 0x1fULL << INDEX_CARDS;

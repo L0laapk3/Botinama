@@ -8,6 +8,7 @@
 #include <thread>
 #include <atomic>
 
+#include "Game.h"
 #include "Board.h"
 #include "Card.h"
 #include "CardBoard.h"
@@ -53,12 +54,10 @@
 int main(int argc, char** argv) {
 
 
-	// PERFT CARDS - 0269C
-	//GameCards perftCards = CardBoard::fetchGameCards({"mantis","cobra","goose","rooster","monkey"});
 	if (0) {
-		GameCards perftCards = CardBoard::fetchGameCards({ "boar", "ox", "elephant", "horse", "crab" });
-		TableBase::init();
-		TableBase::generate(perftCards, 6);
+		// PERFT CARDS - 0269C
+		Game game({ "boar", "ox", "elephant", "horse", "crab" });
+		game.bench(11);
 		return 0;
 	}
 
@@ -112,21 +111,14 @@ int main(int argc, char** argv) {
 	else
 		conn.sendCreate();
 
-	Game game = conn.loadGame();
-
-	// game.moveTable = MoveTable::build(game.cards);
-
-	TableBase::init();
-	std::thread TBThread(TableBase::generate, game.cards, 4);
-	TBThread.join();
+	Game game(conn);
 	
-	U32 turn = 0;
 	while (true) {
 		// game.board.print(game.cards);
 		// std::cout << game.board.eval(game.cards) << std::endl;
 		if (!game.board.currentPlayer()) {
-			auto bestMove = game.board.searchTime(game.cards, ++turn, TableBase::done ? 1000 : 45000, 1);
-			conn.submitMove(game, bestMove.board);
+			auto bestMove = game.searchTime(1000, 1);
+			conn.submitMove(bestMove);
 		}
 
 		conn.waitTurn(game);

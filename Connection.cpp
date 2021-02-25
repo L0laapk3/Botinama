@@ -69,7 +69,7 @@ void Connection::handleJoinGame() {
 
 	ws->send("spectate " + matchId);
 
-	std::string webUrl = "https://git.io/onitama#spectate-" + matchId;
+	std::string webUrl = "https://l0laapk3.github.io/Onitama-client/#spectate-" + matchId;
 	ShellExecuteA(NULL, "open", webUrl.c_str(), NULL, NULL, SW_SHOWNORMAL);
 	std::cout << "https://git.io/onitama#spectate-" << matchId << std::endl;
 }
@@ -83,7 +83,7 @@ void Connection::sendJoin(const std::string& matchId) {
 	handleJoinGame();
 }
 
-Game Connection::loadGame() {
+GameCards Connection::load() {
 	assert(ws->getReadyState() != easywsclient::WebSocket::CLOSED);
 
 	std::string boardStr = "";
@@ -104,15 +104,11 @@ Game Connection::loadGame() {
 			}
 		});
 		if (boardStr.size()) {
-			return Game{
-				CardBoard::fetchGameCards(cards, player),
-				Board::fromString(boardStr, !currentTurn, player),
-			};
+			loadedBoard = Board::fromString(boardStr, !currentTurn, player);
+			return CardBoard::fetchGameCards(cards, player);
 		}
 	}
 }
-
-Game::Game(const GameCards cards, Board board) : cards(cards), board(board) { }
 
 void Connection::waitTurn(Game& game) {
 	std::string boardStr = "";
@@ -137,19 +133,13 @@ void Connection::waitTurn(Game& game) {
 	game.board.pieces |= ((U64)CardBoard::getCardIndex(game.cards, cards, player)) << INDEX_CARDS;
 }
 
+
 std::string indexToPos(U32 i, bool flipped) {
 	assert(i < 25);
 	return (flipped ? "edcba" : "abcde")[i % 5] + std::to_string((flipped ? 24 - i : i) / 5 + 1);
 }
-
-void Connection::submitMove(Game& game, const Board& board) {
-	assert(board.pieces);
-	unsigned long from = 25;
-	unsigned long to = 25;
-	_BitScanForward(&from, game.board.pieces & ~board.pieces);
-	_BitScanForward(&to, board.pieces & ~game.board.pieces);
-	const Card& card = game.cards[CARDS_LUT[(board.pieces & MASK_CARDS) >> INDEX_CARDS].side];
-	const std::string moveStr = card.name + ' ' + indexToPos(from, player) + indexToPos(to, player);
-	//std::cout << moveStr << std::endl;
-	ws->send("move " + matchId + ' ' + token + ' ' + moveStr);
+void Connection::submitMove(const SearchResult& result) {
+	std::string moveString = result.cardName + ' ' + indexToPos(result.fromIndex, player) + indexToPos(result.toIndex, player);
+	std::cout << "move " + matchId + ' ' + token + ' ' + moveString << std::endl;
+	ws->send("move " + matchId + ' ' + token + ' ' + moveString);
 }
