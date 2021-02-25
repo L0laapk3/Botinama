@@ -13,7 +13,6 @@
 #include "Card.h"
 #include "CardBoard.h"
 #include "TableBase.h"
-#include "MoveTable.h"
 #include "Connection.h"
 
 

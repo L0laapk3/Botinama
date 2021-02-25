@@ -7,7 +7,6 @@
 #include "Game.h"
 #include "Board.h"
 #include "CardBoard.h"
-#include "MoveTable.h"
 
 // struct Game {
 // 	Game(const GameCards cards, Board board);
