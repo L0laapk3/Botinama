@@ -11,20 +11,26 @@
 
 Board Board::fromString(std::string str, bool player, bool flip) {
 	Board board{};
+	board.pieces = 0;
+	board.kings = 0;
 	for (int i = 0; i < 25; i++) {
 		const auto c = str[flip ? 24ULL - i : i];
 		if (c == '1' || c == '2') {
-			board.pieces[flip] |= 1ULL << i;
+			board.pieces |= 1ULL << (i + 32 * flip);
 			if (c == '2')
-				board.kings[flip] |= 1ULL << i;
+				board.kings |= 1ULL << (i + 32 * flip);
 		}
 		if (c == '3' || c == '4') {
-			board.pieces[!flip] |= 1ULL << i;
+			board.pieces |= 1ULL << (i + 32 - 32 * flip);
 			if (c == '4')
-				board.kings[!flip] |= 1ULL << i;
+				board.kings |= 1ULL << (i + 32 - 32 * flip);
 		}
 	}
 	board.turn = player;
+	if (board.turn) {
+		board.pieces = swap32(board.pieces);
+		board.kings = swap32(board.kings);
+	}
 	board.isEnd = false;
 	board.isTake = false;
 	return board;
@@ -46,11 +52,11 @@ void Board::print(const GameCards& gameCards, std::vector<Board> boards, std::ve
 	constexpr size_t MAXPERLINE = 10;
 	for (size_t batch = 0; batch < boards.size(); batch += MAXPERLINE) {
 		std::array<CardsPos, MAXPERLINE> cards{ 0 };
-		// if (verbose)
-		// 	for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
-		// 		const Board& board = boards[i];
-		// 		std::cout << std::bitset<7>(board.pieces >> 32 >> 25) << ' ' << std::bitset<25>(board.pieces >> 32) << ' ' << std::bitset<7>(board.pieces >> 25) << ' ' << std::bitset<25>(board.pieces) << std::endl;
-		// 	}
+		if (verbose || 1)
+			for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
+				const Board& board = boards[i];
+				std::cout << std::bitset<25>(board.pieces >> 32) << ' ' << std::bitset<25>(board.pieces) << std::endl;
+			}
 		for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
 			const Board& board = boards[i];
 			cards[i] = CARDS_LUT[board.cards & 0x3f];
@@ -67,12 +73,12 @@ void Board::print(const GameCards& gameCards, std::vector<Board> boards, std::ve
 				std::string str = "";
 				for (int c = 5; c-- > 0;) {
 					const int mask = 1 << (5 * r + c);
-					if (board.pieces[0] & board.pieces[1] & mask)
+					if (board.pieces & (board.pieces>>32) & mask)
 						str = '?' + str;
-					else if (board.pieces[0] & mask)
-						str = (board.kings[0] & mask ? '0' : 'o') + str; // bloo
-					else if (board.pieces[1] & mask)
-						str = (board.kings[1] & mask ? 'X' : '+') + str; // r+d
+					else if (board.pieces & mask)
+						str = (board.kings & mask ? '0' : 'o') + str; // bloo
+					else if ((board.pieces>>32) & mask)
+						str = ((board.kings>>32) & mask ? 'X' : '+') + str; // r+d
 					else
 						str = ' ' + str;
 				}

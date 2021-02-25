@@ -141,8 +141,8 @@ std::string indexToPos(U32 i, bool flipped) {
 void Connection::submitMove(Game& game, const Board& board) {
 	unsigned long from = 25;
 	unsigned long to = 25;
-	_BitScanForward(&from, game.board.pieces[0] & ~board.pieces[0]);
-	_BitScanForward(&to, board.pieces[0] & ~game.board.pieces[0]);
+	_BitScanForward(&from, game.board.pieces & ~swap32(board.pieces));
+	_BitScanForward(&to, swap32(board.pieces) & ~game.board.pieces);
 	const Card& card = game.cards[CARDS_LUT[board.cards].side];
 	const std::string moveStr = card.name + ' ' + indexToPos(from, player) + indexToPos(to, player);
 	// std::cout << moveStr << std::endl;

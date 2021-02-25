@@ -44,14 +44,14 @@ public:
 
 private:
 	template<bool quiescent>
-	SearchResult search(const Board& board, U8 maxDepth, Score alpha, const Score beta);
+	SearchResult search(Board& board, U8 maxDepth, Score alpha, const Score beta);
 public:
-	SearchResult search(const Board& board, U8 maxDepth, const bool quiescent, Score alpha, const Score beta);
+	SearchResult search(Board& board, U8 maxDepth, const bool quiescent, Score alpha, const Score beta);
 	SearchResult search(U8 depth, Score alpha = SCORE_MIN, Score beta = SCORE_MAX);
 	void bench(U8 depth);
-	SearchResult searchTime(const Board& board, const U64 timeBudget, const float panicScale, const int verboseLevel = 1, const U8 expectedDepth = -1);
+	SearchResult searchTime(Board& board, const U64 timeBudget, const float panicScale, const int verboseLevel = 1, const U8 expectedDepth = -1);
 
-	U64 perft(U8 depth) const;
+	U64 perft(U8 depth);
 private:
-	U64 perft(const Board& board, U8 depth) const;
+	U64 perft(Board& board, U8 depth) const;
 };

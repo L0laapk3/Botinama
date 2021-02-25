@@ -7,19 +7,19 @@
 #include "MoveGenerator.h"
 
 
-SearchResult Game::search(const Board& board, U8 maxDepth, const bool quiescent, Score alpha, const Score beta) {
+SearchResult Game::search(Board& board, U8 maxDepth, const bool quiescent, Score alpha, const Score beta) {
 	return quiescent ? search<true>(board, maxDepth, alpha, beta) : search<false>(board, maxDepth, alpha, beta);
 }
 
 template<bool quiescent>
-SearchResult Game::search(const Board& board, U8 maxDepth, Score alpha, const Score beta) {
+SearchResult Game::search(Board& board, U8 maxDepth, Score alpha, const Score beta) {
 	maxDepth--;
 	U64 total = 1;
 	Board const* bestBoard = &board;
 	auto type = TranspositionTable::EntryType::Alpha;
 	bool first = true;
 
-	const auto iterateBoard = [&](const Board& newBoard) {
+	const auto iterateBoard = [&](Board& newBoard) {
 		Score childScore = SCORE_MIN;
 		if (newBoard.isEnd) {
 			childScore = SCORE_WIN + maxDepth;
@@ -75,7 +75,7 @@ SearchResult Game::search(const Board& board, U8 maxDepth, Score alpha, const Sc
 	U64 historyBest = 0;
 	TranspositionTable::Entry* history;
 	if (quiescent) {
-		Score standingPat = (board.turn ? -1 : 1) * board.eval(cards);
+		Score standingPat = board.eval(cards);
 		if (standingPat >= beta)
 			return { beta, *bestBoard, 1 };
 		if (alpha < standingPat)
@@ -105,8 +105,9 @@ SearchResult Game::search(const Board& board, U8 maxDepth, Score alpha, const Sc
 
 	MoveGenerator moveGen(*this, board, quiescent);
 
-	while (moveGen.next()) {
-		const Board& newBoard = *moveGen.it;
+	auto it = moveGen.boards.begin();
+	while (it != moveGen.end) {
+		Board& newBoard = *it;
 #ifdef USE_TT
 		if (newBoard.pieces == historyBest)
 			continue;
@@ -140,7 +141,7 @@ void Game::bench(U8 depth) {
 
 
 constexpr U32 minDepth = 4;
-SearchResult Game::searchTime(const Board& board, const U64 timeBudget, const float panicScale, const int verboseLevel, const U8 expectedDepth) {
+SearchResult Game::searchTime(Board& board, const U64 timeBudget, const float panicScale, const int verboseLevel, const U8 expectedDepth) {
 	++turn;
 	if (verboseLevel >= 3)
 		board.print(cards);
@@ -203,11 +204,15 @@ SearchResult Game::searchTime(const Board& board, const U64 timeBudget, const fl
 
 
 
-U64 Game::perft(U8 depth) const {
-	return perft(board, depth);
+U64 Game::perft(U8 depth) {
+	const auto beginTime = std::chrono::steady_clock::now();
+	U64 count = perft(board, depth);
+	const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
+	printf("depth %2i in %5.2fs (%3.0fM/s): %llu\n", depth, (float)time / 1E6, (float)count / time, count);
+	return count;
 }
 
-U64 Game::perft(const Board& board, U8 depth) const {
+U64 Game::perft(Board& board, U8 depth) const {
 
 
 	// std::cout << (U32)depth << ' ' << board.turn << std::endl;
@@ -219,9 +224,10 @@ U64 Game::perft(const Board& board, U8 depth) const {
 	MoveGenerator moveGen(*this, board, false);
 
 	U64 total = 0;
-	while (moveGen.next()) {
-		const Board& newBoard = *moveGen.it;
-		if (newBoard.cards & (1 << 7))
+	auto it = moveGen.boards.begin();
+	while (it != moveGen.end) {
+		Board& newBoard = *it++;
+		if (newBoard.isEnd)
 			total++;
 		else
 			total += perft(newBoard, depth - 1);

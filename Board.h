@@ -18,14 +18,20 @@ class Game;
 
 class Board {
 public:
-	std::array<uint32_t, 2> pieces;
-	std::array<uint32_t, 2> kings;
+#pragma pack (push)
+#pragma pack (1)
+	uint64_t pieces;
+	uint64_t kings;
 	uint8_t cards;
-	struct {
-		uint8_t turn : 1;
-		uint8_t isTake : 1;
-		uint8_t isEnd : 1;
+	bool turn;
+	union {
+		uint8_t sortCriteria;
+		struct {
+			uint8_t isTake : 1;
+			uint8_t isEnd : 1;
+		};
 	};
+#pragma pack (pop)
 
 	static Board fromString(std::string str, bool player, bool flip = false);
 

@@ -12,7 +12,7 @@ constexpr std::array<U32, 3> SCOREBITS = {
 };
 
 Score Board::eval(const GameCards& gameCards) const {
-	return ScoreHalf(pieces[0], kings[0]) - ScoreHalf(pieces[1], kings[1]);
+	return ScoreHalf(pieces, kings) - ScoreHalf(pieces >> 32, kings >> 32);
 }
 
 
