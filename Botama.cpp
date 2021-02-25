@@ -56,6 +56,9 @@ int main(int argc, char** argv) {
 	if (0) {
 		// PERFT CARDS - 0269C
 		Game game({ "boar", "ox", "elephant", "horse", "crab" });
+		// game.board.print(game.cards);
+		for (U64 i = 1; i <= 9; i++)
+			std::cout << i << ' ' << game.perft(i) << std::endl;
 		return 0;
 	}
 
@@ -114,14 +117,14 @@ int main(int argc, char** argv) {
 	while (true) {
 		// game.board.print(game.cards);
 		// std::cout << game.board.eval(game.cards) << std::endl;
-		if (!game.board.currentPlayer()) {
+		if (!game.board.turn) {
 			auto bestMove = game.searchTime(game.board, 1000, 2);
 			conn.submitMove(game, bestMove.board);
 		}
 
 		conn.waitTurn(game);
 		if (conn.ended) {
-			std::cout << (game.board.winner() ? "lost" : "won") << std::endl;
+			std::cout << (game.board.turn ? "won" : "lost") << std::endl;
 			break;
 		}
 	}

@@ -13,7 +13,7 @@ void TranspositionTable::init() {
 
 
 U64 TranspositionTable::getKey(const Board& board) const {
-	U64 key = board.pieces;
+	U64 key = 0;//board.pieces;
 	key ^= key >> 32;
 	key *= 0xff51afd7ed558ccd;
 	key ^= key >> 32;
@@ -33,7 +33,7 @@ TranspositionTable::Entry* TranspositionTable::get(const Board& board) {
 #ifdef TT_STATS
 		hits++;
 #endif
-		if (entry->pieces == board.pieces)
+		if (entry->pieces == 0)
 			return entry;
 		else {
 #ifdef TT_STATS
@@ -54,8 +54,8 @@ void TranspositionTable::add(const Board& board, const Board& best, const Score&
 		if (0) // condition for not replacing
 			return;
 	}
-	entry.pieces = board.pieces;
-	entry.bestMove = best.pieces;
+	entry.pieces = 0;//board.pieces;
+	entry.bestMove = 0;//best.pieces;
 	entry.score = score;
 	assert(depth < 64);
 	entry.depth = depth;

@@ -131,6 +131,7 @@ void TableBase::singleDepthThread(Game& game, const int threadNum) {
 
 U64 TableBase::singleDepth(Game& game) {
 	currDepth++;
+	atomic_thread_fence(std::memory_order_acq_rel);
 	std::swap(queue, currQueue);
 
 	jobs.clear();
@@ -142,6 +143,7 @@ U64 TableBase::singleDepth(Game& game) {
 			start += BLOCKSIZE;
 		}
 	}
+	atomic_thread_fence(std::memory_order_acq_rel);
 
 	std::vector<std::thread> threads;
 	for (int i = 0; i < queue.size(); i++)

@@ -100,7 +100,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Game.cpp" />
-    <ClCompile Include="MoveTable.cpp" />
+    <ClCompile Include="MoveGenerator.cpp" />
     <ClCompile Include="Search.cpp" />
     <ClCompile Include="TableBase.cpp" />
     <ClCompile Include="Board.cpp" />
@@ -115,7 +115,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game.h" />
-    <ClInclude Include="MoveTable.h" />
+    <ClInclude Include="MoveGenerator.h" />
     <ClInclude Include="TableBase.h" />
     <ClInclude Include="BitScan.h" />
     <ClInclude Include="Board.h" />
