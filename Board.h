@@ -21,12 +21,13 @@ typedef void (*MoveFunc)(Game& game, const Board& board, const bool finished, co
 class Board {
 public:
 	U64 pieces;
-	bool operator <(const Board& rhs) const {
-		return pieces < rhs.pieces;
-	}
-	bool operator==(const Board& rhs) const {
-		return pieces == rhs.pieces;
-	}
+	U64 kings;
+	// bool operator <(const Board& rhs) const {
+	// 	return pieces < rhs.pieces;
+	// }
+	// bool operator==(const Board& rhs) const {
+	// 	return pieces == rhs.pieces;
+	// }
 
 	static Board fromString(std::string str, bool player, bool flip = false);
 

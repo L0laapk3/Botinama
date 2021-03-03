@@ -21,6 +21,7 @@ SearchResult Game::search(const Board& board, U8 maxDepth, Score alpha, const Sc
 	bool first = true;
 
 	const auto iterateBoard = [&](const Board& newBoard) {
+		// newBoard.print(cards);
 		Score childScore = SCORE_MIN;
 		if (newBoard.pieces & (1 << INDEX_FINISHED)) {
 			childScore = SCORE_WIN + maxDepth;
@@ -116,31 +117,33 @@ SearchResult Game::search(const Board& board, U8 maxDepth, Score alpha, const Sc
 			cardStuff >>= 16;
 			const auto& moveBoard = cards[cardI].moveBoards[player];
 			U32 bitScan = (piecesWithNewCards >> (player ? 32 : 0)) & MASK_PIECES;
-			U32 kingPieceNum = (piecesWithNewCards >> INDEX_KINGS[player]) & 7;
-			const U32 opponentKingPieceNum = (piecesWithNewCards >> INDEX_KINGS[!player]) & 7;
-			const U32 beforeKingMask = _pdep_u32(1ULL << kingPieceNum, piecesWithNewCards >> (player ? 32 : 0)) - 1;
-			const U32 opponentKing = _pdep_u32(1ULL << opponentKingPieceNum, piecesWithNewCards >> (player ? 0 : 32));
-			const U32 opponentBeforeKingPieces = (piecesWithNewCards >> (player ? 0 : 32)) & (opponentKing - 1);
-			piecesWithNewCards &= ~(((U64)0b1111111) << INDEX_KINGS[0]);
+			// U32 kingPieceNum = (piecesWithNewCards >> INDEX_KINGS[player]) & 7;
+			const uint32_t king = board.kings >> (player ? 32 : 0);
+			const uint32_t opponentKing = board.kings >> (player ? 0 : 32);
+			// const U32 opponentKingPieceNum = (piecesWithNewCards >> INDEX_KINGS[!player]) & 7;
+			// const U32 beforeKingMask = _pdep_u32(1ULL << kingPieceNum, piecesWithNewCards >> (player ? 32 : 0)) - 1;
+			// const U32 opponentKing = _pdep_u32(1ULL << opponentKingPieceNum, piecesWithNewCards >> (player ? 0 : 32));
+			// const U32 opponentBeforeKingPieces = (piecesWithNewCards >> (player ? 0 : 32)) & (opponentKing - 1);
+			// piecesWithNewCards &= ~(((U64)0b1111111) << INDEX_KINGS[0]);
 
 			unsigned long fromI;
 			while (_BitScanForward(&fromI, bitScan)) {
-				bool isKingMove = !kingPieceNum;
-				U32 scan = moveBoard[fromI] & (isKingMove ? kingMask : takeMask);
 				const U32 fromBit = (1ULL << fromI);
 				bitScan -= fromBit;
+				bool isKingMove = fromBit == king;
+				U32 scan = moveBoard[fromI] & (isKingMove ? kingMask : takeMask);
 				U64 newPiecesWithoutLandPiece = piecesWithNewCards & ~(((U64)fromBit) << (player ? 32 : 0));
 
 				const U32 endMask = opponentKing | (isKingMove ? MASK_END_POSITIONS[player] : 0);
 				while (scan) {
 					const U32 landBit = scan & -scan;
 					scan -= landBit;
-					Board newBoard = Board{ newPiecesWithoutLandPiece };
+					Board newBoard = Board{ newPiecesWithoutLandPiece, isKingMove ? board.kings - (((U64)fromBit) << (player ? 32 : 0)) + (((U64)landBit) << (player ? 32 : 0)) : board.kings };
 					newBoard.pieces |= ((U64)landBit) << (player ? 32 : 0);	 // add arrival piece
 					newBoard.pieces &= ~(((U64)landBit) << (player ? 0 : 32)); // possible take piece
-					const U32 beforeKingPieces = (newBoard.pieces >> (player ? 32 : 0)) & (isKingMove ? landBit - 1 : beforeKingMask);
-					newBoard.pieces |= ((U64)_popcnt32(beforeKingPieces)) << INDEX_KINGS[player];
-					newBoard.pieces |= ((U64)_popcnt32(opponentBeforeKingPieces & ~landBit)) << INDEX_KINGS[!player];
+					// const U32 beforeKingPieces = (newBoard.pieces >> (player ? 32 : 0)) & (isKingMove ? landBit - 1 : beforeKingMask);
+					// newBoard.pieces |= ((U64)_popcnt32(beforeKingPieces)) << INDEX_KINGS[player];
+					// newBoard.pieces |= ((U64)_popcnt32(opponentBeforeKingPieces & ~landBit)) << INDEX_KINGS[!player];
 					newBoard.pieces |= landBit & endMask ? 1 << INDEX_FINISHED : 0;
 #ifdef USE_TT
 					if (newBoard.pieces == historyBest)
@@ -150,7 +153,7 @@ SearchResult Game::search(const Board& board, U8 maxDepth, Score alpha, const Sc
 					if (iterateBoard(newBoard))
 						goto prune;
 				}
-				kingPieceNum--;
+				// kingPieceNum--;
 			}
 		}
 	}

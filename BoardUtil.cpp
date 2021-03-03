@@ -10,7 +10,7 @@
 
 
 Board Board::fromString(std::string str, bool player, bool flip) {
-	Board board{ 0 };
+	Board board{ 0, 0 };
 	bool blueKingFound = false;
 	bool redKingFound = false;
 	for (int i = 0; i < 25; i++) {
@@ -18,16 +18,12 @@ Board Board::fromString(std::string str, bool player, bool flip) {
 		if (c == '1' || c == '2') {
 			board.pieces |= 1ULL << (i + 32 * flip);
 			if (c == '2')
-				blueKingFound = true;
-			if (!blueKingFound)
-				board.pieces += (1ULL << INDEX_KINGS[flip]);
+				board.kings |= 1ULL << (i + 32 * flip);
 		}
 		if (c == '3' || c == '4') {
 			board.pieces |= 1ULL << (i + 32 - 32 * flip);
 			if (c == '4')
-				redKingFound = true;
-			if (!redKingFound)
-				board.pieces += (1ULL << INDEX_KINGS[!flip]);
+				board.kings |= 1ULL << (i + 32 - 32 * flip);
 		}
 	}
 	if (player) // red starts
@@ -93,8 +89,6 @@ void Board::print(const GameCards& gameCards, bool finished, const bool verbose)
 void Board::print(const GameCards& gameCards, std::vector<Board> boards, std::vector<bool> finished, const bool verbose) {
 	constexpr size_t MAXPERLINE = 10;
 	for (size_t batch = 0; batch < boards.size(); batch += MAXPERLINE) {
-		std::array<U32, MAXPERLINE> blueKingPos{ 0 };
-		std::array<U32, MAXPERLINE> redKingPos{ 0 };
 		std::array<CardsPos, MAXPERLINE> cards{ 0 };
 		if (verbose)
 			for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
@@ -103,8 +97,6 @@ void Board::print(const GameCards& gameCards, std::vector<Board> boards, std::ve
 			}
 		for (size_t i = batch; i < std::min(batch + MAXPERLINE, boards.size()); i++) {
 			const Board& board = boards[i];
-			blueKingPos[i] = _popcnt32(board.pieces & MASK_PIECES) - 1 - ((board.pieces >> INDEX_KINGS[0]) & 7);
-			redKingPos[i] = _popcnt32((board.pieces >> 32) & MASK_PIECES) - 1 - (board.pieces >> INDEX_KINGS[1]) & 7;
 			cards[i] = CARDS_LUT[(board.pieces & MASK_CARDS) >> 27ULL];
 			std::cout << cardsShortName(gameCards, cards[i].players[1] & 0xff, 4) << cardsShortName(gameCards, (cards[i].players[1] >> 16) & 0xff, 4) << ' ';
 		}
@@ -122,9 +114,9 @@ void Board::print(const GameCards& gameCards, std::vector<Board> boards, std::ve
 					if (board.pieces & (board.pieces >> 32) & mask)
 						str = '?' + str;
 					else if (board.pieces & mask)
-						str = (!blueKingPos[i]-- ? '0' : 'o') + str; // bloo
+						str = (board.kings & mask ? '0' : 'o') + str; // bloo
 					else if ((board.pieces >> 32) & mask)
-						str = (!redKingPos[i]-- ? 'X' : '+') + str; // r+d
+						str = ((board.kings >> 32) & mask ? 'X' : '+') + str; // r+d
 					else
 						str = ' ' + str;
 				}

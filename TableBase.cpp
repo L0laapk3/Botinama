@@ -339,10 +339,10 @@ U32 TableBase::compress6Men(const Board& board) {
 
 	boardComp = boardComp * 30 + ((board.pieces & MASK_CARDS) >> INDEX_CARDS);
 
-	if (decompress6Men(boardComp).pieces != board.pieces) {
-		std::cout << std::bitset<64>(decompress6Men(boardComp).pieces) << std::endl << std::bitset<64>(board.pieces) << std::endl;
-		assert(decompress6Men(boardComp).pieces == board.pieces);
-	}
+	// if (decompress6Men(boardComp).pieces != board.pieces) {
+	// 	std::cout << std::bitset<64>(decompress6Men(boardComp).pieces) << std::endl << std::bitset<64>(board.pieces) << std::endl;
+	// 	assert(decompress6Men(boardComp).pieces == board.pieces);
+	// }
 
 	return boardComp;
 }
@@ -387,10 +387,10 @@ U32 TableBase::invertCompress6Men(const Board& board) {
 
 	boardComp = boardComp * 30 + CARDS_INVERT[(board.pieces & MASK_CARDS) >> INDEX_CARDS];
 	
-	if (decompress6Men(boardComp).pieces != board.invert().pieces) {
-		std::cout << std::bitset<64>(decompress6Men(boardComp).pieces) << std::endl << std::bitset<64>(board.invert().pieces) << std::endl;
-		assert(decompress6Men(boardComp).pieces == board.invert().pieces);
-	}
+	// if (decompress6Men(boardComp).pieces != board.invert().pieces) {
+	// 	std::cout << std::bitset<64>(decompress6Men(boardComp).pieces) << std::endl << std::bitset<64>(board.invert().pieces) << std::endl;
+	// 	assert(decompress6Men(boardComp).pieces == board.invert().pieces);
+	// }
 
 	return boardComp;
 }
