@@ -13,8 +13,9 @@ public:
 	bool done = false;
 	std::unique_ptr<std::array<int8_t, TBSIZE>> table = nullptr;
 private:
-	std::unique_ptr<std::array<std::atomic<uint64_t>, (TBSIZE+63)/64>> nextBoards = nullptr;
-	std::unique_ptr<std::array<std::atomic<uint64_t>, (TBSIZE+63)/64>> otherNextBoards = nullptr;
+	typedef std::array<std::atomic<uint64_t>, (TBSIZE+63)/64> BitTable;
+	std::unique_ptr<BitTable> queue = nullptr;
+	std::unique_ptr<BitTable> nextQueue = nullptr;
 
 	template<bool isMine>
 	static void addToTables(Game& game, const Board& board, const bool finished, const int8_t _, const int threadNum);

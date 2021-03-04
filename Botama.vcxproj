@@ -99,6 +99,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BoardCompress.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Search.cpp" />
     <ClCompile Include="TableBase.cpp" />

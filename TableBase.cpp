@@ -17,6 +17,10 @@ uint16_t currDepth;
 int8_t depthVal;
 U64 numThreads = 0;
 
+constexpr U32 MAX_THREADS = 256;
+
+constexpr U32 TB_GENERATE_MEN = TB_MEN;
+
 
 //TODO: fix race conditions lol
 template<bool isMine>
@@ -67,7 +71,7 @@ void TableBase::addToTables(Game& game, const Board& board, const bool finished,
 		}
 	}
 	if (exploreChildren) {
-		(*game.tableBase.nextBoards)[compressedBoard/64] |= 1ULL << (compressedBoard % 64);
+		(*game.tableBase.queue)[compressedBoard/64] |= 1ULL << (compressedBoard % 64);
 		// if (currDepth == 1)
 		// 	board.print(game.cards);
 	}
@@ -84,7 +88,7 @@ void TableBase::firstDepthThread(Game& game, const int threadNum) {
 		int i = threadNum / numThreads;
 		board.pieces += i << INDEX_CARDS;
 		for (; i < 30 * (threadNum + 1) / numThreads; i++) {
-			board.reverseMoves<&TableBase::placePiecesTemple>(game, TB_MEN, 0, threadNum, 0);
+			board.reverseMoves<&TableBase::placePiecesTemple>(game, TB_GENERATE_MEN, 0, threadNum, 0);
 			board.pieces += 1ULL << INDEX_CARDS;
 		}
 	}
@@ -98,7 +102,7 @@ void TableBase::firstDepthThread(Game& game, const int threadNum) {
 			Board board{ takenKingPos | MASK_TURN };
 			for (int i = 0; i < 30; i++) {
 				//std::cout << "alive" << ((board.pieces >> INDEX_KINGS[1]) & 7) << std::endl;
-				board.reverseMoves<&TableBase::placePiecesDead>(game, TB_MEN, 0, threadNum, takenKingPos);
+				board.reverseMoves<&TableBase::placePiecesDead>(game, TB_GENERATE_MEN, 0, threadNum, takenKingPos);
 				board.pieces += 1ULL << INDEX_CARDS;
 			}
 			board.pieces &= ~(0x1FULL << INDEX_CARDS);
@@ -108,14 +112,14 @@ void TableBase::firstDepthThread(Game& game, const int threadNum) {
 }
 
 void TableBase::singleDepthThread(Game& game, const int threadNum) {
-	for (U64 chunk = game.tableBase.otherNextBoards->size() * threadNum / numThreads; chunk < game.tableBase.otherNextBoards->size() * (threadNum + 1) / numThreads; chunk++) {
-		auto& entry = (*game.tableBase.otherNextBoards)[chunk];
+	for (U64 chunk = game.tableBase.nextQueue->size() * threadNum / numThreads; chunk < game.tableBase.nextQueue->size() * (threadNum + 1) / numThreads; chunk++) {
+		auto& entry = (*game.tableBase.nextQueue)[chunk];
 		for (U64 i = chunk * 64; i < std::min((chunk + 1) * 64, TBSIZE); i++)
 			if ((entry & (1ULL << (i % 64))) != 0) {				
 				if (currDepth % 2 == 0)
-					Board::decompressIndex<true>(i).reverseMoves<&TableBase::addToTables<true>>(game, TB_MEN, maxMenPerSide, 0, threadNum);
+					Board::decompressIndex<true>(i).reverseMoves<&TableBase::addToTables<true>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, threadNum);
 				else
-					Board::decompressIndex<false>(i).reverseMoves<&TableBase::addToTables<false>>(game, TB_MEN, maxMenPerSide, 0, threadNum);
+					Board::decompressIndex<false>(i).reverseMoves<&TableBase::addToTables<false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, threadNum);
 			}
 		entry = 0;
 	}
@@ -125,7 +129,7 @@ void TableBase::singleDepthThread(Game& game, const int threadNum) {
 U64 TableBase::singleDepth(Game& game) {
 	currDepth++;
 	depthVal = std::min((currDepth / 2) + 1, 127);
-	std::swap(nextBoards, otherNextBoards);
+	std::swap(queue, nextQueue);
 	atomic_thread_fence(std::memory_order_acq_rel);
 
 	std::vector<std::thread> threads;
@@ -140,8 +144,8 @@ U64 TableBase::singleDepth(Game& game) {
 				(*table)[i] = 0;
 	U64 total = 0;
 #ifndef NDEBUGe
-	for (U64 i = 0; i < nextBoards->size(); i++)
-		total += _popcnt64((*nextBoards)[i]);
+	for (U64 i = 0; i < queue->size(); i++)
+		total += _popcnt64((*queue)[i]);
 #endif
 	return total;
 }
@@ -216,27 +220,27 @@ void TableBase::placePiecesDead(Game& game, const Board& board, const bool finis
 
 
 TableBase::TableBase() {
-	numThreads = std::max<U32>(1, std::thread::hardware_concurrency());
+	numThreads = std::max<U32>(1, std::min<U32>(MAX_THREADS, std::thread::hardware_concurrency()));
 	if (table == nullptr)
 		table = std::make_unique<std::array<int8_t, TBSIZE>>();
-	nextBoards = std::make_unique<std::array<std::atomic<uint64_t>, (TBSIZE+63)/64>>();
-	otherNextBoards = std::make_unique<std::array<std::atomic<uint64_t>, (TBSIZE+63)/64>>();
+	queue = std::make_unique<BitTable>();
+	nextQueue = std::make_unique<BitTable>();
 }
 
 void TableBase::generate(Game& game) {
-	std::cout << "generating " << TB_MEN << " men endgame tablebases using " << numThreads << " threads..." << std::endl;
+	std::cout << "generating " << TB_GENERATE_MEN << " men endgame tablebases using " << numThreads << " threads..." << std::endl;
 
 	currDepth = 0;
 	depthVal = 1;
-	U32 menPerSide = (TB_MEN + 1) / 2;
-	maxMenPerSide = std::min<U32>(std::min(menPerSide, TB_MEN - 1), 5);
+	U32 menPerSide = (TB_GENERATE_MEN + 1) / 2;
+	maxMenPerSide = std::min<U32>(std::min(menPerSide, TB_GENERATE_MEN - 1), 5);
 
 	auto beginTime = std::chrono::steady_clock::now();
 	auto beginTime2 = beginTime;
 
 
 	for (myMaxPawns = 0; myMaxPawns <= maxMenPerSide - 1; myMaxPawns++)
-		for (otherMaxPawns = 0; otherMaxPawns <= std::min(maxMenPerSide - 1, TB_MEN - myMaxPawns - 2); otherMaxPawns++) {
+		for (otherMaxPawns = 0; otherMaxPawns <= std::min(maxMenPerSide - 1, TB_GENERATE_MEN - myMaxPawns - 2); otherMaxPawns++) {
 			atomic_thread_fence(std::memory_order_acq_rel);
 			std::vector<std::thread> threads;
 			for (int i = 0; i < numThreads; i++)
@@ -249,8 +253,8 @@ void TableBase::generate(Game& game) {
 	U64 wonCount = 0;
 	U64 total = 0;
 #ifndef NDEBUGe
-	for (U64 i = 0; i < nextBoards->size(); i++)
-		total += _popcnt64((*nextBoards)[i]);
+	for (U64 i = 0; i < queue->size(); i++)
+		total += _popcnt64((*queue)[i]);
 #endif
 	do {
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime2).count());
@@ -264,8 +268,8 @@ void TableBase::generate(Game& game) {
 	printf("%10llu winning boards in %.3fs (%.2fM/s)\n", wonCount, (float)time / 1000000, (float)wonCount / time);
 
 
-	nextBoards.reset();
-	otherNextBoards.reset();
+	queue.reset();
+	nextQueue.reset();
 
 	beginTime = std::chrono::steady_clock::now();
 	//U32 last = 0;
