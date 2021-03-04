@@ -111,18 +111,26 @@ void TableBase::firstDepthThread(Game& game, const int threadNum) {
 	}
 }
 
-void TableBase::singleDepthThread(Game& game, const int threadNum) {
+void TableBase::singleDepthThread(Game& game, const int threadNum, std::promise<U64> && promise) {
+	U64 total = 0;
 	for (U64 chunk = game.tableBase.nextQueue->size() * threadNum / numThreads; chunk < game.tableBase.nextQueue->size() * (threadNum + 1) / numThreads; chunk++) {
 		auto& entry = (*game.tableBase.nextQueue)[chunk];
-		for (U64 i = chunk * 64; i < std::min((chunk + 1) * 64, TBSIZE); i++)
-			if ((entry & (1ULL << (i % 64))) != 0) {				
+		if (entry) {
+			U64 bits = entry;
+			total += _popcnt64(entry);
+			entry = 0;
+			while (bits) {
+				unsigned long i;
+				_BitScanForward(&i, bits);
+				bits ^= bits & -bits;
 				if (currDepth % 2 == 0)
-					Board::decompressIndex<true>(i).reverseMoves<&TableBase::addToTables<true>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, threadNum);
+					Board::decompressIndex<true>(i+chunk*64).reverseMoves<&TableBase::addToTables<true>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, threadNum);
 				else
-					Board::decompressIndex<false>(i).reverseMoves<&TableBase::addToTables<false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, threadNum);
+					Board::decompressIndex<false>(i+chunk*64).reverseMoves<&TableBase::addToTables<false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, threadNum);
 			}
-		entry = 0;
+		}
 	}
+	promise.set_value(total);
 }
 
 
@@ -133,20 +141,25 @@ U64 TableBase::singleDepth(Game& game) {
 	atomic_thread_fence(std::memory_order_acq_rel);
 
 	std::vector<std::thread> threads;
-	for (int i = 0; i < numThreads; i++)
-		threads.push_back(std::thread(&TableBase::singleDepthThread, std::ref(game), i));
-	for (int i = 0; i < numThreads; i++)
-		threads[i].join();
-	atomic_thread_fence(std::memory_order_acq_rel);
-	if (currDepth % 2 == 0)
-		for (U64 i = 0; i < table->size(); i++)
-			if ((*table)[i] == (int8_t)0x80)
-				(*table)[i] = 0;
 	U64 total = 0;
-#ifndef NDEBUGe
-	for (U64 i = 0; i < queue->size(); i++)
-		total += _popcnt64((*queue)[i]);
-#endif
+	std::vector<std::future<U64>> futures;
+	for (int i = 0; i < numThreads; i++) {
+		std::promise<U64> p;
+		futures.push_back(p.get_future());
+		threads.push_back(std::thread(&TableBase::singleDepthThread, std::ref(game), i, std::move(p)));
+	}
+	for (int i = 0; i < numThreads; i++) {
+		threads[i].join();
+		total += futures[i].get();
+	}
+	atomic_thread_fence(std::memory_order_acq_rel);
+	if (currDepth % 2 == 0) {
+		for (U64 i = 0; i < table->size(); i++)
+			if ((*table)[i] == (int8_t)0x80) {
+				(*table)[i] = 0;
+				// total = 1;
+			}
+	}
 	return total;
 }
 
@@ -252,10 +265,8 @@ void TableBase::generate(Game& game) {
 
 	U64 wonCount = 0;
 	U64 total = 0;
-#ifndef NDEBUGe
 	for (U64 i = 0; i < queue->size(); i++)
 		total += _popcnt64((*queue)[i]);
-#endif
 	do {
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime2).count());
 		//printf("%9llu winning depth %2u boards in %6.2fs using %10llu lookups (%5.1fM lookups/s)\n", queue.size(), currDepth + 1, (float)time / 1000000, lookups, (float)lookups / time);

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <map>
+#include <future>
 #include "Botama.h"
 #include "Board.h"
 #include "CardBoard.h"
@@ -20,7 +21,7 @@ private:
 	template<bool isMine>
 	static void addToTables(Game& game, const Board& board, const bool finished, const int8_t _, const int threadNum);
 
-	static void singleDepthThread(Game& game, const int threadNum);
+	static void singleDepthThread(Game& game, const int threadNum, std::promise<U64> && promise);
 	static void firstDepthThread(Game& game, const int threadNum);
 	U64 singleDepth(Game& game);
 	
