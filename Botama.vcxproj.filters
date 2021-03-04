@@ -42,9 +42,6 @@
     <ClCompile Include="TableBase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MoveTable.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Search.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -87,9 +84,6 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="TableBase.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MoveTable.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="TranspositionTable.h">

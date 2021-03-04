@@ -149,7 +149,6 @@ SearchResult Game::search(const Board& board, U8 maxDepth, Score alpha, const Sc
 					if (newBoard.pieces == historyBest)
 						continue;
 #endif
-					
 					if (iterateBoard(newBoard))
 						goto prune;
 				}

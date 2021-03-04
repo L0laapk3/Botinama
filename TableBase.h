@@ -8,7 +8,7 @@
 
 
 
-constexpr U32 TBSIZE = 25*25*30*(TB_MEN <= 4 ? 26*26 : 26*26/2*26*26/2);
+constexpr U32 TBSIZE = 25*25*30*(TB_MEN <= 4 ? 25*25 : 25*13*25*13);
 
 
 class Game;
@@ -30,7 +30,7 @@ private:
 	U64 singleDepth(Game& game);
 	
 	template<bool templeWin>
-	static void placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied, U32 beforeKing, U32 beforeOtherKing, U32 startAt, U32 spotsLeft, U32 minSpots0, U32 minSpotsAll, U32 myMaxPawns, U32 otherMaxPawns, U32 threadNum);
+	static void placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied, U64 kings, U32 startAt, U32 spotsLeft, U32 minSpots0, U32 minSpotsAll, U32 myMaxPawns, U32 otherMaxPawns, U32 threadNum);
 	static void placePiecesTemple(Game& game, const Board& board, const bool finished, const int8_t threadNum, const int _);
 	static void placePiecesDead(Game& game, const Board& board, const bool finished, const int8_t threadNum, const int takenKingPos);
 

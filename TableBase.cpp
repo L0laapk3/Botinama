@@ -97,7 +97,7 @@ void TableBase::firstDepthThread(Game& game, const int threadNum) {
 			takenKingPos <<= (takenKingPos == MASK_END_POSITIONS[1]) + 1;
 		for (; pos < 24 * (threadNum + 1) / game.tableBase.queue.size(); pos++) {
 			takenKingPos <<= takenKingPos == MASK_END_POSITIONS[1];
-			Board board{ takenKingPos | MASK_TURN | (7ULL << INDEX_KINGS[0]) };
+			Board board{ takenKingPos | MASK_TURN };
 			for (int i = 0; i < 30; i++) {
 				//std::cout << "alive" << ((board.pieces >> INDEX_KINGS[1]) & 7) << std::endl;
 				board.reverseMoves<&TableBase::placePiecesDead>(game, TB_MEN, 0, threadNum, takenKingPos);
@@ -143,6 +143,7 @@ U64 TableBase::singleDepth(Game& game) {
 		}
 	}
 
+	atomic_thread_fence(std::memory_order_acq_rel);
 	std::vector<std::thread> threads;
 	for (int i = 0; i < queue.size(); i++)
 		threads.push_back(std::thread(&TableBase::singleDepthThread, std::ref(game), i));
@@ -160,21 +161,21 @@ U64 TableBase::singleDepth(Game& game) {
 
 
 template<bool templeWin>
-void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied, U32 beforeKing, U32 beforeOtherKing, U32 startAt, U32 spotsLeft, U32 minSpots0, U32 minSpotsAll, U32 myMaxPawns, U32 otherMaxPawns, U32 threadNum) {
+void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied, U64 kings, U32 startAt, U32 spotsLeft, U32 minSpots0, U32 minSpotsAll, U32 myMaxPawns, U32 otherMaxPawns, U32 threadNum) {
 	if (spotsLeft == minSpotsAll) {
-		Board board{ pieces };
+		Board board{ pieces, kings };
 		//std::cout << std::bitset<64>((((U64)beforeOtherKing) << 32) & board.pieces) << ' ' << _popcnt64((((U64)beforeOtherKing) << 32) & board.pieces) << std::endl;
 		//std::cout << ((board.pieces >> INDEX_KINGS[1]) & 7) << std::endl;
-		board.pieces |= _popcnt64((((U64)beforeOtherKing) << 32) & board.pieces) << INDEX_KINGS[1];
+		// board.pieces |= _popcnt64((((U64)beforeOtherKing) << 32) & board.pieces) << INDEX_KINGS[1];
 		if (templeWin) {
-			board.pieces |= _popcnt64(beforeKing & board.pieces) << INDEX_KINGS[0];
+			// board.pieces |= _popcnt64(beforeKing & board.pieces) << INDEX_KINGS[0];
 			//if (board.pieces & (1ULL << 22))
 			//	board.print(game.cards);
 			addToTables<true>(game, board, false, storeDepth(), threadNum);
 
-			board.pieces += 1ULL << INDEX_CARDS;
+			// board.pieces += 1ULL << INDEX_CARDS;
 		} else {
-			board.pieces &= ~(7ULL << INDEX_KINGS[0]);
+			// board.pieces &= ~(7ULL << INDEX_KINGS[0]);
 			//std::cout << std::bitset<25>(board.pieces >> 32) << ' ' << std::bitset<25>(board.pieces) << std::endl;
 			//if (board.pieces & (1ULL << 22))
 			//	board.print(game.cards);
@@ -184,9 +185,10 @@ void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied,
 				if (!(kingPos & MASK_PIECES))
 					break;
 				kingI <<= 1;
+				board.kings += kingPos;
 				if (kingPos != MASK_END_POSITIONS[0])
 					addToTables<true>(game, board, false, storeDepth(), threadNum);
-				board.pieces += 1ULL << INDEX_KINGS[0];
+				board.kings -= kingPos;
 			}
 		}
 	} else {
@@ -195,7 +197,7 @@ void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied,
 		while (piece & MASK_PIECES) {
 			startAt++;
 			if (piece & ~occupied[player]) {
-				placePieces<templeWin>(game, pieces | (((U64)piece) << (player ? 32 : 0)), { occupied[0] | piece, occupied[1] | piece }, beforeKing, beforeOtherKing, spotsLeft == minSpots0 + 1 ? 0 : startAt, spotsLeft - 1, minSpots0, minSpotsAll, myMaxPawns, otherMaxPawns, threadNum);
+				placePieces<templeWin>(game, pieces | (((U64)piece) << (player ? 32 : 0)), { occupied[0] | piece, occupied[1] | piece }, kings, spotsLeft == minSpots0 + 1 ? 0 : startAt, spotsLeft - 1, minSpots0, minSpotsAll, myMaxPawns, otherMaxPawns, threadNum);
 			}
 			piece <<= 1;
 		}
@@ -211,7 +213,7 @@ void TableBase::placePiecesTemple(Game& game, const Board& board, const bool fin
 			otherKing <<= 1;
 		U64 pieces = board.pieces | (((U64)otherKing) << 32);
 		U32 occupied = board.pieces | otherKing;
-		placePieces<true>(game, pieces, { occupied | MASK_END_POSITIONS[0], occupied }, (board.pieces & MASK_PIECES) - 1, otherKing - 1, 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns, threadNum);
+		placePieces<true>(game, pieces, { occupied | MASK_END_POSITIONS[0], occupied }, (board.pieces & MASK_PIECES) | (((U64)otherKing) << 32), 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns, threadNum);
 		otherKing <<= 1;
 	}
 }
@@ -221,7 +223,7 @@ void TableBase::placePiecesDead(Game& game, const Board& board, const bool finis
 	U64 pieces = board.pieces | (((U64)takenKingPos) << 32);
 	U32 occupied = board.pieces | takenKingPos;
 	//std::cout << "dead" << ((board.pieces >> INDEX_KINGS[1]) & 7) << std::endl;
-	placePieces<false>(game, pieces, { occupied, occupied }, 0, takenKingPos - 1, 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns, threadNum);
+	placePieces<false>(game, pieces, { occupied, occupied }, ((U64)takenKingPos) << 32, 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns, threadNum);
 }
 
 
@@ -251,6 +253,7 @@ void TableBase::generate(Game& game) {
 
 	for (myMaxPawns = 0; myMaxPawns <= maxMenPerSide - 1; myMaxPawns++)
 		for (otherMaxPawns = 0; otherMaxPawns <= std::min(maxMenPerSide - 1, TB_MEN - myMaxPawns - 2); otherMaxPawns++) {
+			atomic_thread_fence(std::memory_order_acq_rel);
 			std::vector<std::thread> threads;
 			for (int i = 0; i < queue.size(); i++)
 				threads.push_back(std::thread(&TableBase::firstDepthThread, std::ref(game), i));
@@ -307,37 +310,44 @@ U32 TableBase::compress6Men(const Board& board) {
 	U32 boardComp = 0;
 	U32 bluePieces = board.pieces & MASK_PIECES;
 	U32 redPieces = (board.pieces >> 32) & MASK_PIECES;
-	const U32 king = _pdep_u32(1 << ((board.pieces >> INDEX_KINGS[0]) & 7), bluePieces);
-	const U32 otherKing = _pdep_u32(1 << ((board.pieces >> INDEX_KINGS[1]) & 7), redPieces);
-	unsigned long kingI, otherKingI;
-	_BitScanForward(&kingI, king);
-	_BitScanForward(&otherKingI, otherKing);
-	boardComp = boardComp * 25 + kingI;
-	boardComp = boardComp * 25 + otherKingI;
-	bluePieces &= ~king;
-	redPieces &= ~otherKing;
+	const U32 king = board.kings & MASK_PIECES;
+	const U32 otherKing = (board.kings >> 32) & MASK_PIECES;
+	unsigned long pieceI, otherpieceI;
+	assert(king != 0);
+	assert(otherKing != 0);
+	_BitScanForward(&pieceI, king);
+	_BitScanForward(&otherpieceI, otherKing);
+	boardComp = boardComp * 25 + pieceI;
+	boardComp = boardComp * 25 + otherpieceI;
+	bluePieces -= king;
+	redPieces -= otherKing;
 
-	unsigned long piece1I = 25, otherPiece1I = 25;
-	_BitScanForward(&piece1I, bluePieces);
-	_BitScanForward(&otherPiece1I, redPieces);
-	bluePieces &= ~(1 << piece1I);
-	redPieces &= ~(1 << otherPiece1I);
+	_BitScanForward(&pieceI, bluePieces);
+	_BitScanForward(&otherpieceI, redPieces);
+	bluePieces &= ~(1ULL << pieceI);
+	redPieces &= ~(1ULL << otherpieceI);
 	
 	if (TB_MEN <= 4) {
-		boardComp = boardComp * 26 + piece1I;
-		boardComp = boardComp * 26 + otherPiece1I;
+		boardComp = boardComp * 25 + pieceI;
+		boardComp = boardComp * 25 + otherpieceI;
+		
+		assert(boardComp < 25*25*25*25);
 	} else {
-		unsigned long piece2I = 25, otherPiece2I = 25;
-		_BitScanForward(&piece2I, bluePieces);
-		_BitScanForward(&otherPiece2I, redPieces);
-		const U32 pieceValue = piece1I * 26 + piece2I;
-		const U32 otherPieceValue = otherPiece1I * 26 + otherPiece2I;
+		U32 pieceValue = pieceI * 25;
+		U32 otherPieceValue = otherpieceI * 25;
+		_BitScanForward(&pieceI, bluePieces);
+		_BitScanForward(&otherpieceI, redPieces);
+		pieceValue += pieceI;
+		otherPieceValue += otherpieceI;
 
-		boardComp = boardComp * 26 * 13 + std::min(pieceValue, 26*26-1 - pieceValue);
-		boardComp = boardComp * 26 * 13 + std::min(otherPieceValue, 26*26-1 - otherPieceValue);
+		boardComp = boardComp * 25*13 + std::min(pieceValue, 25*26-1 - pieceValue);
+		boardComp = boardComp * 25*13 + std::min(otherPieceValue, 25*26-1 - otherPieceValue);
+		
+		assert(boardComp < 25*25*25*13*25*13);
 	}
 
 	boardComp = boardComp * 30 + ((board.pieces & MASK_CARDS) >> INDEX_CARDS);
+
 
 	// if (decompress6Men(boardComp).pieces != board.pieces) {
 	// 	std::cout << std::bitset<64>(decompress6Men(boardComp).pieces) << std::endl << std::bitset<64>(board.pieces) << std::endl;
@@ -351,44 +361,42 @@ U32 TableBase::invertCompress6Men(const Board& board) {
 	U32 boardComp = 0;
 	U32 bluePieces = board.pieces & MASK_PIECES;
 	U32 redPieces = (board.pieces >> 32) & MASK_PIECES;
-	const U32 king = _pdep_u32(1 << ((board.pieces >> INDEX_KINGS[0]) & 7), bluePieces);
-	const U32 otherKing = _pdep_u32(1 << ((board.pieces >> INDEX_KINGS[1]) & 7), redPieces);
-	unsigned long kingI, otherKingI;
-	_BitScanForward(&kingI, king);
-	_BitScanForward(&otherKingI, otherKing);
-	boardComp = boardComp * 25 + 24 - otherKingI;
-	boardComp = boardComp * 25 + 24 - kingI;
-	bluePieces &= ~king;
-	redPieces &= ~otherKing;
+	const U32 king = board.kings & MASK_PIECES;
+	const U32 otherKing = (board.kings >> 32) & MASK_PIECES;
+	unsigned long pieceI, otherPieceI;
+	_BitScanForward(&pieceI, king);
+	_BitScanForward(&otherPieceI, otherKing);
+	boardComp = boardComp * 25 + 24 - otherPieceI;
+	boardComp = boardComp * 25 + 24 - pieceI;
+	bluePieces -= king;
+	redPieces -= otherKing;
 
-	unsigned long piece1I = 0, otherPiece1I = 0;
-	_BitScanReverse(&piece1I, bluePieces << 1);
-	_BitScanReverse(&otherPiece1I, redPieces << 1);
-	bluePieces &= ~(1 << (piece1I - 1));
-	redPieces &= ~(1 << (otherPiece1I - 1));
-	piece1I = 25 - piece1I;
-	otherPiece1I = 25 - otherPiece1I;
+	_BitScanReverse(&pieceI, bluePieces);
+	_BitScanReverse(&otherPieceI, redPieces);
+	bluePieces &= ~(1ULL << pieceI);
+	redPieces &= ~(1ULL << otherPieceI);
 	
 	if (TB_MEN <= 4) {
-		boardComp = boardComp * 26 + otherPiece1I;
-		boardComp = boardComp * 26 + piece1I;
+		boardComp = boardComp * 25 + 24 - otherPieceI;
+		boardComp = boardComp * 25 + 24 - pieceI;
 	} else {
-		unsigned long piece2I = 0, otherPiece2I = 0;
-		_BitScanReverse(&piece2I, bluePieces << 1);
-		_BitScanReverse(&otherPiece2I, redPieces << 1);
-		piece2I = 25 - piece2I;
-		otherPiece2I = 25 - otherPiece2I;
+		U32 pieceValue = 25*24 + 24 - pieceI * 25;
+		U32 otherPieceValue = 25*24 + 24 - otherPieceI * 25;
+		_BitScanReverse(&pieceI, bluePieces);
+		_BitScanReverse(&otherPieceI, redPieces);
+		pieceValue -= pieceI;
+		otherPieceValue -= otherPieceI;
 
-		const U32 pieceValue = piece1I * 26 + piece2I;
-		const U32 otherPieceValue = otherPiece1I * 26 + otherPiece2I;
-		boardComp = boardComp * 26 * 13 + std::min(otherPieceValue, 26*26-1 - otherPieceValue);
-		boardComp = boardComp * 26 * 13 + std::min(pieceValue, 26*26-1 - pieceValue);
+		boardComp = boardComp * 25*13 + std::min(otherPieceValue, 25*26-1 - otherPieceValue);
+		boardComp = boardComp * 25*13 + std::min(pieceValue, 25*26-1 - pieceValue);
+		
+		assert(boardComp < 25*25*25*13*25*13);
 	}
 
 	boardComp = boardComp * 30 + CARDS_INVERT[(board.pieces & MASK_CARDS) >> INDEX_CARDS];
 	
 	// if (decompress6Men(boardComp).pieces != board.invert().pieces) {
-	// 	std::cout << std::bitset<64>(decompress6Men(boardComp).pieces) << std::endl << std::bitset<64>(board.invert().pieces) << std::endl;
+	// 	std::cout << std::bitset<64>(decompress6Men(boardComp).pieces) << std::endl << std::bitset<64>(board.invert().pieces) << 'i' << std::endl;
 	// 	assert(decompress6Men(boardComp).pieces == board.invert().pieces);
 	// }
 
@@ -403,46 +411,46 @@ Board TableBase::decompress6Men(U32 boardComp) {
 	U32 piece1I, otherPiece1I;
 	
 	if (TB_MEN <= 4) {
-		otherPiece1I = boardComp % 26;
-		boardComp /= 26;
-		pieces |= (1ULL << (otherPiece1I | 32)) & (MASK_PIECES << 32);
-		piece1I = boardComp % 26;
-		boardComp /= 26;
+		otherPiece1I = boardComp % 25;
+		boardComp /= 25;
+		pieces |= (1ULL << (otherPiece1I + 32)) & (MASK_PIECES << 32);
+		piece1I = boardComp % 25;
+		boardComp /= 25;
 		pieces |= (1ULL << piece1I) & MASK_PIECES;
 	} else {
-		U32 otherPieceValue = boardComp % (26 * 13);
-		otherPiece1I = otherPieceValue % 26;
-		U32 otherPiece2I = otherPieceValue / 26;
+		U32 otherPieceValue = boardComp % (25*13);
+		otherPiece1I = otherPieceValue % 25;
+		U32 otherPiece2I = otherPieceValue / 25;
 		if (otherPiece1I <= otherPiece2I) {
-			otherPieceValue = 26*26-1 - otherPieceValue;
-			otherPiece1I = otherPieceValue % 26;
-			otherPiece2I = otherPieceValue / 26;
+			otherPieceValue = 25*26-1 - otherPieceValue;
+			otherPiece1I = otherPieceValue % 25;
+			otherPiece2I = otherPieceValue / 25;
 		}
-		pieces |= ((1ULL << (otherPiece1I | 32)) | (1ULL << (otherPiece2I + 32))) & (MASK_PIECES << 32);
-		boardComp /= 26 * 13;
+		pieces |= ((1ULL << (otherPiece1I + 32)) | (1ULL << (otherPiece2I + 32))) & (MASK_PIECES << 32);
+		boardComp /= 25*13;
 		
-		U32 pieceValue = boardComp % (26 * 13);
-		piece1I = pieceValue % 26;
-		U32 piece2I = pieceValue / 26;
+		U32 pieceValue = boardComp % (25*13);
+		piece1I = pieceValue % 25;
+		U32 piece2I = pieceValue / 25;
 		if (piece1I <= piece2I) {
-			pieceValue = 26*26-1 - pieceValue;
-			piece1I = pieceValue % 26;
-			piece2I = pieceValue / 26;
+			pieceValue = 25*26-1 - pieceValue;
+			piece1I = pieceValue % 25;
+			piece2I = pieceValue / 25;
 		}
 		pieces |= ((1ULL << piece1I) | (1ULL << piece2I)) & MASK_PIECES;
-		boardComp /= 26 * 13;
+		boardComp /= 25 * 13;
 	}
 
 	U32 otherKingI = boardComp % 25;
 	boardComp /= 25;
 	pieces |= (1ULL << (otherKingI + 32));
-	pieces |= ((U64)_popcnt64(((1ULL << (otherKingI + 32)) - (1ULL << 32)) & pieces)) << INDEX_KINGS[1];
+	// pieces |= ((U64)_popcnt64(((1ULL << (otherKingI + 32)) - (1ULL << 32)) & pieces)) << INDEX_KINGS[1];
 
 	U32 kingI = boardComp % 25;
 	boardComp /= 25;
 	pieces |= (1ULL << kingI);
-	pieces |= ((U64)_popcnt32(((1ULL << kingI) - 1) & pieces)) << INDEX_KINGS[0];
+	// pieces |= ((U64)_popcnt32(((1ULL << kingI) - 1) & pieces)) << INDEX_KINGS[0];
 
-	return Board{ pieces };
+	return Board{ pieces, (1ULL << kingI) | (1ULL << (otherKingI + 32)) };
 }
 #endif

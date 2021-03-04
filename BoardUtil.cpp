@@ -49,14 +49,21 @@ Board Board::invert() const {
     //     board.pieces |= source & (1 | (1ULL << 32));
     //     source >>= 1;
     // }
-	Board board{ _rotl64(pieces & ((1 << 12) | (1ULL << (12 + 32))), 32) };
+	Board board{ _rotl64(pieces & ((1 << 12) | (1ULL << (12 + 32))), 32), 0 };
 	board.pieces |= ((U64)BITREVERSE[pieces & 0xfff]) << (13 + 32);
 	board.pieces |= ((U64)BITREVERSE[(pieces >> 13) & 0xfff]) << 32;
 	board.pieces |= ((U64)BITREVERSE[(pieces >> 32) & 0xfff]) << 13;
 	board.pieces |= ((U64)BITREVERSE[(pieces >> (13 + 32)) & 0xfff]);
+	
+	const U32 king = board.kings;
+	const U32 otherKing = board.kings >> 32;
+	unsigned long kingI, otherKingI;
+	_BitScanForward(&kingI, king);
+	_BitScanForward(&otherKingI, otherKing);
+	board.kings = (1ULL << (32 + 24 - kingI)) | (1ULL << (24 - otherKingI));
 
-	board.pieces |= (_popcnt32(pieces & MASK_PIECES) - 1 - ((pieces >> INDEX_KINGS[0]) & 0x7)) << INDEX_KINGS[1];
-	board.pieces |= (_popcnt32((pieces >> 32) & MASK_PIECES) - 1 - ((pieces >> INDEX_KINGS[1]) & 0x7)) << INDEX_KINGS[0];
+	// board.pieces |= (_popcnt32(pieces & MASK_PIECES) - 1 - ((pieces >> INDEX_KINGS[0]) & 0x7)) << INDEX_KINGS[1];
+	// board.pieces |= (_popcnt32((pieces >> 32) & MASK_PIECES) - 1 - ((pieces >> INDEX_KINGS[1]) & 0x7)) << INDEX_KINGS[0];
 	board.pieces |= ((U64)CARDS_INVERT[(pieces >> INDEX_CARDS) & 0x1f]) << INDEX_CARDS;
 	board.pieces |= (pieces & MASK_TURN) ^ MASK_TURN;
 	//std::cout << "invert" << std::endl << std::bitset<64>(pieces) << std::endl << std::bitset<64>(board.pieces) << std::endl;
