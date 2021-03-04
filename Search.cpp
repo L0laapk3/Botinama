@@ -32,7 +32,7 @@ SearchResult Game::search(const Board& board, U8 maxDepth, Score alpha, const Sc
 			U32 myCount = _popcnt32(newBoard.pieces & MASK_PIECES), otherCount = _popcnt64(newBoard.pieces & (MASK_PIECES << 32));
 			if (myCount <= (TB_MEN + 1) / 2 && otherCount <= (TB_MEN + 1) / 2) {
 				if (TB_MEN % 1 == 0 || myCount + otherCount <= TB_MEN) {
-					const int8_t result = player ? (int8_t)(*tableBase.table)[TableBase::compress6Men(newBoard)] : -(int8_t)(*tableBase.table)[TableBase::invertCompress6Men(newBoard)];
+					const int8_t& result = player ? (int8_t)(*tableBase.table)[newBoard.compressToIndex()] : -(int8_t)(*tableBase.table)[newBoard.invertCompressToIndex()];
 					if (result != 0) {
 						childScore = SCORE_WIN + maxDepth - std::abs(result) * 2 + (player != result < 0);
 						if (result < 0 != player)
@@ -216,6 +216,12 @@ SearchResult Game::searchTime(const Board& board, const U64 timeBudget, const fl
 			lastDepth = exhaustedSearch ? 0 : depth;
 		if (lastIteration) {
 			lastScore = result.score;
+			
+			if (expectedDepth != (U8)-1 && end != expectedDepth) {
+				std::cout << "found depth " << (U32)end << " but expected " << (U32)expectedDepth << std::endl;
+				board.print(cards);
+				assert(end == expectedDepth);
+			}
 			break;
 		}
 	}

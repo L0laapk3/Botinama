@@ -18,6 +18,7 @@ class Board;
 typedef void (*MoveFunc)(Game& game, const Board& board, const bool finished, const int8_t depthVal, const int threadNum);
 
 
+class TableBase;
 class Board {
 public:
 	U64 pieces;
@@ -56,7 +57,13 @@ public:
 	void forwardMoves(Game& game, const int8_t depthVal, const int threadNum) const;
 	template<MoveFunc cb>
 	void reverseMoves(Game& game, const U32 maxMen, const U32 maxMenPerSide, const int8_t depthVal, const int threadNum) const;
-
+#ifdef USE_TB
+	bool testForwardTB(GameCards& cards, std::array<int8_t, TBSIZE>& tableBase) const;
+#endif
+public:
+	U32 compressToIndex() const;
+	U32 invertCompressToIndex() const;
+	static Board decompressIndex(U32 boardComp, bool player);
 };
 
 struct BoardHash {

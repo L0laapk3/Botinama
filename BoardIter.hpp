@@ -1,6 +1,7 @@
 #pragma once
 
 
+
 // unfortunately due to my lack of cpp knowledge I had to duplicate this into boardsearch. see there for version with move sorting
 template<MoveFunc cb, bool reverse>
 void Board::iterateMoves(Game& game, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, const bool createPiece, const int8_t depthVal, const int threadNum) const {

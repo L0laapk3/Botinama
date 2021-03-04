@@ -7,23 +7,17 @@
 #include "CardBoard.h"
 
 
-
-constexpr U32 TBSIZE = 25*25*30*(TB_MEN <= 4 ? 25*25 : 25*13*25*13);
-
-
 class Game;
 class TableBase {
 public:
 	bool done = false;
-	std::unique_ptr<std::array<std::atomic<int8_t>, TBSIZE>> table = nullptr;
+	std::unique_ptr<std::array<int8_t, TBSIZE>> table = nullptr;
 private:
-	std::unique_ptr<std::array<std::atomic<int8_t>, TBSIZE>> pendingBoards = nullptr;
-	
-	std::vector<std::vector<Board>> queue{};
-	std::vector<std::vector<Board>> currQueue{};
+	std::unique_ptr<std::array<uint64_t, (TBSIZE+63)/64>> nextBoards = nullptr;
+	std::unique_ptr<std::array<uint64_t, (TBSIZE+63)/64>> otherNextBoards = nullptr;
 
 	template<bool isMine>
-	static void addToTables(Game& game, const Board& board, const bool finished, const int8_t depthVal, const int threadNum);
+	static void addToTables(Game& game, const Board& board, const bool finished, const int8_t _, const int threadNum);
 
 	static void singleDepthThread(Game& game, const int threadNum);
 	static void firstDepthThread(Game& game, const int threadNum);
@@ -37,8 +31,4 @@ private:
 public:
 	TableBase();
 	void generate(Game& game);
-
-	static U32 compress6Men(const Board& board);
-	static U32 invertCompress6Men(const Board& board);
-	static Board decompress6Men(U32 boardComp);
 };

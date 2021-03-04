@@ -8,7 +8,7 @@
 // #define USE_TT
 #define USE_TB
 
-constexpr uint_fast32_t TB_MEN = 4;
+constexpr uint_fast32_t TB_MEN = 2;
 
 typedef uint_fast64_t U64;
 typedef uint_fast32_t U32;
@@ -29,3 +29,5 @@ constexpr std::array<U64, 2> MASK_PLAYER = { 0xffff'ffffULL, 0xffff'ffff'0000'00
 constexpr std::array<U32, 2> INDEX_KINGS = { 32 + 25, 32 + 25 + 4 };
 constexpr std::array<U32, 2> INDEX_END_POSITIONS = { 22, 2 };
 constexpr std::array<U32, 2> MASK_END_POSITIONS = { 1ULL << INDEX_END_POSITIONS[0], 1ULL << INDEX_END_POSITIONS[1] };
+
+constexpr U64 TBSIZE = 25*25*30*(TB_MEN <= 4 ? 25*25 : 25*13*25*13);
