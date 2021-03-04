@@ -8,7 +8,7 @@
 // #define USE_TT
 #define USE_TB
 
-constexpr uint_fast32_t TB_MEN = 2;
+constexpr uint_fast32_t TB_MEN = 4;
 
 typedef uint_fast64_t U64;
 typedef uint_fast32_t U32;

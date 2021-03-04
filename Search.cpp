@@ -32,7 +32,7 @@ SearchResult Game::search(const Board& board, U8 maxDepth, Score alpha, const Sc
 			U32 myCount = _popcnt32(newBoard.pieces & MASK_PIECES), otherCount = _popcnt64(newBoard.pieces & (MASK_PIECES << 32));
 			if (myCount <= (TB_MEN + 1) / 2 && otherCount <= (TB_MEN + 1) / 2) {
 				if (TB_MEN % 1 == 0 || myCount + otherCount <= TB_MEN) {
-					const int8_t& result = player ? (int8_t)(*tableBase.table)[newBoard.compressToIndex()] : -(int8_t)(*tableBase.table)[newBoard.invertCompressToIndex()];
+					const int8_t& result = player ? (int8_t)(*tableBase.table)[newBoard.compressToIndex<false>()] : -(int8_t)(*tableBase.table)[newBoard.compressToIndex<true>()];
 					if (result != 0) {
 						childScore = SCORE_WIN + maxDepth - std::abs(result) * 2 + (player != result < 0);
 						if (result < 0 != player)

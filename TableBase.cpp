@@ -34,7 +34,7 @@ void TableBase::addToTables(Game& game, const Board& board, const bool finished,
 	if (isMine) {
 		// you played this move, immediately add it to won boards
 		// only insert and iterate if it doesnt already exist (keeps lowest distance)
-		compressedBoard = board.compressToIndex();
+		compressedBoard = board.compressToIndex<false>();
 
 		// auto decomp = decompress6Men(compressedBoard);
 		// if (decomp.pieces != board.pieces) {
@@ -47,27 +47,30 @@ void TableBase::addToTables(Game& game, const Board& board, const bool finished,
 		exploreChildren = ((*game.tableBase.table)[compressedBoard] & 0x7F) == 0;
 		if (exploreChildren) {
 			(*game.tableBase.table)[compressedBoard] = depthVal;
-			if (currDepth > 1)
-				game.searchTime(board, 1000, 1, 0, currDepth+1);
+			// if (currDepth > 1)
+			// 	game.searchTime(board, 1000, 1, 0, currDepth+1);
 		}
 
 	} else {
 		// opponents move. All forward moves must lead to a loss first
 		// this function should only get called at most countForwardMoves times
-		compressedBoard = board.invertCompressToIndex();
+		compressedBoard = board.compressToIndex<true>();
 		auto& entry = (*game.tableBase.table)[compressedBoard];
 		if (entry == 0) {
 			exploreChildren = board.testForwardTB(game.cards, *game.tableBase.table);
 			if (exploreChildren) {
 				// if (currDepth+1 == 4)
 				// 	board.print(game.cards);
-				game.searchTime(board, 1000, 1, 0, currDepth+1);
+				// game.searchTime(board, 1000, 1, 0, currDepth+1);
 			}
-			entry = exploreChildren ? depthVal : 0x80;
+			entry = exploreChildren ? -depthVal : 0x80;
 		}
 	}
-	if (exploreChildren)
+	if (exploreChildren) {
 		(*game.tableBase.nextBoards)[compressedBoard/64] |= 1ULL << (compressedBoard % 64);
+		// if (currDepth == 1)
+		// 	board.print(game.cards);
+	}
 };
 
 U32 maxMenPerSide;
@@ -108,13 +111,11 @@ void TableBase::singleDepthThread(Game& game, const int threadNum) {
 	for (U64 chunk = game.tableBase.otherNextBoards->size() * threadNum / numThreads; chunk < game.tableBase.otherNextBoards->size() * (threadNum + 1) / numThreads; chunk++) {
 		auto& entry = (*game.tableBase.otherNextBoards)[chunk];
 		for (U64 i = chunk * 64; i < std::min((chunk + 1) * 64, TBSIZE); i++)
-			if ((entry & (1ULL << (i % 64))) != 0) {
-				const auto board = Board::decompressIndex(i, currDepth % 2 == 0);
-				
+			if ((entry & (1ULL << (i % 64))) != 0) {				
 				if (currDepth % 2 == 0)
-					board.reverseMoves<&TableBase::addToTables<true>>(game, TB_MEN, maxMenPerSide, 0, threadNum);
+					Board::decompressIndex<true>(i).reverseMoves<&TableBase::addToTables<true>>(game, TB_MEN, maxMenPerSide, 0, threadNum);
 				else
-					board.reverseMoves<&TableBase::addToTables<false>>(game, TB_MEN, maxMenPerSide, 0, threadNum);
+					Board::decompressIndex<false>(i).reverseMoves<&TableBase::addToTables<false>>(game, TB_MEN, maxMenPerSide, 0, threadNum);
 			}
 		entry = 0;
 	}
@@ -133,6 +134,10 @@ U64 TableBase::singleDepth(Game& game) {
 	for (int i = 0; i < numThreads; i++)
 		threads[i].join();
 	atomic_thread_fence(std::memory_order_acq_rel);
+	if (currDepth % 2 == 0)
+		for (U64 i = 0; i < table->size(); i++)
+			if ((*table)[i] == (int8_t)0x80)
+				(*table)[i] = 0;
 	U64 total = 0;
 #ifndef NDEBUGe
 	for (U64 i = 0; i < nextBoards->size(); i++)
@@ -211,11 +216,11 @@ void TableBase::placePiecesDead(Game& game, const Board& board, const bool finis
 
 
 TableBase::TableBase() {
-	numThreads = 1;//std::max<U32>(1, std::thread::hardware_concurrency());
+	numThreads = std::max<U32>(1, std::thread::hardware_concurrency());
 	if (table == nullptr)
 		table = std::make_unique<std::array<int8_t, TBSIZE>>();
-	nextBoards = std::make_unique<std::array<uint64_t, (TBSIZE+63)/64>>();
-	otherNextBoards = std::make_unique<std::array<uint64_t, (TBSIZE+63)/64>>();
+	nextBoards = std::make_unique<std::array<std::atomic<uint64_t>, (TBSIZE+63)/64>>();
+	otherNextBoards = std::make_unique<std::array<std::atomic<uint64_t>, (TBSIZE+63)/64>>();
 }
 
 void TableBase::generate(Game& game) {
@@ -254,11 +259,6 @@ void TableBase::generate(Game& game) {
 		wonCount += total;
 		beginTime2 = std::chrono::steady_clock::now();
 	} while ((total = singleDepth(game)));
-
-	
-	for (U64 i = 0; i < table->size(); i++)
-		if ((*table)[i] == (int8_t)0x80)
-			(*table)[i] = 0;
 	
 	auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 	printf("%10llu winning boards in %.3fs (%.2fM/s)\n", wonCount, (float)time / 1000000, (float)wonCount / time);

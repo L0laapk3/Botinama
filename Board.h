@@ -61,9 +61,10 @@ public:
 	bool testForwardTB(GameCards& cards, std::array<int8_t, TBSIZE>& tableBase) const;
 #endif
 public:
+	template<bool invert>
 	U32 compressToIndex() const;
-	U32 invertCompressToIndex() const;
-	static Board decompressIndex(U32 boardComp, bool player);
+	template<bool invert>
+	static Board decompressIndex(U32 boardComp);
 };
 
 struct BoardHash {
