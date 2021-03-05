@@ -21,7 +21,8 @@ private:
 	template<bool isMine, bool isFirst>
 	static void addToTables(Game& game, const Board& board, const bool finished, const int8_t _, const int threadNum);
 
-	static void singleDepthThread(Game& game, const int threadNum, std::promise<U64>&& promise, std::atomic<U64>& batchNum);
+	template<bool isMine, bool isFirst>
+	static void singleDepthThread(Game& game, std::promise<U64>&& promise, std::atomic<U64>& batchNum);
 	static void firstDepthThread(Game& game, const int threadNum);
 	static void cleanTableThread(std::array<int8_t, TBSIZE>& table, const int threadNum);
 	U64 singleDepth(Game& game);

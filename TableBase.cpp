@@ -20,7 +20,7 @@ constexpr U32 TB_GENERATE_MEN = TB_MEN;
 
 constexpr U64 BATCH_SIZE = 1ULL << 10;
 
-
+constexpr U64 MAX_STOP_DUPLICATE_DEPTH = 16;
 
 
 uint16_t currDepth;
@@ -54,7 +54,8 @@ void TableBase::addToTables(Game& game, const Board& board, const bool finished,
 		compressedBoard = board.compressToIndex<true>();
 		auto& entry = (*game.tableBase.table)[compressedBoard];
 		if (entry == 0) {
-			entry = 0x80;
+			if (isFirst)
+				entry = 0x80;
 			exploreChildren = board.testForwardTB(game.cards, *game.tableBase.table);
 			if (exploreChildren) {
 				entry = -depthVal;
@@ -99,7 +100,8 @@ void TableBase::firstDepthThread(Game& game, const int threadNum) {
 	}
 }
 
-void TableBase::singleDepthThread(Game& game, const int threadNum, std::promise<U64>&& promise, std::atomic<U64>& batchNum) {
+template<bool isMine, bool isFirst>
+void TableBase::singleDepthThread(Game& game, std::promise<U64>&& promise, std::atomic<U64>& batchNum) {
 	constexpr U64 NUM_BATCHES = ((TBSIZE+63)/64 + BATCH_SIZE - 1) / BATCH_SIZE;
 	U64 total = 0;
 	while (true) {
@@ -117,9 +119,11 @@ void TableBase::singleDepthThread(Game& game, const int threadNum, std::promise<
 					_BitScanForward64(&i, bits);
 					bits ^= bits & -bits;	
 					if (currDepth % 2 == 0)
-						Board::decompressIndex<true>(i+chunk*64).reverseMoves<&TableBase::addToTables<true, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, threadNum);
+						Board::decompressIndex<true>(i+chunk*64).reverseMoves<&TableBase::addToTables<true, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, 0);
+					else if (currDepth < MAX_STOP_DUPLICATE_DEPTH)
+						Board::decompressIndex<false>(i+chunk*64).reverseMoves<&TableBase::addToTables<false, true>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, 0);
 					else
-						Board::decompressIndex<false>(i+chunk*64).reverseMoves<&TableBase::addToTables<false, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, threadNum);
+						Board::decompressIndex<false>(i+chunk*64).reverseMoves<&TableBase::addToTables<false, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, 0);
 				}
 			}
 		}
@@ -148,7 +152,12 @@ U64 TableBase::singleDepth(Game& game) {
 		for (int i = 0; i < numThreads; i++) {
 			std::promise<U64> p;
 			futures.push_back(p.get_future());
-			threads.push_back(std::thread(&TableBase::singleDepthThread, std::ref(game), i, std::move(p), std::ref(nextBatch)));
+			if (currDepth % 2 == 0)
+				threads.push_back(std::thread(&TableBase::singleDepthThread<true, false>, std::ref(game), std::move(p), std::ref(nextBatch)));
+			else if (currDepth < MAX_STOP_DUPLICATE_DEPTH)
+				threads.push_back(std::thread(&TableBase::singleDepthThread<false, true>, std::ref(game), std::move(p), std::ref(nextBatch)));
+			else
+				threads.push_back(std::thread(&TableBase::singleDepthThread<false, false>, std::ref(game), std::move(p), std::ref(nextBatch)));
 		}
 		for (int i = 0; i < numThreads; i++) {
 			threads[i].join();
@@ -156,14 +165,14 @@ U64 TableBase::singleDepth(Game& game) {
 		}
 	}
 	atomic_thread_fence(std::memory_order_acq_rel);
-	if (currDepth % 2) {
+	if (currDepth % 2 == 1 && currDepth < MAX_STOP_DUPLICATE_DEPTH) {
 		std::vector<std::thread> threads;
 		for (int i = 0; i < numThreads; i++)
 			threads.push_back(std::thread(&TableBase::cleanTableThread, std::ref(*table), i));
 		for (int i = 0; i < numThreads; i++)
 			threads[i].join();
+		atomic_thread_fence(std::memory_order_acq_rel);
 	}
-	atomic_thread_fence(std::memory_order_acq_rel);
 	return total;
 }
 
