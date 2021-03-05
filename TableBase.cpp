@@ -13,13 +13,19 @@
 #ifdef USE_TB
 
 
-uint16_t currDepth;
-int8_t depthVal;
-U64 numThreads = 0;
 
 constexpr U32 MAX_THREADS = 256;
 
 constexpr U32 TB_GENERATE_MEN = TB_MEN;
+
+constexpr U64 BATCH_SIZE = 1ULL << 10;
+
+
+
+
+uint16_t currDepth;
+int8_t depthVal;
+U64 numThreads = 0;
 
 
 //TODO: fix race conditions lol
@@ -93,22 +99,28 @@ void TableBase::firstDepthThread(Game& game, const int threadNum) {
 	}
 }
 
-void TableBase::singleDepthThread(Game& game, const int threadNum, std::promise<U64> && promise) {
+void TableBase::singleDepthThread(Game& game, const int threadNum, std::promise<U64>&& promise, std::atomic<U64>& batchNum) {
+	constexpr U64 NUM_BATCHES = ((TBSIZE+63)/64 + BATCH_SIZE - 1) / BATCH_SIZE;
 	U64 total = 0;
-	for (U64 chunk = game.tableBase.nextQueue->size() * threadNum / numThreads; chunk < game.tableBase.nextQueue->size() * (threadNum + 1) / numThreads; chunk++) {
-		auto& entry = (*game.tableBase.nextQueue)[chunk];
-		if (entry) {
-			U64 bits = entry;
-			total += _popcnt64(entry);
-			entry = 0;
-			while (bits) {
-				unsigned long i;
-				_BitScanForward64(&i, bits);
-				bits ^= bits & -bits;	
-				if (currDepth % 2 == 0)
-					Board::decompressIndex<true>(i+chunk*64).reverseMoves<&TableBase::addToTables<true, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, threadNum);
-				else
-					Board::decompressIndex<false>(i+chunk*64).reverseMoves<&TableBase::addToTables<false, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, threadNum);
+	while (true) {
+		U64 batch = batchNum++;
+		if (batch >= NUM_BATCHES)
+			break;
+		for (U64 chunk = BATCH_SIZE * batch; chunk < std::min(BATCH_SIZE * (batch + 1), (TBSIZE+63)/64); chunk++) {
+			auto& entry = (*game.tableBase.nextQueue)[chunk];
+			if (entry) {
+				U64 bits = entry;
+				total += _popcnt64(entry);
+				entry = 0;
+				while (bits) {
+					unsigned long i;
+					_BitScanForward64(&i, bits);
+					bits ^= bits & -bits;	
+					if (currDepth % 2 == 0)
+						Board::decompressIndex<true>(i+chunk*64).reverseMoves<&TableBase::addToTables<true, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, threadNum);
+					else
+						Board::decompressIndex<false>(i+chunk*64).reverseMoves<&TableBase::addToTables<false, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, threadNum);
+				}
 			}
 		}
 	}
@@ -130,12 +142,13 @@ U64 TableBase::singleDepth(Game& game) {
 
 	U64 total = 0;
 	{
+		std::atomic<U64> nextBatch = 0;
 		std::vector<std::thread> threads;
 		std::vector<std::future<U64>> futures;
 		for (int i = 0; i < numThreads; i++) {
 			std::promise<U64> p;
 			futures.push_back(p.get_future());
-			threads.push_back(std::thread(&TableBase::singleDepthThread, std::ref(game), i, std::move(p)));
+			threads.push_back(std::thread(&TableBase::singleDepthThread, std::ref(game), i, std::move(p), std::ref(nextBatch)));
 		}
 		for (int i = 0; i < numThreads; i++) {
 			threads[i].join();

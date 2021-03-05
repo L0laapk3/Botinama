@@ -7,7 +7,7 @@ template<MoveFunc cb, bool reverse>
 void Board::iterateMoves(Game& game, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, const bool createPiece, const int8_t depthVal, const int threadNum) const {
 	//card.print();
 	U32 bitScan = (piecesWithNewCards >> (player ? 32 : 0)) & MASK_PIECES;
-	U32 kingPieceNum = (piecesWithNewCards >> INDEX_KINGS[player]) & 7;
+	// U32 kingPieceNum = (piecesWithNewCards >> INDEX_KINGS[player]) & 7;
 	const uint32_t king = kings >> (player ? 32 : 0);
 	const uint32_t opponentKing = kings >> (player ? 0 : 32);
 	// const U32 opponentKingPieceNum = (piecesWithNewCards >> INDEX_KINGS[!player]) & 7;
