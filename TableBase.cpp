@@ -27,12 +27,10 @@ template<bool isMine, bool isFirst>
 void TableBase::addToTables(Game& game, const Board& board, const bool finished, const int8_t _, const int threadNum) {
 	// this function assumed that it is called in the correct distanceToWin order
 	// also assumes that there are no duplicate starting boards
-	//board.print(game.cards, finished, true);
 
 	if (finished)
 		return;
 
-	//board.print(game.cards);
 	bool exploreChildren = false;
 	U32 compressedBoard;
 	if (isMine) {
@@ -40,24 +38,13 @@ void TableBase::addToTables(Game& game, const Board& board, const bool finished,
 		// only insert and iterate if it doesnt already exist (keeps lowest distance)
 		compressedBoard = board.compressToIndex<false>();
 
-		// auto decomp = decompress6Men(compressedBoard);
-		// if (decomp.pieces != board.pieces) {
-		// 	board.print(game.cards);
-		// 	decomp.print(game.cards);
-		// 	std::cout << std::bitset<64>(board.pieces) << std::endl << std::bitset<64>(decomp.pieces) << std::endl;
-		// 	assert(decompress6Men(compressedBoard).pieces == board.pieces);
-		// }
-
 		exploreChildren = isFirst || (*game.tableBase.table)[compressedBoard] == 0;
-		if (exploreChildren) {
+		if (exploreChildren)
 			(*game.tableBase.table)[compressedBoard] = depthVal;
-			// if (currDepth > 1)
-			// 	game.searchTime(board, 1000, 1, 0, currDepth+1);
-		}
 
 	} else {
 		// opponents move. All forward moves must lead to a loss first
-		// this function should only get called at most countForwardMoves times
+		// (this function should only get called at most countForwardMoves times)
 		compressedBoard = board.compressToIndex<true>();
 		auto& entry = (*game.tableBase.table)[compressedBoard];
 		if (entry == 0) {
@@ -65,17 +52,11 @@ void TableBase::addToTables(Game& game, const Board& board, const bool finished,
 			exploreChildren = board.testForwardTB(game.cards, *game.tableBase.table);
 			if (exploreChildren) {
 				entry = -depthVal;
-				// if (currDepth+1 == 4)
-				// 	board.print(game.cards);
-				// game.searchTime(board, 1000, 1, 0, currDepth+1);
 			}
 		}
 	}
-	if (exploreChildren) {
+	if (exploreChildren)
 		(*game.tableBase.queue)[compressedBoard/64] |= 1ULL << (compressedBoard % 64);
-		// if (currDepth == 1)
-		// 	board.print(game.cards);
-	}
 };
 
 U32 maxMenPerSide;
@@ -179,21 +160,9 @@ template<bool templeWin>
 void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied, U64 kings, U32 startAt, U32 spotsLeft, U32 minSpots0, U32 minSpotsAll, U32 myMaxPawns, U32 otherMaxPawns, U32 threadNum) {
 	if (spotsLeft == minSpotsAll) {
 		Board board{ pieces, kings };
-		//std::cout << std::bitset<64>((((U64)beforeOtherKing) << 32) & board.pieces) << ' ' << _popcnt64((((U64)beforeOtherKing) << 32) & board.pieces) << std::endl;
-		//std::cout << ((board.pieces >> INDEX_KINGS[1]) & 7) << std::endl;
-		// board.pieces |= _popcnt64((((U64)beforeOtherKing) << 32) & board.pieces) << INDEX_KINGS[1];
 		if (templeWin) {
-			// board.pieces |= _popcnt64(beforeKing & board.pieces) << INDEX_KINGS[0];
-			//if (board.pieces & (1ULL << 22))
-			//	board.print(game.cards);
 			addToTables<true, true>(game, board, false, 0, threadNum);
-
-			// board.pieces += 1ULL << INDEX_CARDS;
 		} else {
-			// board.pieces &= ~(7ULL << INDEX_KINGS[0]);
-			//std::cout << std::bitset<25>(board.pieces >> 32) << ' ' << std::bitset<25>(board.pieces) << std::endl;
-			//if (board.pieces & (1ULL << 22))
-			//	board.print(game.cards);
 			U32 kingI = 1;
 			while (true) {
 				U32 kingPos = _pdep_u32(kingI, board.pieces);
@@ -237,7 +206,6 @@ void TableBase::placePiecesDead(Game& game, const Board& board, const bool finis
 		return;
 	U64 pieces = board.pieces | (((U64)takenKingPos) << 32);
 	U32 occupied = board.pieces | takenKingPos;
-	//std::cout << "dead" << ((board.pieces >> INDEX_KINGS[1]) & 7) << std::endl;
 	placePieces<false>(game, pieces, { occupied, occupied }, ((U64)takenKingPos) << 32, 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns, threadNum);
 }
 
@@ -291,12 +259,6 @@ void TableBase::generate(Game& game) {
 	nextQueue.reset();
 
 	beginTime = std::chrono::steady_clock::now();
-	//U32 last = 0;
-	//for (auto& d : evenWins) {
-	//	U32 tmp = d.boardComp;
-	//	d.boardComp -= last;
-	//	last = tmp;
-	//}
 	
 	time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 

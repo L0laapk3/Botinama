@@ -69,12 +69,12 @@ Board Board::decompressIndex<true>(U32 boardComp) {
 		pieces |= 1ULL << (otherPiece1I + 32);
 	} else {	
 		U32 pieceValue = boardComp % (25*13);
-		U32 piece1I = pieceValue / 25;
-		U32 piece2I = pieceValue % 25;
-		if (piece1I > piece2I) {
+		U32 piece1I = pieceValue % 25;
+		U32 piece2I = pieceValue / 25;
+		if (piece2I > piece1I) {
 			pieceValue = 25*26-1 - pieceValue;
-			piece1I = pieceValue / 25;
-			piece2I = pieceValue % 25;
+			piece1I = pieceValue % 25;
+			piece2I = pieceValue / 25;
 		}
         piece1I = 24 - piece1I;
         piece2I = 24 - piece2I;
@@ -82,13 +82,13 @@ Board Board::decompressIndex<true>(U32 boardComp) {
 		boardComp /= 25*13;
         
 		U32 otherPieceValue = boardComp % (25*13);
-		U32 otherPiece1I = otherPieceValue / 25;
-		U32 otherPiece2I = otherPieceValue % 25;
+		U32 otherPiece1I = otherPieceValue % 25;
+		U32 otherPiece2I = otherPieceValue / 25;
         // std::cout << otherPieceValue << ' ' << otherPiece1I << ' ' << otherPiece2I << " ref";
-		if (otherPiece1I > otherPiece2I) {
+		if (otherPiece2I > otherPiece1I) {
 			otherPieceValue = 25*26-1 - otherPieceValue;
-			otherPiece1I = otherPieceValue / 25;
-			otherPiece2I = otherPieceValue % 25;
+			otherPiece1I = otherPieceValue % 25;
+			otherPiece2I = otherPieceValue / 25;
             // std::cout << ' ' << otherPiece1I << ' ' << otherPiece2I;
 		}
         // std::cout << std::endl;
@@ -182,13 +182,13 @@ U32 Board::compressToIndex<true>() const {
 		boardComp = boardComp * 25 + 24 - otherPieceI;
 		boardComp = boardComp * 25 + 24 - pieceI;
 	} else {
-		U32 pieceValue = 24 + (24 - pieceI) * 25;
-		U32 otherPieceValue = 24 + (24 - otherPieceI) * 25;
+		U32 pieceValue = 24 * 25 + 24 - pieceI;
+		U32 otherPieceValue = 24 * 25 + 24 - otherPieceI;
         U32 first = pieceI;
 		_BitScanReverse(&pieceI, bluePieces);
 		_BitScanReverse(&otherPieceI, redPieces);
-		pieceValue -= pieceI;
-		otherPieceValue -= otherPieceI;
+		pieceValue -= pieceI * 25;
+		otherPieceValue -= otherPieceI * 25;
         
         // std::cout << std::min(otherPieceValue, 25*26-1 - otherPieceValue) << ' ' << first << ' ' << otherPieceI << std::endl;
 
@@ -203,6 +203,11 @@ U32 Board::compressToIndex<true>() const {
 	// if (decompressIndex<true>(boardComp).pieces != pieces) {
 	// 	std::cout << std::bitset<64>(decompressIndex<true>(boardComp).pieces) << std::endl << std::bitset<64>(pieces) << 'i' << std::endl;
 	// 	assert(decompressIndex<true>(boardComp).pieces == pieces);
+	// }
+    
+	// if (decompressIndex<false>(boardComp).invert().pieces != pieces) {
+	// 	std::cout << std::bitset<64>(decompressIndex<false>(boardComp).invert().pieces) << std::endl << std::bitset<64>(pieces) << 'f' << std::endl;
+	// 	assert(decompressIndex<false>(boardComp).invert().pieces == pieces);
 	// }
 
 	return boardComp;
