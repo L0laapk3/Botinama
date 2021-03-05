@@ -18,11 +18,12 @@ private:
 	std::unique_ptr<BitTable> queue = nullptr;
 	std::unique_ptr<BitTable> nextQueue = nullptr;
 
-	template<bool isMine>
+	template<bool isMine, bool isFirst>
 	static void addToTables(Game& game, const Board& board, const bool finished, const int8_t _, const int threadNum);
 
 	static void singleDepthThread(Game& game, const int threadNum, std::promise<U64> && promise);
 	static void firstDepthThread(Game& game, const int threadNum);
+	static void cleanTableThread(std::array<int8_t, TBSIZE>& table, const int threadNum);
 	U64 singleDepth(Game& game);
 	
 	template<bool templeWin>
