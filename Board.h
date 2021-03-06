@@ -61,7 +61,7 @@ public:
 	bool testForwardTB(GameCards& cards, std::array<int8_t, TBSIZE>& tableBase) const;
 #endif
 public:
-	template<bool invert>
+	template<bool invert, bool withoutCards = false>
 	U32 compressToIndex() const;
 	template<bool invert>
 	static Board decompressIndex(U32 boardComp);

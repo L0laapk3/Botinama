@@ -14,7 +14,7 @@
 
 
 
-constexpr U32 MAX_THREADS = 256;
+constexpr U32 MAX_THREADS = 1;//256;
 
 constexpr U32 TB_GENERATE_MEN = TB_MEN;
 
@@ -47,6 +47,8 @@ void TableBase::addToTables(Game& game, const Board& board, const bool finished,
 		exploreChildren = isFirst || (*game.tableBase.table)[compressedBoard] == 0;
 		if (exploreChildren)
 			(*game.tableBase.table)[compressedBoard] = depthVal;
+		// if (isFirst)
+		// 	exploreChildren = false;
 
 	} else {
 		// opponents move. All forward moves must lead to a loss first
@@ -59,6 +61,7 @@ void TableBase::addToTables(Game& game, const Board& board, const bool finished,
 			exploreChildren = board.testForwardTB(game.cards, *game.tableBase.table);
 			if (exploreChildren) {
 				entry = -depthVal;
+				// std::cout << std::bitset<25>(board.kings >> 32) << ' ' << std::bitset<25>(board.kings) << ' ' << ((board.pieces >> INDEX_CARDS) & 0x1f) << std::endl;
 			}
 		}
 	}
@@ -70,8 +73,9 @@ U32 maxMenPerSide;
 U32 myMaxPawns;
 U32 otherMaxPawns;
 
+template<bool depthZero>
 void TableBase::firstDepthThread(Game& game, std::atomic<U64>& batchNum) {
-	constexpr U64 NUM_BATCHES = 30 + 24 * 30;
+	constexpr U64 NUM_BATCHES = 30 * 25;
 	while (true) {
 		U64 batch = batchNum++;
 		if (batch >= NUM_BATCHES)
@@ -80,14 +84,13 @@ void TableBase::firstDepthThread(Game& game, std::atomic<U64>& batchNum) {
 			U32 king = MASK_END_POSITIONS[0];
 			Board board{ king | MASK_TURN };
 			board.pieces += batch << INDEX_CARDS;
-			board.reverseMoves<&TableBase::placePiecesTemple>(game, TB_GENERATE_MEN, 0, 0);
-			board.pieces += 1ULL << INDEX_CARDS;
+			board.reverseMoves<&TableBase::placePiecesTemple<depthZero>>(game, TB_GENERATE_MEN, 0, 0);
 		} else { // all king kill wins
 			U32 pos = batch / 30 - 1;
 			U32 takenKingPos = 1ULL << (pos + (pos >= INDEX_END_POSITIONS[1]));
 			Board board{ takenKingPos | MASK_TURN };
 			board.pieces += (batch % 30) << INDEX_CARDS;
-			board.reverseMoves<&TableBase::placePiecesDead>(game, TB_GENERATE_MEN, 0, takenKingPos);
+			board.reverseMoves<&TableBase::placePiecesDead<depthZero>>(game, TB_GENERATE_MEN, 0, takenKingPos);
 		}
 	}
 }
@@ -170,12 +173,12 @@ U64 TableBase::singleDepth(Game& game) {
 
 
 
-template<bool templeWin>
+template<bool depthZero, bool templeWin>
 void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied, U64 kings, U32 startAt, U32 spotsLeft, U32 minSpots0, U32 minSpotsAll, U32 myMaxPawns, U32 otherMaxPawns) {
 	if (spotsLeft == minSpotsAll) {
 		Board board{ pieces, kings };
 		if (templeWin) {
-			addToTables<true, true>(game, board, false, 0);
+			addToTables<depthZero, depthZero>(game, board, false, 0);
 		} else {
 			U64 otherKing = board.kings;
 			U32 scan = board.pieces & MASK_PIECES;
@@ -184,7 +187,7 @@ void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied,
 				scan &= scan - 1;
 				board.kings = kingPos | otherKing;
 				if (kingPos != MASK_END_POSITIONS[0])
-					addToTables<true, true>(game, board, false, 0);
+					addToTables<depthZero, depthZero>(game, board, false, 0);
 			}
 		}
 	} else {
@@ -193,13 +196,14 @@ void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied,
 		while (piece & MASK_PIECES) {
 			startAt++;
 			if (piece & ~occupied[player]) {
-				placePieces<templeWin>(game, pieces | (((U64)piece) << (player ? 32 : 0)), { occupied[0] | piece, occupied[1] | piece }, kings, spotsLeft == minSpots0 + 1 ? 0 : startAt, spotsLeft - 1, minSpots0, minSpotsAll, myMaxPawns, otherMaxPawns);
+				placePieces<depthZero, templeWin>(game, pieces | (((U64)piece) << (player ? 32 : 0)), { occupied[0] | piece, occupied[1] | piece }, kings, spotsLeft == minSpots0 + 1 ? 0 : startAt, spotsLeft - 1, minSpots0, minSpotsAll, myMaxPawns, otherMaxPawns);
 			}
 			piece <<= 1;
 		}
 	}
 }
 
+template<bool depthZero>
 void TableBase::placePiecesTemple(Game& game, const Board& board, const bool finished, const U32 _) {
 	if (finished)
 		return;
@@ -209,16 +213,17 @@ void TableBase::placePiecesTemple(Game& game, const Board& board, const bool fin
 			otherKing <<= 1;
 		U64 pieces = board.pieces | (((U64)otherKing) << 32);
 		U32 occupied = board.pieces | otherKing;
-		placePieces<true>(game, pieces, { occupied | MASK_END_POSITIONS[0], occupied }, (board.pieces & MASK_PIECES) | (((U64)otherKing) << 32), 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns);
+		placePieces<depthZero, true>(game, pieces, { occupied | MASK_END_POSITIONS[0], occupied }, (board.pieces & MASK_PIECES) | (((U64)otherKing) << 32), 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns);
 		otherKing <<= 1;
 	}
 }
+template<bool depthZero>
 void TableBase::placePiecesDead(Game& game, const Board& board, const bool finished, const U32 takenKingPos) {
 	if (finished)
 		return;
 	U64 pieces = board.pieces | (((U64)takenKingPos) << 32);
 	U32 occupied = board.pieces | takenKingPos;
-	placePieces<false>(game, pieces, { occupied, occupied }, ((U64)takenKingPos) << 32, 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns);
+	placePieces<depthZero, false>(game, pieces, { occupied, occupied }, ((U64)takenKingPos) << 32, 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns);
 }
 
 
@@ -248,11 +253,23 @@ void TableBase::generate(Game& game) {
 			std::atomic<U64> batchNum = 0;
 			std::vector<std::thread> threads;
 			for (int i = 0; i < numThreads; i++)
-				threads.push_back(std::thread(&TableBase::firstDepthThread, std::ref(game), std::ref(batchNum)));
+				threads.push_back(std::thread(&TableBase::firstDepthThread<true>, std::ref(game), std::ref(batchNum)));
 			for (int i = 0; i < numThreads; i++)
 				threads[i].join();
 			atomic_thread_fence(std::memory_order_acq_rel);
 		}
+	// for (myMaxPawns = 0; myMaxPawns <= maxMenPerSide - 1; myMaxPawns++)
+	// 	for (otherMaxPawns = 0; otherMaxPawns <= std::min(maxMenPerSide - 1, TB_GENERATE_MEN - myMaxPawns - 2); otherMaxPawns++) {
+	// 		atomic_thread_fence(std::memory_order_acq_rel);
+	// 		std::atomic<U64> batchNum = 0;
+	// 		std::vector<std::thread> threads;
+	// 		for (int i = 0; i < numThreads; i++)
+	// 			threads.push_back(std::thread(&TableBase::firstDepthThread<false>, std::ref(game), std::ref(batchNum)));
+	// 		for (int i = 0; i < numThreads; i++)
+	// 			threads[i].join();
+	// 		atomic_thread_fence(std::memory_order_acq_rel);
+	// 	}
+	// currDepth++;
 
 	U64 wonCount = 0;
 	U64 total = 0;
@@ -260,6 +277,8 @@ void TableBase::generate(Game& game) {
 		const auto time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime2).count());
 		//printf("%9llu winning depth %2u boards in %6.2fs using %10llu lookups (%5.1fM lookups/s)\n", queue.size(), currDepth + 1, (float)time / 1000000, lookups, (float)lookups / time);
 		printf("%10llu winning depth %3u boards in %6.2fs\n", total, currDepth, (float)time / 1000000);
+		// if (currDepth == 2)
+		// 	return;
 		wonCount += total;
 		beginTime2 = std::chrono::steady_clock::now();
 	} while ((total = singleDepth(game)));

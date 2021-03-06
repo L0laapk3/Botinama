@@ -55,7 +55,7 @@ Board Board::decompressIndex<false>(U32 boardComp) {
 
 template<>
 Board Board::decompressIndex<true>(U32 boardComp) {
-	U64 pieces = 1ULL << INDEX_TURN;
+	U64 pieces = MASK_TURN;
 	pieces |= ((U64)CARDS_INVERT[boardComp % 30]) << INDEX_CARDS;
     assert(CARDS_INVERT[boardComp % 30] < 30);
 	boardComp /= 30;
@@ -110,16 +110,16 @@ Board Board::decompressIndex<true>(U32 boardComp) {
 }
 
 
-template<>
-U32 Board::compressToIndex<false>() const {
+template<bool flip, bool withoutCards>
+U32 Board::compressToIndex() const {
 	U32 boardComp = 0;
 	U64 bothPieces = (pieces - kings) & (MASK_PIECES | (((U64)MASK_PIECES) << 32));
 	unsigned long kingI, otherKingI;
 	assert(otherKing != 0);
 	_BitScanForward(&kingI, kings);
 	_BitScanForward(&otherKingI, kings >> 32);
-	boardComp = boardComp * 25 + kingI;
-	boardComp = boardComp * 25 + otherKingI;
+	boardComp = boardComp * 25 + (flip ? 24 - otherKingI : kingI);
+	boardComp = boardComp * 25 + (flip ? 24 - kingI : otherKingI);
 
 	unsigned long piece1I, otherPiece1I;
 	if (!_BitScanForward(&piece1I, bothPieces))
@@ -128,17 +128,15 @@ U32 Board::compressToIndex<false>() const {
 		otherPiece1I = otherKingI;
 	
 	if (TB_MEN <= 4) {
-		boardComp = boardComp * 25 + piece1I;
-		boardComp = boardComp * 25 + otherPiece1I;
+		boardComp = boardComp * 25 + (flip ? 24 - otherPiece1I : piece1I);
+		boardComp = boardComp * 25 + (flip ? 24 - piece1I : otherPiece1I);
 		
 		assert(boardComp < 25*25*25*25);
 	} else {
-		U32 pieceValue = piece1I * 25;
-		U32 otherPieceValue = otherPiece1I * 25;
 		_BitScanReverse(&kingI, bothPieces);
 		_BitScanReverse(&otherKingI, bothPieces >> 32);
-		pieceValue += kingI;
-		otherPieceValue += otherKingI;
+		U32 pieceValue = flip ? 24*26 - otherPiece1I - 25*otherKingI : piece1I * 25 + kingI;
+		U32 otherPieceValue = flip ? 24*26 - piece1I - 25*kingI : otherPiece1I * 25 + otherKingI;
 
 		boardComp = boardComp * 25*13 + std::min(pieceValue, 25*26-1 - pieceValue);
 		boardComp = boardComp * 25*13 + std::min(otherPieceValue, 25*26-1 - otherPieceValue);
@@ -146,7 +144,8 @@ U32 Board::compressToIndex<false>() const {
 		assert(boardComp < 25*25*25*13*25*13);
 	}
 
-	boardComp = boardComp * 30 + ((pieces & MASK_CARDS) >> INDEX_CARDS);
+	U32 cardI = (pieces & MASK_CARDS) >> INDEX_CARDS;
+	boardComp = boardComp * 30 + (flip ? CARDS_INVERT[cardI] : cardI);
 
 
 	// if (decompressIndex<false>(boardComp).pieces != pieces) {
@@ -156,59 +155,10 @@ U32 Board::compressToIndex<false>() const {
 
 	return boardComp;
 }
-
-template<>
-U32 Board::compressToIndex<true>() const {
-	U32 boardComp = 0;
-	U64 bothPieces = (pieces - kings) & (MASK_PIECES | (((U64)MASK_PIECES) << 32));
-	unsigned long kingI, otherKingI;
-	_BitScanForward(&kingI, kings);
-	_BitScanForward(&otherKingI, kings >> 32);
-	
-	boardComp = boardComp * 25 + 24 - otherKingI;
-	boardComp = boardComp * 25 + 24 - kingI;
-
-	unsigned long piece1I, otherPiece1I;
-	if (!_BitScanForward(&piece1I, bothPieces))
-		piece1I = kingI;
-	if (!_BitScanForward(&otherPiece1I, bothPieces >> 32))
-		otherPiece1I = otherKingI;
-	
-	if (TB_MEN <= 4) {
-		boardComp = boardComp * 25 + 24 - otherPiece1I;
-		boardComp = boardComp * 25 + 24 - piece1I;
-	} else {
-		U32 pieceValue = 24 * 25 + 24 - piece1I;
-		U32 otherPieceValue = 24 * 25 + 24 - otherPiece1I;
-		
-		_BitScanReverse(&kingI, bothPieces);
-		_BitScanReverse(&otherKingI, bothPieces >> 32);
-		pieceValue -= kingI * 25;
-		otherPieceValue -= otherKingI * 25;
-
-		boardComp = boardComp * 25*13 + std::min(otherPieceValue, 25*26-1 - otherPieceValue);
-		boardComp = boardComp * 25*13 + std::min(pieceValue, 25*26-1 - pieceValue);
-		
-		assert(boardComp < 25*25*25*13*25*13);
-	}
-
-	boardComp = boardComp * 30 + CARDS_INVERT[(pieces & MASK_CARDS) >> INDEX_CARDS];
-	
-	// if (decompressIndex<true>(boardComp).pieces != pieces) {
-	// 	std::cout << std::bitset<64>(decompressIndex<true>(boardComp).pieces) << std::endl << std::bitset<64>(pieces) << 'i' << std::endl;
-	// 	assert(decompressIndex<true>(boardComp).pieces == pieces);
-	// }
-    
-	// if (decompressIndex<false>(boardComp).invert().pieces != pieces) {
-	// 	std::cout << std::bitset<64>(decompressIndex<false>(boardComp).invert().pieces) << std::endl << std::bitset<64>(pieces) << 'f' << std::endl;
-	// 	assert(decompressIndex<false>(boardComp).invert().pieces == pieces);
-	// }
-
-	return boardComp;
-}
-
-
-
+template U32 Board::compressToIndex<false, false>() const;
+template U32 Board::compressToIndex<false, true>() const;
+template U32 Board::compressToIndex<true, false>() const;
+template U32 Board::compressToIndex<true, true>() const;
 
 
 
