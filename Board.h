@@ -15,7 +15,7 @@
 
 class Game;
 class Board;
-typedef void (*MoveFunc)(Game& game, const Board& board, const bool finished, const U32 passTrough);
+typedef void (*MoveFunc)(Game& game, Board& board, const bool finished, U32 cardStuff, const U32 passTrough);
 
 
 class TableBase;

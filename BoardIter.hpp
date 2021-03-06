@@ -50,12 +50,8 @@ void Board::iterateMoves(Game& game, const MoveBoard& moveBoards, U64 piecesWith
 				// if (isKingMove)
 				// 	std::cout << "kings changed " << std::bitset<64>(kings - (((U64)fromBit) << (player ? 32 : 0)) + (((U64)landBit) << (player ? 32 : 0)));
 
-				
-				for (int i = 0; i < 2; i++) {
-					//unsigned long cardI = cardStuff & 0xff;
-					U64 newPiecesWithCards = newPieces | ((((U64)cardStuff) << (INDEX_CARDS - (8ULL + 16 * i))) & MASK_CARDS);
-					cb(game, Board{ newPiecesWithCards, isKingMove ? kings - (((U64)fromBit) << (player ? 32 : 0)) + (((U64)landBit) << (player ? 32 : 0)) : kings }, finished, passTrough);
-				}
+				Board newBoard{ newPieces, isKingMove ? kings - (((U64)fromBit) << (player ? 32 : 0)) + (((U64)landBit) << (player ? 32 : 0)) : kings };
+				cb(game, newBoard, finished, cardStuff, passTrough);
 			}
 		}
 	}

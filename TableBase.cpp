@@ -14,7 +14,7 @@
 
 
 
-constexpr U32 MAX_THREADS = 1;//256;
+constexpr U32 MAX_THREADS = 256;
 
 constexpr U32 TB_GENERATE_MEN = TB_MEN;
 
@@ -30,7 +30,7 @@ U64 numThreads = 0;
 
 //TODO: fix race conditions lol
 template<bool isMine, bool isFirst, bool cacheFlag>
-void TableBase::addToTables(Game& game, const Board& board, const bool finished, const U32 _) {
+void TableBase::addToTables(Game& game, Board& board, const bool finished, U32 cardStuff, const U32 _) {
 	// this function assumed that it is called in the correct distanceToWin order
 	// also assumes that there are no duplicate starting boards
 
@@ -47,8 +47,16 @@ void TableBase::addToTables(Game& game, const Board& board, const bool finished,
 	// 	//unsigned long cardI = cardStuff & 0xff;
 	// 	U32 compressedBoard = compressedBoardWithoutCards + (((U64)cardStuff & 0xff00) >> 8);
 	// 	cardStuff >>= 16;
+	
+	U32 compressedNoCards = board.compressToIndex<!isMine, true>();
+	for (int i = 0; i < 2; i++) {
+		//unsigned long cardI = cardStuff & 0xff;
+		U32 newCardI = cardStuff & 0xff00;
+		cardStuff >>= 16;
+		board.pieces &= ~MASK_CARDS;
+		board.pieces |= newCardI << (INDEX_CARDS - 8ULL);
 
-		U32 compressedBoard = board.compressToIndex<!isMine, false>();
+		U32 compressedBoard = compressedNoCards + (isMine ? newCardI >> 8 : CARDS_INVERT[newCardI >> 8]);
 
 		bool exploreChildren = false;
 		auto& entry = (*game.tableBase.table)[compressedBoard];
@@ -77,8 +85,8 @@ void TableBase::addToTables(Game& game, const Board& board, const bool finished,
 		}
 		if (exploreChildren)
 			(*game.tableBase.queue)[compressedBoard/64] |= 1ULL << (compressedBoard%64);
-	// }
-};
+	}
+}
 
 U32 maxMenPerSide;
 U32 myMaxPawns;
@@ -185,11 +193,11 @@ U64 TableBase::singleDepth(Game& game) {
 
 
 template<bool depthZero, bool templeWin>
-void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied, U64 kings, U32 startAt, U32 spotsLeft, U32 minSpots0, U32 minSpotsAll, U32 myMaxPawns, U32 otherMaxPawns) {
+void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied, U64 kings, U32 startAt, U32 spotsLeft, U32 minSpots0, U32 minSpotsAll, U32 myMaxPawns, U32 otherMaxPawns, U32 cardStuff) {
 	if (spotsLeft == minSpotsAll) {
 		Board board{ pieces, kings };
 		if (templeWin) {
-			addToTables<depthZero, true, false>(game, board, false, 0);
+			addToTables<depthZero, true, false>(game, board, false, cardStuff, 0);
 		} else {
 			U64 otherKing = board.kings;
 			U32 scan = board.pieces & MASK_PIECES;
@@ -198,7 +206,7 @@ void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied,
 				scan &= scan - 1;
 				board.kings = kingPos | otherKing;
 				if (kingPos != MASK_END_POSITIONS[0])
-					addToTables<depthZero, true, false>(game, board, false, 0);
+					addToTables<depthZero, true, false>(game, board, false, cardStuff, 0);
 			}
 		}
 	} else {
@@ -207,7 +215,7 @@ void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied,
 		while (piece & MASK_PIECES) {
 			startAt++;
 			if (piece & ~occupied[player]) {
-				placePieces<depthZero, templeWin>(game, pieces | (((U64)piece) << (player ? 32 : 0)), { occupied[0] | piece, occupied[1] | piece }, kings, spotsLeft == minSpots0 + 1 ? 0 : startAt, spotsLeft - 1, minSpots0, minSpotsAll, myMaxPawns, otherMaxPawns);
+				placePieces<depthZero, templeWin>(game, pieces | (((U64)piece) << (player ? 32 : 0)), { occupied[0] | piece, occupied[1] | piece }, kings, spotsLeft == minSpots0 + 1 ? 0 : startAt, spotsLeft - 1, minSpots0, minSpotsAll, myMaxPawns, otherMaxPawns, cardStuff);
 			}
 			piece <<= 1;
 		}
@@ -215,7 +223,7 @@ void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied,
 }
 
 template<bool depthZero>
-void TableBase::placePiecesTemple(Game& game, const Board& board, const bool finished, const U32 _) {
+void TableBase::placePiecesTemple(Game& game, Board& board, const bool finished, U32 cardStuff, const U32 _) {
 	if (finished)
 		return;
 	U32 otherKing = 1ULL;
@@ -224,17 +232,17 @@ void TableBase::placePiecesTemple(Game& game, const Board& board, const bool fin
 			otherKing <<= 1;
 		U64 pieces = board.pieces | (((U64)otherKing) << 32);
 		U32 occupied = board.pieces | otherKing;
-		placePieces<depthZero, true>(game, pieces, { occupied | MASK_END_POSITIONS[0], occupied }, (board.pieces & MASK_PIECES) | (((U64)otherKing) << 32), 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns);
+		placePieces<depthZero, true>(game, pieces, { occupied | MASK_END_POSITIONS[0], occupied }, (board.pieces & MASK_PIECES) | (((U64)otherKing) << 32), 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns, cardStuff);
 		otherKing <<= 1;
 	}
 }
 template<bool depthZero>
-void TableBase::placePiecesDead(Game& game, const Board& board, const bool finished, const U32 takenKingPos) {
+void TableBase::placePiecesDead(Game& game, Board& board, const bool finished, U32 cardStuff, const U32 takenKingPos) {
 	if (finished)
 		return;
 	U64 pieces = board.pieces | (((U64)takenKingPos) << 32);
 	U32 occupied = board.pieces | takenKingPos;
-	placePieces<depthZero, false>(game, pieces, { occupied, occupied }, ((U64)takenKingPos) << 32, 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns);
+	placePieces<depthZero, false>(game, pieces, { occupied, occupied }, ((U64)takenKingPos) << 32, 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns, cardStuff);
 }
 
 
