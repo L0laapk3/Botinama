@@ -35,7 +35,7 @@ void Board::iterateMoves(Game& game, const MoveBoard& moveBoards, U64 piecesWith
 				scan &= ~(piecesWithNewCards >> (player ? 32 : 0));	// blocked by own pieces, opponent pieces are taken
 			while (scan) {
 				const U32 landBit = scan & -scan;
-				scan -= landBit;
+        		scan &= scan - 1;
 				U64 newPieces = newPiecesWithoutLandPiece;
 				newPieces |= ((U64)landBit) << (player ? 32 : 0);	 // add arrival piece
 				if (!reverse)

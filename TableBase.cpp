@@ -82,10 +82,9 @@ void TableBase::firstDepthThread(Game& game, const int threadNum) {
 		}
 	}
 	{ // all king kill wins
-		U32 takenKingPos = 1ULL;
-		U32 pos;
-		for (pos = 0; pos < 24 * threadNum / numThreads; pos++)
-			takenKingPos <<= (takenKingPos == MASK_END_POSITIONS[1]) + 1;
+		U32 pos = 24 * threadNum / numThreads;
+		U32 takenKingPos = 1ULL << pos;
+		takenKingPos <<= takenKingPos >= MASK_END_POSITIONS[1];
 		for (; pos < 24 * (threadNum + 1) / numThreads; pos++) {
 			takenKingPos <<= takenKingPos == MASK_END_POSITIONS[1];
 			Board board{ takenKingPos | MASK_TURN };
@@ -185,16 +184,14 @@ void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied,
 		if (templeWin) {
 			addToTables<true, true>(game, board, false, 0);
 		} else {
-			U32 kingI = 1;
-			while (true) {
-				U32 kingPos = _pdep_u32(kingI, board.pieces);
-				if (!(kingPos & MASK_PIECES))
-					break;
-				kingI <<= 1;
-				board.kings += kingPos;
+			U64 otherKing = board.kings;
+			U32 scan = board.pieces & MASK_PIECES;
+			while (scan) {
+				U32 kingPos = scan & -scan;
+				scan &= scan - 1;
+				board.kings = kingPos | otherKing;
 				if (kingPos != MASK_END_POSITIONS[0])
 					addToTables<true, true>(game, board, false, 0);
-				board.kings -= kingPos;
 			}
 		}
 	} else {
