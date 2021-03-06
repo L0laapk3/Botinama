@@ -70,31 +70,24 @@ U32 maxMenPerSide;
 U32 myMaxPawns;
 U32 otherMaxPawns;
 
-void TableBase::firstDepthThread(Game& game, const int threadNum) {
-	{ // all temple wins
-		U32 king = MASK_END_POSITIONS[0];
-		Board board{ king | MASK_TURN };
-		int i = threadNum / numThreads;
-		board.pieces += i << INDEX_CARDS;
-		for (; i < 30 * (threadNum + 1) / numThreads; i++) {
+void TableBase::firstDepthThread(Game& game, std::atomic<U64>& batchNum) {
+	constexpr U64 NUM_BATCHES = 30 + 24 * 30;
+	while (true) {
+		U64 batch = batchNum++;
+		if (batch >= NUM_BATCHES)
+			break;
+		if (batch < 30) { // all temple wins
+			U32 king = MASK_END_POSITIONS[0];
+			Board board{ king | MASK_TURN };
+			board.pieces += batch << INDEX_CARDS;
 			board.reverseMoves<&TableBase::placePiecesTemple>(game, TB_GENERATE_MEN, 0, 0);
 			board.pieces += 1ULL << INDEX_CARDS;
-		}
-	}
-	{ // all king kill wins
-		U32 pos = 24 * threadNum / numThreads;
-		U32 takenKingPos = 1ULL << pos;
-		takenKingPos <<= takenKingPos >= MASK_END_POSITIONS[1];
-		for (; pos < 24 * (threadNum + 1) / numThreads; pos++) {
-			takenKingPos <<= takenKingPos == MASK_END_POSITIONS[1];
+		} else { // all king kill wins
+			U32 pos = batch / 30 - 1;
+			U32 takenKingPos = 1ULL << (pos + (pos >= INDEX_END_POSITIONS[1]));
 			Board board{ takenKingPos | MASK_TURN };
-			for (int i = 0; i < 30; i++) {
-				//std::cout << "alive" << ((board.pieces >> INDEX_KINGS[1]) & 7) << std::endl;
-				board.reverseMoves<&TableBase::placePiecesDead>(game, TB_GENERATE_MEN, 0, takenKingPos);
-				board.pieces += 1ULL << INDEX_CARDS;
-			}
-			board.pieces &= ~(0x1FULL << INDEX_CARDS);
-			takenKingPos <<= 1;
+			board.pieces += (batch % 30) << INDEX_CARDS;
+			board.reverseMoves<&TableBase::placePiecesDead>(game, TB_GENERATE_MEN, 0, takenKingPos);
 		}
 	}
 }
@@ -252,9 +245,10 @@ void TableBase::generate(Game& game) {
 	for (myMaxPawns = 0; myMaxPawns <= maxMenPerSide - 1; myMaxPawns++)
 		for (otherMaxPawns = 0; otherMaxPawns <= std::min(maxMenPerSide - 1, TB_GENERATE_MEN - myMaxPawns - 2); otherMaxPawns++) {
 			atomic_thread_fence(std::memory_order_acq_rel);
+			std::atomic<U64> batchNum = 0;
 			std::vector<std::thread> threads;
 			for (int i = 0; i < numThreads; i++)
-				threads.push_back(std::thread(&TableBase::firstDepthThread, std::ref(game), i));
+				threads.push_back(std::thread(&TableBase::firstDepthThread, std::ref(game), std::ref(batchNum)));
 			for (int i = 0; i < numThreads; i++)
 				threads[i].join();
 			atomic_thread_fence(std::memory_order_acq_rel);

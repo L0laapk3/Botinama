@@ -23,7 +23,7 @@ private:
 
 	template<bool isMine, bool isFirst>
 	static void singleDepthThread(Game& game, std::promise<U64>&& promise, std::atomic<U64>& batchNum);
-	static void firstDepthThread(Game& game, const int threadNum);
+	static void firstDepthThread(Game& game, std::atomic<U64>& batchNum);
 	static void cleanTableThread(std::array<int8_t, TBSIZE>& table, const int threadNum);
 	U64 singleDepth(Game& game);
 	
