@@ -285,9 +285,20 @@ void TableBase::generate(Game& game) {
 	time = std::max(1ULL, (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - beginTime).count());
 
 	done = true;
+
+	// save();
 }
 
 
+
+
+
+void TableBase::save() const {
+	std::ofstream outFile("0269C.tb", std::ios::binary | std::ios::trunc);
+	outFile.write((char*)table->data(), table->size() * sizeof(uint8_t));
+	outFile.close();
+	std::cout << "saving done" << std::endl;
+}
 
 
 

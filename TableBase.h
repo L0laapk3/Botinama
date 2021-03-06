@@ -35,4 +35,5 @@ private:
 public:
 	TableBase();
 	void generate(Game& game);
+	void save() const;
 };
