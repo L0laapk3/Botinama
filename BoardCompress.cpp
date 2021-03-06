@@ -114,28 +114,31 @@ template<>
 U32 Board::compressToIndex<false>() const {
 	U32 boardComp = 0;
 	U64 bothPieces = (pieces - kings) & (MASK_PIECES | (((U64)MASK_PIECES) << 32));
-	unsigned long pieceI, otherPieceI;
+	unsigned long kingI, otherKingI;
 	assert(otherKing != 0);
-	_BitScanForward(&pieceI, kings);
-	_BitScanForward(&otherPieceI, kings >> 32);
-	boardComp = boardComp * 25 + pieceI;
-	boardComp = boardComp * 25 + otherPieceI;
+	_BitScanForward(&kingI, kings);
+	_BitScanForward(&otherKingI, kings >> 32);
+	boardComp = boardComp * 25 + kingI;
+	boardComp = boardComp * 25 + otherKingI;
 
-	_BitScanForward(&pieceI, bothPieces);
-	_BitScanForward(&otherPieceI, bothPieces >> 32);
+	unsigned long piece1I, otherPiece1I;
+	if (!_BitScanForward(&piece1I, bothPieces))
+		piece1I = kingI;
+	if (!_BitScanForward(&otherPiece1I, bothPieces >> 32))
+		otherPiece1I = otherKingI;
 	
 	if (TB_MEN <= 4) {
-		boardComp = boardComp * 25 + pieceI;
-		boardComp = boardComp * 25 + otherPieceI;
+		boardComp = boardComp * 25 + piece1I;
+		boardComp = boardComp * 25 + otherPiece1I;
 		
 		assert(boardComp < 25*25*25*25);
 	} else {
-		U32 pieceValue = pieceI * 25;
-		U32 otherPieceValue = otherPieceI * 25;
-		_BitScanReverse(&pieceI, bothPieces);
-		_BitScanReverse(&otherPieceI, bothPieces >> 32);
-		pieceValue += pieceI;
-		otherPieceValue += otherPieceI;
+		U32 pieceValue = piece1I * 25;
+		U32 otherPieceValue = otherPiece1I * 25;
+		_BitScanReverse(&kingI, bothPieces);
+		_BitScanReverse(&otherKingI, bothPieces >> 32);
+		pieceValue += kingI;
+		otherPieceValue += otherKingI;
 
 		boardComp = boardComp * 25*13 + std::min(pieceValue, 25*26-1 - pieceValue);
 		boardComp = boardComp * 25*13 + std::min(otherPieceValue, 25*26-1 - otherPieceValue);
@@ -161,15 +164,15 @@ U32 Board::compressToIndex<true>() const {
 	unsigned long kingI, otherKingI;
 	_BitScanForward(&kingI, kings);
 	_BitScanForward(&otherKingI, kings >> 32);
+	
+	boardComp = boardComp * 25 + 24 - otherKingI;
+	boardComp = boardComp * 25 + 24 - kingI;
+
 	unsigned long piece1I, otherPiece1I;
 	if (!_BitScanForward(&piece1I, bothPieces))
 		piece1I = kingI;
 	if (!_BitScanForward(&otherPiece1I, bothPieces >> 32))
 		otherPiece1I = otherKingI;
-
-	boardComp = boardComp * 25 + 24 - otherKingI;
-	boardComp = boardComp * 25 + 24 - kingI;
-
 	
 	if (TB_MEN <= 4) {
 		boardComp = boardComp * 25 + 24 - otherPiece1I;
@@ -177,13 +180,11 @@ U32 Board::compressToIndex<true>() const {
 	} else {
 		U32 pieceValue = 24 * 25 + 24 - piece1I;
 		U32 otherPieceValue = 24 * 25 + 24 - otherPiece1I;
-		unsigned long piece2I, otherPiece2I;
-		if (!_BitScanReverse(&piece2I, bothPieces))
-			piece2I = piece1I;
-		if (!_BitScanReverse(&otherPiece2I, bothPieces >> 32))
-			otherPiece2I = otherPiece1I;
-		pieceValue -= piece2I * 25;
-		otherPieceValue -= otherPiece2I * 25;
+		
+		_BitScanReverse(&kingI, bothPieces);
+		_BitScanReverse(&otherKingI, bothPieces >> 32);
+		pieceValue -= kingI * 25;
+		otherPieceValue -= otherKingI * 25;
 
 		boardComp = boardComp * 25*13 + std::min(otherPieceValue, 25*26-1 - otherPieceValue);
 		boardComp = boardComp * 25*13 + std::min(pieceValue, 25*26-1 - pieceValue);
