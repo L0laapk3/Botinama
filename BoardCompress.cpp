@@ -144,8 +144,12 @@ U32 Board::compressToIndex() const {
 		assert(boardComp < 25*25*25*13*25*13);
 	}
 
-	U32 cardI = (pieces & MASK_CARDS) >> INDEX_CARDS;
-	boardComp = boardComp * 30 + (flip ? CARDS_INVERT[cardI] : cardI);
+	boardComp *= 30;
+
+	if (!withoutCards) {
+		U32 cardI = (pieces & MASK_CARDS) >> INDEX_CARDS;
+		boardComp += flip ? CARDS_INVERT[cardI] : cardI;
+	}
 
 
 	// if (decompressIndex<false>(boardComp).pieces != pieces) {

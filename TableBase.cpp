@@ -37,36 +37,43 @@ void TableBase::addToTables(Game& game, const Board& board, const bool finished,
 	if (finished)
 		return;
 
-	bool exploreChildren = false;
-	U32 compressedBoard;
-	if (isMine) {
-		// you played this move, immediately add it to won boards
-		// only insert and iterate if it doesnt already exist (keeps lowest distance)
-		compressedBoard = board.compressToIndex<false>();
+	// U32 compressedBoardWithoutCards = board.compressToIndex<!isMine, true>();
+	// const U64 cardsI = (board.pieces & MASK_CARDS) >> INDEX_CARDS;
+	// const CardsPos& cardsPos = CARDS_LUT[isMine ? cardsI : CARDS_INVERT[cardsI]];
+	// U32 cardStuff = cardsPos.players[!isMine];
+	// for (U8 i = 0; i < 2; i++) {
+	// 	U32 compressedBoard = compressedBoardWithoutCards + (((U64)cardStuff >> 8) & 0xff);
+	// 	cardStuff >>= 16;
+		U32 compressedBoard = board.compressToIndex<!isMine, false>();
 
-		exploreChildren = isFirst || (*game.tableBase.table)[compressedBoard] == 0;
-		if (exploreChildren)
-			(*game.tableBase.table)[compressedBoard] = depthVal;
-		// if (isFirst)
-		// 	exploreChildren = false;
-
-	} else {
-		// opponents move. All forward moves must lead to a loss first
-		// (this function should only get called at most countForwardMoves times)
-		compressedBoard = board.compressToIndex<true>();
+		bool exploreChildren = false;
 		auto& entry = (*game.tableBase.table)[compressedBoard];
-		if (entry == 0) {
-			if (isFirst)
-				entry = 0x80;
-			exploreChildren = board.testForwardTB(game.cards, *game.tableBase.table);
-			if (exploreChildren) {
-				entry = -depthVal;
-				// std::cout << std::bitset<25>(board.kings >> 32) << ' ' << std::bitset<25>(board.kings) << ' ' << ((board.pieces >> INDEX_CARDS) & 0x1f) << std::endl;
+		if (isMine) {
+			// you played this move, immediately add it to won boards
+			// only insert and iterate if it doesnt already exist (keeps lowest distance)
+
+			exploreChildren = isFirst || entry == 0;
+			if (exploreChildren)
+				entry = depthVal;
+			// if (isFirst)
+			// 	exploreChildren = false;
+
+		} else {
+			// opponents move. All forward moves must lead to a loss first
+			// (this function should only get called at most countForwardMoves times)
+			if (entry == 0) {
+				if (isFirst)
+					entry = 0x80;
+				exploreChildren = board.testForwardTB(game.cards, *game.tableBase.table);
+				if (exploreChildren) {
+					entry = -depthVal;
+					// std::cout << std::bitset<25>(board.kings >> 32) << ' ' << std::bitset<25>(board.kings) << ' ' << ((board.pieces >> INDEX_CARDS) & 0x1f) << std::endl;
+				}
 			}
 		}
-	}
-	if (exploreChildren)
-		(*game.tableBase.queue)[compressedBoard/64] |= 1ULL << (compressedBoard % 64);
+		if (exploreChildren)
+			(*game.tableBase.queue)[compressedBoard/64] |= 1ULL << (compressedBoard%64);
+	// }
 };
 
 U32 maxMenPerSide;
