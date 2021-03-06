@@ -29,7 +29,7 @@ U64 numThreads = 0;
 
 
 //TODO: fix race conditions lol
-template<bool isMine, bool isFirst>
+template<bool isMine, bool isFirst, bool cacheFlag>
 void TableBase::addToTables(Game& game, const Board& board, const bool finished, const U32 _) {
 	// this function assumed that it is called in the correct distanceToWin order
 	// also assumes that there are no duplicate starting boards
@@ -37,13 +37,17 @@ void TableBase::addToTables(Game& game, const Board& board, const bool finished,
 	if (finished)
 		return;
 
+
 	// U32 compressedBoardWithoutCards = board.compressToIndex<!isMine, true>();
-	// const U64 cardsI = (board.pieces & MASK_CARDS) >> INDEX_CARDS;
-	// const CardsPos& cardsPos = CARDS_LUT[isMine ? cardsI : CARDS_INVERT[cardsI]];
+
+	// const CardsPos& cardsPos = CARDS_LUT[(board.pieces & MASK_CARDS) >> INDEX_CARDS];
+	// U64 playerPiecesWithoutCards = board.pieces & ~MASK_CARDS;
 	// U32 cardStuff = cardsPos.players[!isMine];
-	// for (U8 i = 0; i < 2; i++) {
-	// 	U32 compressedBoard = compressedBoardWithoutCards + (((U64)cardStuff >> 8) & 0xff);
+	// for (int i = 0; i < 2; i++) {
+	// 	//unsigned long cardI = cardStuff & 0xff;
+	// 	U32 compressedBoard = compressedBoardWithoutCards + (((U64)cardStuff & 0xff00) >> 8);
 	// 	cardStuff >>= 16;
+
 		U32 compressedBoard = board.compressToIndex<!isMine, false>();
 
 		bool exploreChildren = false;
@@ -62,7 +66,7 @@ void TableBase::addToTables(Game& game, const Board& board, const bool finished,
 			// opponents move. All forward moves must lead to a loss first
 			// (this function should only get called at most countForwardMoves times)
 			if (entry == 0) {
-				if (isFirst)
+				if (cacheFlag)
 					entry = 0x80;
 				exploreChildren = board.testForwardTB(game.cards, *game.tableBase.table);
 				if (exploreChildren) {
@@ -121,11 +125,11 @@ void TableBase::singleDepthThread(Game& game, std::promise<U64>&& promise, std::
 					_BitScanForward64(&i, bits);
 					bits ^= bits & -bits;	
 					if (currDepth % 2 == 0)
-						Board::decompressIndex<true>(i+chunk*64).reverseMoves<&TableBase::addToTables<true, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0);
+						Board::decompressIndex<true>(i+chunk*64).reverseMoves<&TableBase::addToTables<true, false, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0);
 					else if (currDepth < MAX_STOP_DUPLICATE_DEPTH)
-						Board::decompressIndex<false>(i+chunk*64).reverseMoves<&TableBase::addToTables<false, true>>(game, TB_GENERATE_MEN, maxMenPerSide, 0);
+						Board::decompressIndex<false>(i+chunk*64).reverseMoves<&TableBase::addToTables<false, false, true>>(game, TB_GENERATE_MEN, maxMenPerSide, 0);
 					else
-						Board::decompressIndex<false>(i+chunk*64).reverseMoves<&TableBase::addToTables<false, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0);
+						Board::decompressIndex<false>(i+chunk*64).reverseMoves<&TableBase::addToTables<false, false, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0);
 				}
 			}
 		}
@@ -185,7 +189,7 @@ void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied,
 	if (spotsLeft == minSpotsAll) {
 		Board board{ pieces, kings };
 		if (templeWin) {
-			addToTables<depthZero, depthZero>(game, board, false, 0);
+			addToTables<depthZero, true, false>(game, board, false, 0);
 		} else {
 			U64 otherKing = board.kings;
 			U32 scan = board.pieces & MASK_PIECES;
@@ -194,7 +198,7 @@ void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied,
 				scan &= scan - 1;
 				board.kings = kingPos | otherKing;
 				if (kingPos != MASK_END_POSITIONS[0])
-					addToTables<depthZero, depthZero>(game, board, false, 0);
+					addToTables<depthZero, true, false>(game, board, false, 0);
 			}
 		}
 	} else {

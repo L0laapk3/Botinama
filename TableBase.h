@@ -18,7 +18,7 @@ private:
 	std::unique_ptr<BitTable> queue = nullptr;
 	std::unique_ptr<BitTable> nextQueue = nullptr;
 
-	template<bool isMine, bool isFirst>
+	template<bool isMine, bool isFirst, bool cacheFlag>
 	static void addToTables(Game& game, const Board& board, const bool finished, const U32 _);
 
 	template<bool isMine, bool isFirst>
