@@ -63,3 +63,7 @@ static inline unsigned char _BitScanReverse64(unsigned long* Index, U64 Mask)
 #endif
 #define USING_INTRINSICS
 #endif
+
+static inline U64 swap32(U64 in) {
+    return in >> 32 | in << 32;
+}

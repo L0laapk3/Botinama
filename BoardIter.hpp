@@ -4,7 +4,7 @@
 
 // unfortunately due to my lack of cpp knowledge I had to duplicate this into boardsearch. see there for version with move sorting
 template<MoveFunc cb, bool reverse>
-void Board::iterateMoves(Game& game, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, const bool createPiece, const int8_t depthVal, const int threadNum) const {
+void Board::iterateMoves(Game& game, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, const bool createPiece, const U32 passTrough) const {
 	//card.print();
 	U32 bitScan = (piecesWithNewCards >> (player ? 32 : 0)) & MASK_PIECES;
 	// U32 kingPieceNum = (piecesWithNewCards >> INDEX_KINGS[player]) & 7;
@@ -46,14 +46,14 @@ void Board::iterateMoves(Game& game, const MoveBoard& moveBoards, U64 piecesWith
 				const bool finished = landBit & endMask;
 				// if (isKingMove)
 				// 	std::cout << "kings changed " << std::bitset<64>(kings - (((U64)fromBit) << (player ? 32 : 0)) + (((U64)landBit) << (player ? 32 : 0)));
-				cb(game, Board{ newPieces, isKingMove ? kings - (((U64)fromBit) << (player ? 32 : 0)) + (((U64)landBit) << (player ? 32 : 0)) : kings }, finished, depthVal, threadNum);
+				cb(game, Board{ newPieces, isKingMove ? kings - (((U64)fromBit) << (player ? 32 : 0)) + (((U64)landBit) << (player ? 32 : 0)) : kings }, finished, passTrough);
 			}
 		}
 	}
 }
 
 template<MoveFunc cb>
-void Board::forwardMoves(Game& game, const int8_t depthVal, const int threadNum) const {
+void Board::forwardMoves(Game& game, const U32 passTrough) const {
 	bool player = pieces & MASK_TURN;
 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
 	U64 piecesWithoutCards = pieces & ~MASK_CARDS;
@@ -64,12 +64,12 @@ void Board::forwardMoves(Game& game, const int8_t depthVal, const int threadNum)
 		U64 piecesWithNewCards = piecesWithoutCards | (((U64)cardStuff & 0xff00) << (INDEX_CARDS - 8ULL));
 		cardStuff >>= 16;
 		const auto& card = game.cards[cardI];
-		iterateMoves<cb, false>(game, card.moveBoards[player], piecesWithNewCards, player, false, depthVal, threadNum);
+		iterateMoves<cb, false>(game, card.moveBoards[player], piecesWithNewCards, player, false, passTrough);
 	}
 }
 
 template<MoveFunc cb>
-void Board::reverseMoves(Game& game, const U32 maxMen, const U32 maxMenPerSide, const int8_t depthVal, const int threadNum) const {
+void Board::reverseMoves(Game& game, const U32 maxMen, const U32 maxMenPerSide, const U32 passTrough) const {
 	//print(gameCards, false, true);
 	bool player = !(pieces & MASK_TURN);
 	const CardsPos& cardsPos = CARDS_LUT[(pieces & MASK_CARDS) >> INDEX_CARDS];
@@ -84,6 +84,6 @@ void Board::reverseMoves(Game& game, const U32 maxMen, const U32 maxMenPerSide, 
 		//std::cout << _popcnt32((pieces >> (player ? 0 : 32)) & MASK_PIECES) << std::endl;
 		//std::cout << maxMenPerSide << ' ' << _popcnt32((pieces >> (player ? 0 : 32)) & MASK_PIECES) << ' ' << maxMen << ' ' << _popcnt64(pieces & (MASK_PIECES | (MASK_PIECES << 32))) << ' ' << ((maxMenPerSide > _popcnt32((pieces >> (player ? 0 : 32)) & MASK_PIECES)) && (maxMen > _popcnt64(pieces & (MASK_PIECES | (MASK_PIECES << 32))))) << std::endl;
 		const bool createMorePieces = (maxMenPerSide > _popcnt32((pieces >> (player ? 0 : 32)) & MASK_PIECES)) && (maxMen > _popcnt64(pieces & (MASK_PIECES | (MASK_PIECES << 32))));
-		iterateMoves<cb, true>(game, card.moveBoards[!player], piecesWithNewCards, player, createMorePieces, depthVal, threadNum);
+		iterateMoves<cb, true>(game, card.moveBoards[!player], piecesWithNewCards, player, createMorePieces, passTrough);
 	}
 }

@@ -30,7 +30,7 @@ U64 numThreads = 0;
 
 //TODO: fix race conditions lol
 template<bool isMine, bool isFirst>
-void TableBase::addToTables(Game& game, const Board& board, const bool finished, const int8_t _, const int threadNum) {
+void TableBase::addToTables(Game& game, const Board& board, const bool finished, const U32 _) {
 	// this function assumed that it is called in the correct distanceToWin order
 	// also assumes that there are no duplicate starting boards
 
@@ -77,7 +77,7 @@ void TableBase::firstDepthThread(Game& game, const int threadNum) {
 		int i = threadNum / numThreads;
 		board.pieces += i << INDEX_CARDS;
 		for (; i < 30 * (threadNum + 1) / numThreads; i++) {
-			board.reverseMoves<&TableBase::placePiecesTemple>(game, TB_GENERATE_MEN, 0, threadNum, 0);
+			board.reverseMoves<&TableBase::placePiecesTemple>(game, TB_GENERATE_MEN, 0, 0);
 			board.pieces += 1ULL << INDEX_CARDS;
 		}
 	}
@@ -91,7 +91,7 @@ void TableBase::firstDepthThread(Game& game, const int threadNum) {
 			Board board{ takenKingPos | MASK_TURN };
 			for (int i = 0; i < 30; i++) {
 				//std::cout << "alive" << ((board.pieces >> INDEX_KINGS[1]) & 7) << std::endl;
-				board.reverseMoves<&TableBase::placePiecesDead>(game, TB_GENERATE_MEN, 0, threadNum, takenKingPos);
+				board.reverseMoves<&TableBase::placePiecesDead>(game, TB_GENERATE_MEN, 0, takenKingPos);
 				board.pieces += 1ULL << INDEX_CARDS;
 			}
 			board.pieces &= ~(0x1FULL << INDEX_CARDS);
@@ -119,11 +119,11 @@ void TableBase::singleDepthThread(Game& game, std::promise<U64>&& promise, std::
 					_BitScanForward64(&i, bits);
 					bits ^= bits & -bits;	
 					if (currDepth % 2 == 0)
-						Board::decompressIndex<true>(i+chunk*64).reverseMoves<&TableBase::addToTables<true, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, 0);
+						Board::decompressIndex<true>(i+chunk*64).reverseMoves<&TableBase::addToTables<true, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0);
 					else if (currDepth < MAX_STOP_DUPLICATE_DEPTH)
-						Board::decompressIndex<false>(i+chunk*64).reverseMoves<&TableBase::addToTables<false, true>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, 0);
+						Board::decompressIndex<false>(i+chunk*64).reverseMoves<&TableBase::addToTables<false, true>>(game, TB_GENERATE_MEN, maxMenPerSide, 0);
 					else
-						Board::decompressIndex<false>(i+chunk*64).reverseMoves<&TableBase::addToTables<false, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0, 0);
+						Board::decompressIndex<false>(i+chunk*64).reverseMoves<&TableBase::addToTables<false, false>>(game, TB_GENERATE_MEN, maxMenPerSide, 0);
 				}
 			}
 		}
@@ -179,11 +179,11 @@ U64 TableBase::singleDepth(Game& game) {
 
 
 template<bool templeWin>
-void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied, U64 kings, U32 startAt, U32 spotsLeft, U32 minSpots0, U32 minSpotsAll, U32 myMaxPawns, U32 otherMaxPawns, U32 threadNum) {
+void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied, U64 kings, U32 startAt, U32 spotsLeft, U32 minSpots0, U32 minSpotsAll, U32 myMaxPawns, U32 otherMaxPawns) {
 	if (spotsLeft == minSpotsAll) {
 		Board board{ pieces, kings };
 		if (templeWin) {
-			addToTables<true, true>(game, board, false, 0, threadNum);
+			addToTables<true, true>(game, board, false, 0);
 		} else {
 			U32 kingI = 1;
 			while (true) {
@@ -193,7 +193,7 @@ void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied,
 				kingI <<= 1;
 				board.kings += kingPos;
 				if (kingPos != MASK_END_POSITIONS[0])
-					addToTables<true, true>(game, board, false, 0, threadNum);
+					addToTables<true, true>(game, board, false, 0);
 				board.kings -= kingPos;
 			}
 		}
@@ -203,14 +203,14 @@ void TableBase::placePieces(Game& game, U64 pieces, std::array<U32, 2> occupied,
 		while (piece & MASK_PIECES) {
 			startAt++;
 			if (piece & ~occupied[player]) {
-				placePieces<templeWin>(game, pieces | (((U64)piece) << (player ? 32 : 0)), { occupied[0] | piece, occupied[1] | piece }, kings, spotsLeft == minSpots0 + 1 ? 0 : startAt, spotsLeft - 1, minSpots0, minSpotsAll, myMaxPawns, otherMaxPawns, threadNum);
+				placePieces<templeWin>(game, pieces | (((U64)piece) << (player ? 32 : 0)), { occupied[0] | piece, occupied[1] | piece }, kings, spotsLeft == minSpots0 + 1 ? 0 : startAt, spotsLeft - 1, minSpots0, minSpotsAll, myMaxPawns, otherMaxPawns);
 			}
 			piece <<= 1;
 		}
 	}
 }
 
-void TableBase::placePiecesTemple(Game& game, const Board& board, const bool finished, const int8_t threadNum, const int _) {
+void TableBase::placePiecesTemple(Game& game, const Board& board, const bool finished, const U32 _) {
 	if (finished)
 		return;
 	U32 otherKing = 1ULL;
@@ -219,16 +219,16 @@ void TableBase::placePiecesTemple(Game& game, const Board& board, const bool fin
 			otherKing <<= 1;
 		U64 pieces = board.pieces | (((U64)otherKing) << 32);
 		U32 occupied = board.pieces | otherKing;
-		placePieces<true>(game, pieces, { occupied | MASK_END_POSITIONS[0], occupied }, (board.pieces & MASK_PIECES) | (((U64)otherKing) << 32), 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns, threadNum);
+		placePieces<true>(game, pieces, { occupied | MASK_END_POSITIONS[0], occupied }, (board.pieces & MASK_PIECES) | (((U64)otherKing) << 32), 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns);
 		otherKing <<= 1;
 	}
 }
-void TableBase::placePiecesDead(Game& game, const Board& board, const bool finished, const int8_t threadNum, const int takenKingPos) {
+void TableBase::placePiecesDead(Game& game, const Board& board, const bool finished, const U32 takenKingPos) {
 	if (finished)
 		return;
 	U64 pieces = board.pieces | (((U64)takenKingPos) << 32);
 	U32 occupied = board.pieces | takenKingPos;
-	placePieces<false>(game, pieces, { occupied, occupied }, ((U64)takenKingPos) << 32, 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns, threadNum);
+	placePieces<false>(game, pieces, { occupied, occupied }, ((U64)takenKingPos) << 32, 0, 23, 23 - myMaxPawns, 23 - myMaxPawns - otherMaxPawns, myMaxPawns, otherMaxPawns);
 }
 
 
