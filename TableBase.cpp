@@ -65,17 +65,17 @@ void TableBase::addToTables(Game& game, Board& board, const bool finished, U32 c
 		} else {
 			// opponents move. All forward moves must lead to a loss first
 			// (this function should only get called at most countForwardMoves times)
-			board.pieces |= newCardsI << INDEX_CARDS;
 			if (entry == 0) {
 				if (cacheFlag)
 					entry = 0x80;
+				board.pieces |= newCardsI << INDEX_CARDS;
 				exploreChildren = board.testForwardTB(game.cards, *game.tableBase.table);
+				board.pieces &= ~MASK_CARDS;
 				if (exploreChildren) {
 					entry = -depthVal;
 					// std::cout << std::bitset<25>(board.kings >> 32) << ' ' << std::bitset<25>(board.kings) << ' ' << ((board.pieces >> INDEX_CARDS) & 0x1f) << std::endl;
 				}
 			}
-			board.pieces &= ~MASK_CARDS;
 		}
 		if (exploreChildren)
 			(*game.tableBase.queue)[compressedBoard/64] |= 1ULL << (compressedBoard%64);
