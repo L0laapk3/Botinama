@@ -38,7 +38,7 @@ SearchResult Game::search(const Board& board, U8 maxDepth, Score alpha, const Sc
 						if (result < 0 != player)
 							childScore *= -1;
 					} else {
-						childScore = (player ? -1 : 1) * board.eval(cards);
+						childScore = 0;
 					}
 					TBHit = true;
 				}
