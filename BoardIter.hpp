@@ -4,7 +4,7 @@
 
 // unfortunately due to my lack of cpp knowledge I had to duplicate this into boardsearch. see there for version with move sorting
 template<MoveFunc cb, bool reverse>
-void Board::iterateMoves(Game& game, const MoveBoard& moveBoards, U64 piecesWithoutCards, bool player, U32 cardStuff, const bool createPiece, const U32 passTrough) const {
+void Board::iterateMoves(Game& game, const MoveBoard& moveBoards, U64 piecesWithoutCards, bool player, U32 cardStuff, U8 sideCard, const bool createPiece, const U32 passTrough) const {
 	//card.print();
 
 
@@ -51,7 +51,7 @@ void Board::iterateMoves(Game& game, const MoveBoard& moveBoards, U64 piecesWith
 				// 	std::cout << "kings changed " << std::bitset<64>(kings - (((U64)fromBit) << (player ? 32 : 0)) + (((U64)landBit) << (player ? 32 : 0)));
 
 				Board newBoard{ newPieces, isKingMove ? kings - (((U64)fromBit) << (player ? 32 : 0)) + (((U64)landBit) << (player ? 32 : 0)) : kings };
-				cb(game, newBoard, finished, cardStuff, passTrough);
+				cb(game, newBoard, finished, cardStuff, sideCard, passTrough);
 			}
 		}
 	}
@@ -84,8 +84,6 @@ void Board::reverseMoves(Game& game, const U32 maxMen, const U32 maxMenPerSide, 
 	playerPiecesWithoutCards ^= MASK_TURN; // invert player bit
 	const auto& card = game.cards[cardsPos.side];
 	U32 cardStuff = cardsPos.players[player];
-		//std::cout << _popcnt32((pieces >> (player ? 0 : 32)) & MASK_PIECES) << std::endl;
-		//std::cout << maxMenPerSide << ' ' << _popcnt32((pieces >> (player ? 0 : 32)) & MASK_PIECES) << ' ' << maxMen << ' ' << _popcnt64(pieces & (MASK_PIECES | (MASK_PIECES << 32))) << ' ' << ((maxMenPerSide > _popcnt32((pieces >> (player ? 0 : 32)) & MASK_PIECES)) && (maxMen > _popcnt64(pieces & (MASK_PIECES | (MASK_PIECES << 32))))) << std::endl;
-		const bool createMorePieces = (maxMenPerSide > _popcnt32((pieces >> (player ? 0 : 32)) & MASK_PIECES)) && (maxMen > _popcnt64(pieces & (MASK_PIECES | (MASK_PIECES << 32))));
-		iterateMoves<cb, true>(game, card.moveBoards[!player], playerPiecesWithoutCards, player, cardStuff, createMorePieces, passTrough);
+	const bool createMorePieces = (maxMenPerSide > _popcnt32((pieces >> (player ? 0 : 32)) & MASK_PIECES)) && (maxMen > _popcnt64(pieces & (MASK_PIECES | (MASK_PIECES << 32))));
+	iterateMoves<cb, true>(game, card.moveBoards[!player], playerPiecesWithoutCards, player, cardStuff, cardsPos.side, createMorePieces, passTrough);
 }

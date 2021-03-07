@@ -24,14 +24,14 @@ extern std::array<const Card, 16> CARDS;
 
 struct CardsPos {
 	std::array<U32, 2> players;
-	U32 side;
-	static CardsPos construct(U32 blue0, U32 blue1, U32 red0, U32 red1, U32 side, U32 swapBlue0, U32 swapBlue1, U32 swapRed0, U32 swapRed1) {
+	U8 side;
+	static CardsPos construct(U32 blue0, U32 blue1, U32 red0, U32 red1, U8 side, U32 swapBlue0, U32 swapBlue1, U32 swapRed0, U32 swapRed1) {
 		return CardsPos{
 			{
 				(blue0 - 1) | (swapBlue0 << 8) | ((blue1 - 1) << 16) | (swapBlue1 << 24),
 				(red0 - 1) | (swapRed0 << 8) | ((red1 - 1) << 16) | (swapRed1 << 24)
 			},
-			side - 1
+			(U8)(side - 1)
 		};
 	};
 };
@@ -68,3 +68,11 @@ const std::array<CardsPos, 30> CARDS_LUT = { {
 	CardsPos::construct(4, 5, 2, 3, 1,	8,	2,	23,	17),
 } };
 const std::array<U32, 30> CARDS_INVERT = { 5, 4, 3, 2, 1, 0, 11, 10, 9, 8, 7, 6, 17, 16, 15, 14, 13, 12, 23, 22, 21, 20, 19, 18, 29, 28, 27, 26, 25, 24 };
+
+const std::array<std::array<uint8_t, 12>, 5> CARDS_USERS = {{
+	{0, 1, 2, 6, 7, 8, 12, 13, 14, 18, 19, 20 },
+	{0, 3, 4, 6, 9, 10, 12, 15, 16, 24, 25, 26 },
+	{1, 3, 5, 7, 9, 11, 18, 21, 22, 24, 27, 28 },
+	{2, 4, 5, 13, 15, 17, 19, 21, 23, 25, 27, 29 },
+	{8, 10, 11, 14, 16, 17, 20, 22, 23, 26, 28, 29 },
+}};

@@ -15,7 +15,7 @@
 
 class Game;
 class Board;
-typedef void (*MoveFunc)(Game& game, Board& board, const bool finished, U32 cardStuff, const U32 passTrough);
+typedef void (*MoveFunc)(Game& game, Board& board, const bool finished, U32 cardStuff, U8 sideCard, const U32 passTrough);
 
 
 class TableBase;
@@ -51,7 +51,7 @@ private:
 	//BoardIter
 private:
 	template<MoveFunc cb, bool reverse>
-	void iterateMoves(Game& game, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, U32 cardStuff, const bool createPiece, const U32 passTrough) const;
+	void iterateMoves(Game& game, const MoveBoard& moveBoards, U64 piecesWithNewCards, bool player, U32 cardStuff, U8 sideCard, const bool createPiece, const U32 passTrough) const;
 public:
 	template<MoveFunc cb>
 	void forwardMoves(Game& game, const U32 passTrough) const;
