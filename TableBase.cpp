@@ -40,15 +40,21 @@ void TableBase::addToTables(Game& game, Board& board, const bool finished, U32 c
 	U32 compressedNoCards = board.compressToIndex<!isMine, true>();
 
 	for (int i = 0; i < (isFirst ? 12 : 2); i++) {
-		U32 newCardsI;
+		U32 compressedBoard = compressedNoCards;
 		if (isFirst) {
-			newCardsI = CARDS_USERS[sideCard][i];
+			U32 newCardsI = CARDS_USERS[sideCard][i];
+			compressedBoard += (isMine ? newCardsI : CARDS_INVERT[newCardsI]);
+			if (!isMine)
+				board.pieces |= newCardsI << INDEX_CARDS;
 		} else {
-			newCardsI = (cardStuff & 0xff00) >> 8;
+			U32 newCardsI = cardStuff & 0xff00;
 			cardStuff >>= 16;
+			compressedBoard += (isMine ? newCardsI >> 8 : CARDS_INVERT[newCardsI >> 8]);
+			if (!isMine)
+				board.pieces |= newCardsI << (INDEX_CARDS - 8);
 		}
 
-		U32 compressedBoard = compressedNoCards + (isMine ? newCardsI : CARDS_INVERT[newCardsI]);
+		
 
 		bool exploreChildren = false;
 		auto& entry = (*game.tableBase.table)[compressedBoard];
@@ -65,7 +71,6 @@ void TableBase::addToTables(Game& game, Board& board, const bool finished, U32 c
 		} else {
 			// opponents move. All forward moves must lead to a loss first
 			// (this function should only get called at most countForwardMoves times)
-			board.pieces |= newCardsI << INDEX_CARDS;
 			if (entry == 0) {
 				if (cacheFlag)
 					entry = 0x80;
